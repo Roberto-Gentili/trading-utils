@@ -1,0 +1,125 @@
+//@version=6
+indicator(title="Multiple EMA, Bollinger bands, Parabolic SAR and critical spike indicator", overlay=true)
+
+// EMAS
+allEMASDisabled = input.bool(false, title="Disabled", group = "All EMA")
+
+emaOneLabel = "EMA 1"
+emaLen = input.int(7, minval=1, title="Length", group=emaOneLabel, inline = emaOneLabel)
+emaSrc = input(close, title="Source", group=emaOneLabel, inline = emaOneLabel)
+emaOffset = input.int(title="Offset", defval=0, minval=-500, maxval=500, group=emaOneLabel, inline = emaOneLabel)
+ema = ta.ema(emaSrc, emaLen)
+plot(ema, emaOneLabel, display = allEMASDisabled? display.none : display.all, color=color.white, offset=input.int(title="Offset", defval=0, minval=-500, maxval=500, group=emaOneLabel, inline = emaOneLabel))
+
+emaTwoLabel = "EMA 2"
+emaLen := input.int(25, minval=1, title="Length", group=emaTwoLabel, inline = emaTwoLabel)
+emaSrc := input(close, title="Source", group=emaTwoLabel, inline = emaTwoLabel)
+emaOffset := input.int(title="Offset", defval=0, minval=-500, maxval=500, group=emaTwoLabel, inline = emaTwoLabel)
+ema := ta.ema(emaSrc, emaLen)
+plot(ema, emaTwoLabel, display = allEMASDisabled? display.none : display.all, color=color.yellow, offset=emaOffset)
+
+emaThreeLabel = "EMA 3"
+emaLen := input.int(50, minval=1, title="Length", group=emaThreeLabel, inline = emaThreeLabel)
+emaSrc := input(close, title="Source", group=emaThreeLabel, inline = emaThreeLabel)
+emaOffset := input.int(title="Offset", defval=0, minval=-500, maxval=500, group=emaThreeLabel, inline = emaThreeLabel)
+ema := ta.ema(emaSrc, emaLen)
+plot(ema, emaThreeLabel, display = allEMASDisabled? display.none : display.all, color=color.orange, offset=emaOffset)
+
+emaFourLabel = "EMA 4"
+emaLen := input.int(100, minval=1, title="Length", group=emaFourLabel, inline = emaFourLabel)
+emaSrc := input(close, title="Source", group=emaFourLabel, inline = emaFourLabel)
+emaOffset := input.int(title="Offset", defval=0, minval=-500, maxval=500, group=emaFourLabel, inline = emaFourLabel)
+ema := ta.ema(emaSrc, emaLen)
+plot(ema, emaFourLabel, display = allEMASDisabled? display.none : display.all, color=color.aqua, offset=emaOffset)
+
+emaFiveLabel = "EMA 5"
+emaLen := input.int(150, minval=1, title="Length", group=emaFiveLabel, inline = emaFiveLabel)
+emaSrc := input(close, title="Source", group=emaFiveLabel, inline = emaFiveLabel)
+emaOffset := input.int(title="Offset", defval=0, minval=-500, maxval=500, group=emaFiveLabel, inline = emaFiveLabel)
+ema := ta.ema(emaSrc, emaLen)
+plot(ema, emaFiveLabel, display = allEMASDisabled? display.none : display.all, color=color.fuchsia, offset=emaOffset)
+
+emaSixLabel = "EMA 6"
+emaLen := input.int(200, minval=1, title="Length", group=emaSixLabel, inline=emaSixLabel)
+emaSrc := input(close, title="Source", group=emaSixLabel, inline = emaSixLabel)
+emaOffset := input.int(title="Offset", defval=0, minval=-500, maxval=500, group=emaSixLabel, inline = emaSixLabel)
+ema := ta.ema(emaSrc, emaLen)
+plot(ema, emaSixLabel, display = allEMASDisabled? display.none : display.all, color=color.green, offset=emaOffset)
+
+// Parabolic SAR
+parabolicSARLabel = "Parabolic SAR"
+start = input(0.02, group=parabolicSARLabel, inline=parabolicSARLabel)
+increment = input(0.02, group=parabolicSARLabel, inline=parabolicSARLabel)
+maximum = input(0.2, group=parabolicSARLabel, inline=parabolicSARLabel)
+out = ta.sar(start, increment, maximum)
+plot(out, parabolicSARLabel, style=plot.style_cross, color=#2962FF, display = display.none)
+
+// Bollinger Bands
+bBLabel = "Bollinger bands"
+bbDisabled = input.bool(false, title="Disabled", group = bBLabel)
+
+length = input.int(20, minval=1, group = bBLabel, inline = bBLabel)
+src = input(close, title="Source", group = bBLabel, inline = bBLabel)
+mult = input.float(2.0, minval=0.001, maxval=50, title="StdDev", group = bBLabel, inline = bBLabel)
+basis = ta.sma(src, length)
+dev = mult * ta.stdev(src, length)
+upper = basis + dev
+lower = basis - dev
+offset = input.int(0, "Offset", minval = -500, maxval = 500, group = bBLabel, inline = bBLabel)
+plot(basis, "Basis", color=color.rgb(0, 0, 0, 0), offset = offset, linewidth = 2)
+p1 = plot(upper, "Upper", display = bbDisabled? display.none : display.all, color=#ff0000, offset = offset, linewidth = 2)
+p2 = plot(lower, "Lower", display = bbDisabled? display.none : display.all, color=#37ff00, offset = offset, linewidth = 2)
+fill(p1, p2, title = "Background", display = bbDisabled? display.none : display.all, color=color.rgb(33, 149, 243, 90))
+
+// Scalp indicator
+scalpIndicatorLabel = "Critical spike detector"
+scalpIndicatorDisabled = input.bool(false, title="Disabled", group = scalpIndicatorLabel, inline = scalpIndicatorLabel)
+considerOnlyBBContacts = input.bool(false, title="Consider only contacts with BB", group = scalpIndicatorLabel, inline = scalpIndicatorLabel)
+scalp1MIndicatorLabel = "1M chart"
+scalp1WIndicatorLabel = "1W chart"
+scalp1DIndicatorLabel = "1D chart"
+scalp4HIndicatorLabel = "4H chart"
+scalp2HIndicatorLabel = "2H chart"
+scalp1HIndicatorLabel = "1H chart"
+scalp15mIndicatorLabel = "15m chart"
+scalp5mIndicatorLabel = "5m chart"
+scalp1mIndicatorLabel = "1m chart"
+spikePercentage = switch timeframe.period
+    "1M" => input.int(40, minval=1, title= "1M spike % size", group = scalpIndicatorLabel, inline = scalp1MIndicatorLabel)
+    "1W" => input.float(40, minval=0, maxval=100, title="1W spike % size", group = scalpIndicatorLabel, inline = scalp1WIndicatorLabel)
+    "1D" => input.float(40, minval=0,  maxval=100, title="1D spike % size", group = scalpIndicatorLabel, inline = scalp1DIndicatorLabel)
+    "240" => input.float(40, minval=0,  maxval=100, title="4H spike % size", group = scalpIndicatorLabel, inline = scalp4HIndicatorLabel)
+    "120" => input.float(40, minval=0,  maxval=100, title="2H spike % size", group = scalpIndicatorLabel, inline = scalp2HIndicatorLabel)
+    "60" => input.float(30, minval=0,  maxval=100, title="1H spike % size", group = scalpIndicatorLabel, inline = scalp1HIndicatorLabel)
+    "15" => input.float(30, minval=0,  maxval=100, title="15m spike % size", group = scalpIndicatorLabel, inline = scalp15mIndicatorLabel)
+    "5" => input.float(30, minval=0,  maxval=100, title="5m spike % size", group = scalpIndicatorLabel, inline = scalp5mIndicatorLabel)
+    "1" => input.float(30, minval=0, maxval=100, title="1m spike % size", group = scalpIndicatorLabel, inline = scalp1mIndicatorLabel)
+    => 40
+
+comparingValue = switch timeframe.period
+    "1M" => input.float(15.0, minval=0, maxval=100, title="% of cs variation", group = scalpIndicatorLabel, inline = scalp1MIndicatorLabel)
+    "1W" => input.float(9.0, minval=0, maxval=100, title="% of cs variation", group = scalpIndicatorLabel, inline = scalp1WIndicatorLabel)
+    "1D" => input.float(5.0, minval=0,  maxval=100, title="% of cs variation", group = scalpIndicatorLabel, inline = scalp1DIndicatorLabel)
+    "240" => input.float(3.0, minval=0,  maxval=100, title="% of cs variation", group = scalpIndicatorLabel, inline = scalp4HIndicatorLabel)
+    "120" => input.float(2.0, minval=0,  maxval=100, title="% of cs variation", group = scalpIndicatorLabel, inline = scalp2HIndicatorLabel)
+    "60" => input.float(1.5, minval=0,  maxval=100, title="% of cs variation", group = scalpIndicatorLabel, inline = scalp1HIndicatorLabel)
+    "15" => input.float(0.75, minval=0,  maxval=100, title="% of cs variation", group = scalpIndicatorLabel, inline = scalp15mIndicatorLabel)
+    "5" => input.float(0.5, minval=0,  maxval=100, title="% of cs variation", group = scalpIndicatorLabel, inline = scalp5mIndicatorLabel)
+    "1" => input.float(0.25, minval=0, maxval=100, title="% of cs variation", group = scalpIndicatorLabel, inline = scalp1mIndicatorLabel)
+    => 
+        runtime.error('No comparison value for period: ' + timeframe.period)
+        float(na)
+
+priceVariation = high - low
+lowSpikeValue = close < open ? close - low : open - low
+highSpikeValue = close > open ? high - close : high - open
+lowSpikePercentage = (lowSpikeValue * 100)/priceVariation
+highSpikePercentage = (highSpikeValue * 100)/priceVariation
+totalCandleVariation = ((high - low) / high) * 100
+//log.info('variation: {0}', totalCandleVariation)
+buyCondition = lowSpikePercentage >= spikePercentage and totalCandleVariation >= comparingValue and lowSpikeValue >= highSpikeValue and (considerOnlyBBContacts ? (low <= lower) : true)
+sellCondition = highSpikePercentage >= spikePercentage and totalCandleVariation >= comparingValue and highSpikeValue >= lowSpikeValue and (considerOnlyBBContacts ? (high >= upper) : true)
+plotshape(not scalpIndicatorDisabled and buyCondition, title="Up Alert", location=location.belowbar, color=color.green, size=size.tiny, style=shape.triangleup)
+plotshape(not scalpIndicatorDisabled and sellCondition, title="Down Alert", location=location.abovebar, color=color.red, size=size.tiny, style=shape.triangledown)
+
+alertcondition(buyCondition or sellCondition, title= "Buy/sell condition", message="It's the time...")
