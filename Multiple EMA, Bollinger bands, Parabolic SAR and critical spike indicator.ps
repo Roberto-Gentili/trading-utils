@@ -1,5 +1,5 @@
 //@version=6
-indicator(title="Multiple EMA, Bollinger bands, Parabolic SAR and critical spike indicator", shorttitle="MEBBPSCSI", overlay=true)
+indicator(title="Multiple EMA, Bollinger bands, Parabolic SAR, critical spike and support and resistence channels", shorttitle="MEBBPSCSSRC", overlay=true)
 
 // EMAS
 allEMASDisabled = input.bool(false, title="Disabled", group = "All EMA")
@@ -71,41 +71,42 @@ p1 = plot(upper, "Upper", display = bbDisabled? display.none : display.all, colo
 p2 = plot(lower, "Lower", display = bbDisabled? display.none : display.all, color=#37ff00, offset = offset, linewidth = 2)
 fill(p1, p2, title = "Background", display = bbDisabled? display.none : display.all, color=color.rgb(33, 149, 243, 90))
 
-// Scalp indicator
-scalpIndicatorLabel = "Critical spike detector"
-scalpIndicatorDisabled = input.bool(false, title="Disabled", group = scalpIndicatorLabel, inline = scalpIndicatorLabel)
-considerOnlyBBContacts = input.bool(false, title="Consider only contacts with BB", group = scalpIndicatorLabel, inline = scalpIndicatorLabel)
-scalp1MIndicatorLabel = "1M chart"
-scalp1WIndicatorLabel = "1W chart"
-scalp1DIndicatorLabel = "1D chart"
-scalp4HIndicatorLabel = "4H chart"
-scalp2HIndicatorLabel = "2H chart"
-scalp1HIndicatorLabel = "1H chart"
-scalp15mIndicatorLabel = "15m chart"
-scalp5mIndicatorLabel = "5m chart"
-scalp1mIndicatorLabel = "1m chart"
+
+// Critical spike detector
+criticalSpikeLabel = "Critical spike detector"
+criticalSpikeDisabled = input.bool(true, title="Disabled", group = criticalSpikeLabel, inline = criticalSpikeLabel)
+considerOnlyBBContacts = input.bool(false, title="Consider only contacts with BB", group = criticalSpikeLabel, inline = criticalSpikeLabel)
+criticalSpike1MLabel = "1M chart"
+criticalSpike1WLabel = "1W chart"
+criticalSpike1DLabel = "1D chart"
+criticalSpike4HLabel = "4H chart"
+criticalSpike2HLabel = "2H chart"
+criticalSpike1HLabel = "1H chart"
+criticalSpike15mLabel = "15m chart"
+criticalSpike5mLabel = "5m chart"
+criticalSpike1mLabel = "1m chart"
 spikePercentage = switch timeframe.period
-    "1M" => input.int(40, minval=1, title= "1M spike % size", group = scalpIndicatorLabel, inline = scalp1MIndicatorLabel)
-    "1W" => input.float(40, minval=0, maxval=100, title="1W spike % size", group = scalpIndicatorLabel, inline = scalp1WIndicatorLabel)
-    "1D" => input.float(40, minval=0,  maxval=100, title="1D spike % size", group = scalpIndicatorLabel, inline = scalp1DIndicatorLabel)
-    "240" => input.float(40, minval=0,  maxval=100, title="4H spike % size", group = scalpIndicatorLabel, inline = scalp4HIndicatorLabel)
-    "120" => input.float(40, minval=0,  maxval=100, title="2H spike % size", group = scalpIndicatorLabel, inline = scalp2HIndicatorLabel)
-    "60" => input.float(30, minval=0,  maxval=100, title="1H spike % size", group = scalpIndicatorLabel, inline = scalp1HIndicatorLabel)
-    "15" => input.float(30, minval=0,  maxval=100, title="15m spike % size", group = scalpIndicatorLabel, inline = scalp15mIndicatorLabel)
-    "5" => input.float(30, minval=0,  maxval=100, title="5m spike % size", group = scalpIndicatorLabel, inline = scalp5mIndicatorLabel)
-    "1" => input.float(30, minval=0, maxval=100, title="1m spike % size", group = scalpIndicatorLabel, inline = scalp1mIndicatorLabel)
+    "1M" => input.int(40, minval=1, title= "1M spike % size", group = criticalSpikeLabel, inline = criticalSpike1MLabel)
+    "1W" => input.float(40, minval=0, maxval=100, title="1W spike % size", group = criticalSpikeLabel, inline = criticalSpike1WLabel)
+    "1D" => input.float(40, minval=0,  maxval=100, title="1D spike % size", group = criticalSpikeLabel, inline = criticalSpike1DLabel)
+    "240" => input.float(40, minval=0,  maxval=100, title="4H spike % size", group = criticalSpikeLabel, inline = criticalSpike4HLabel)
+    "120" => input.float(40, minval=0,  maxval=100, title="2H spike % size", group = criticalSpikeLabel, inline = criticalSpike2HLabel)
+    "60" => input.float(30, minval=0,  maxval=100, title="1H spike % size", group = criticalSpikeLabel, inline = criticalSpike1HLabel)
+    "15" => input.float(30, minval=0,  maxval=100, title="15m spike % size", group = criticalSpikeLabel, inline = criticalSpike15mLabel)
+    "5" => input.float(30, minval=0,  maxval=100, title="5m spike % size", group = criticalSpikeLabel, inline = criticalSpike5mLabel)
+    "1" => input.float(30, minval=0, maxval=100, title="1m spike % size", group = criticalSpikeLabel, inline = criticalSpike1mLabel)
     => 40
 
 comparingValue = switch timeframe.period
-    "1M" => input.float(15.0, minval=0, maxval=100, title="% of cs variation", group = scalpIndicatorLabel, inline = scalp1MIndicatorLabel)
-    "1W" => input.float(9.0, minval=0, maxval=100, title="% of cs variation", group = scalpIndicatorLabel, inline = scalp1WIndicatorLabel)
-    "1D" => input.float(5.0, minval=0,  maxval=100, title="% of cs variation", group = scalpIndicatorLabel, inline = scalp1DIndicatorLabel)
-    "240" => input.float(3.0, minval=0,  maxval=100, title="% of cs variation", group = scalpIndicatorLabel, inline = scalp4HIndicatorLabel)
-    "120" => input.float(2.0, minval=0,  maxval=100, title="% of cs variation", group = scalpIndicatorLabel, inline = scalp2HIndicatorLabel)
-    "60" => input.float(1.5, minval=0,  maxval=100, title="% of cs variation", group = scalpIndicatorLabel, inline = scalp1HIndicatorLabel)
-    "15" => input.float(0.75, minval=0,  maxval=100, title="% of cs variation", group = scalpIndicatorLabel, inline = scalp15mIndicatorLabel)
-    "5" => input.float(0.5, minval=0,  maxval=100, title="% of cs variation", group = scalpIndicatorLabel, inline = scalp5mIndicatorLabel)
-    "1" => input.float(0.25, minval=0, maxval=100, title="% of cs variation", group = scalpIndicatorLabel, inline = scalp1mIndicatorLabel)
+    "1M" => input.float(15.0, minval=0, maxval=100, title="% of cs variation", group = criticalSpikeLabel, inline = criticalSpike1MLabel)
+    "1W" => input.float(9.0, minval=0, maxval=100, title="% of cs variation", group = criticalSpikeLabel, inline = criticalSpike1WLabel)
+    "1D" => input.float(5.0, minval=0,  maxval=100, title="% of cs variation", group = criticalSpikeLabel, inline = criticalSpike1DLabel)
+    "240" => input.float(3.0, minval=0,  maxval=100, title="% of cs variation", group = criticalSpikeLabel, inline = criticalSpike4HLabel)
+    "120" => input.float(2.0, minval=0,  maxval=100, title="% of cs variation", group = criticalSpikeLabel, inline = criticalSpike2HLabel)
+    "60" => input.float(1.5, minval=0,  maxval=100, title="% of cs variation", group = criticalSpikeLabel, inline = criticalSpike1HLabel)
+    "15" => input.float(0.75, minval=0,  maxval=100, title="% of cs variation", group = criticalSpikeLabel, inline = criticalSpike15mLabel)
+    "5" => input.float(0.5, minval=0,  maxval=100, title="% of cs variation", group = criticalSpikeLabel, inline = criticalSpike5mLabel)
+    "1" => input.float(0.25, minval=0, maxval=100, title="% of cs variation", group = criticalSpikeLabel, inline = criticalSpike1mLabel)
     => 
         runtime.error('No comparison value for period: ' + timeframe.period)
         float(na)
@@ -119,18 +120,22 @@ totalCandleVariation = ((high - low) / high) * 100
 //log.info('variation: {0}', totalCandleVariation)
 buyCondition = lowSpikePercentage >= spikePercentage and totalCandleVariation >= comparingValue and lowSpikeValue >= highSpikeValue and (considerOnlyBBContacts ? (low <= lower) : true)
 sellCondition = highSpikePercentage >= spikePercentage and totalCandleVariation >= comparingValue and highSpikeValue >= lowSpikeValue and (considerOnlyBBContacts ? (high >= upper) : true)
-plotshape(not scalpIndicatorDisabled and buyCondition, title="Up Alert", location=location.belowbar, color=color.green, size=size.tiny, style=shape.triangleup)
-plotshape(not scalpIndicatorDisabled and sellCondition, title="Down Alert", location=location.abovebar, color=color.red, size=size.tiny, style=shape.triangledown)
+plotshape(not criticalSpikeDisabled and buyCondition, title="Up Alert", location=location.belowbar, color=color.green, size=size.tiny, style=shape.triangleup)
+plotshape(not criticalSpikeDisabled and sellCondition, title="Down Alert", location=location.abovebar, color=color.red, size=size.tiny, style=shape.triangledown)
 
 alertcondition(buyCondition or sellCondition, title= "Buy/sell condition", message="It's the time...")
 
+
 //Support and resistence
-prd = input.int(defval = 10, title="Pivot Period", minval = 4, maxval = 30, group = "Settings 🔨", tooltip="Used while calculating Pivot Points, checks left&right bars")
-ppsrc = input.string(defval = 'High/Low', title="Source", options = ['High/Low', 'Close/Open'], group = "Settings 🔨", tooltip="Source for Pivot Points")
-ChannelW = input.int(defval = 5, title = "Maximum Channel Width %", minval = 1, maxval = 8, group = "Settings 🔨", tooltip="Calculated using Highest/Lowest levels in 300 bars")
-minstrength = input.int(defval = 1, title = "Minimum Strength", minval = 1, group = "Settings 🔨", tooltip = "Channel must contain at least 2 Pivot Points")
-maxnumsr = input.int(defval = 6, title = "Maximum Number of S/R", minval = 1, maxval = 10, group = "Settings 🔨", tooltip = "Maximum number of Support/Resistance Channels to Show") - 1
-loopback = input.int(defval = 290, title = "Loopback Period", minval = 100, maxval = 400, group = "Settings 🔨", tooltip="While calculating S/R levels it checks Pivots in Loopback Period")
+supportAndResistenceChannelsLabel = "Support and resistence channels"
+supportAndResistenceChannelsDisabled = input.bool(false, title="Disabled", group = supportAndResistenceChannelsLabel)
+
+prd = input.int(defval = 10, title="Pivot Period", minval = 4, maxval = 30, group = supportAndResistenceChannelsLabel, tooltip="Used while calculating Pivot Points, checks left&right bars")
+ppsrc = input.string(defval = 'High/Low', title="Source", options = ['High/Low', 'Close/Open'], group = supportAndResistenceChannelsLabel, tooltip="Source for Pivot Points")
+ChannelW = input.int(defval = 5, title = "Maximum Channel Width %", minval = 1, maxval = 8, group = supportAndResistenceChannelsLabel, tooltip="Calculated using Highest/Lowest levels in 300 bars")
+minstrength = input.int(defval = 1, title = "Minimum Strength", minval = 1, group = supportAndResistenceChannelsLabel, tooltip = "Channel must contain at least 2 Pivot Points")
+maxnumsr = input.int(defval = 6, title = "Maximum Number of S/R", minval = 1, maxval = 10, group = supportAndResistenceChannelsLabel, tooltip = "Maximum number of Support/Resistance Channels to Show") - 1
+loopback = input.int(defval = 290, title = "Loopback Period", minval = 100, maxval = 400, group = supportAndResistenceChannelsLabel, tooltip="While calculating S/R levels it checks Pivots in Loopback Period")
 res_col = input(defval = color.new(color.red, 75), title = "Resistance Color", group = "Colors 🟡🟢🟣")
 sup_col = input(defval = color.new(color.lime, 75), title = "Support Color", group = "Colors 🟡🟢🟣")
 inch_col = input(defval = color.new(color.gray, 75), title = "Color When Price in Channel", group = "Colors 🟡🟢🟣")
@@ -146,8 +151,8 @@ showthema2type = input.string(defval = "SMA", title = "", options = ["SMA", "EMA
 ma1 = showthema1en ? (showthema1type == "SMA" ? ta.sma(close, showthema1len) : ta.ema(close, showthema1len)) : na
 ma2 = showthema2en ? (showthema2type == "SMA" ? ta.sma(close, showthema2len) : ta.ema(close, showthema2len)) : na
 
-plot(ma1, color = not na(ma1) ? color.blue : na)
-plot(ma2, color = not na(ma2) ? color.red : na)
+plot(ma1, color = not na(ma1) ? color.blue : na, display = supportAndResistenceChannelsDisabled? display.none : display.all)
+plot(ma2, color = not na(ma2) ? color.red : na, display = supportAndResistenceChannelsDisabled? display.none : display.all)
 
 // get Pivot High/low
 float src1 =  ppsrc == 'High/Low' ? high : math.max(close, open)
@@ -156,8 +161,8 @@ float ph = ta.pivothigh(src1, prd, prd)
 float pl = ta.pivotlow(src2, prd, prd) 
 
 // draw Pivot points
-plotshape(showpp ? ph : nz(ph), text = "H",  style = shape.labeldown, color = na, textcolor = color.red, location = location.abovebar, offset = -prd)
-plotshape(showpp ? pl : nz(pl), text = "L",  style = shape.labelup, color = na, textcolor = color.lime, location = location.belowbar, offset = -prd)
+plotshape(showpp ? ph : nz(ph), display = supportAndResistenceChannelsDisabled? display.none : display.all,  text = "H",  style = shape.labeldown, color = na, textcolor = color.red, location = location.abovebar, offset = -prd)
+plotshape(showpp ? pl : nz(pl), display = supportAndResistenceChannelsDisabled? display.none : display.all, text = "L",  style = shape.labelup, color = na, textcolor = color.lime, location = location.belowbar, offset = -prd)
 
 //calculate maximum S/R channel width
 prdhighest =  ta.highest(300)
@@ -278,17 +283,13 @@ get_color(ind)=>
                    inch_col
     ret
 
-var srchannels = array.new_box(10)
-for x = 0 to math.min(9, maxnumsr)
-    box.delete(array.get(srchannels, x))
-    srcol = get_color(x * 2)
-    if not na(srcol)
-        array.set(srchannels, x, 
-                  box.new(left = bar_index, top = get_level(x * 2), right = bar_index + 1, bottom = get_level(x * 2 + 1), 
-                          border_color = srcol, 
-                          border_width = 1,
-                          extend = extend.both, 
-                          bgcolor = srcol))
+if not supportAndResistenceChannelsDisabled
+    var srchannels = array.new_box(10)
+    for x = 0 to math.min(9, maxnumsr)
+        box.delete(array.get(srchannels, x))
+        srcol = get_color(x * 2)
+        if not na(srcol)
+            array.set(srchannels, x, box.new(left = bar_index, top = get_level(x * 2), right = bar_index + 1, bottom = get_level(x * 2 + 1), border_color = srcol, border_width = 1, extend = extend.both, bgcolor = srcol))
 
 resistancebroken = false
 supportbroken = false
@@ -309,5 +310,5 @@ if not_in_a_channel
 
 alertcondition(resistancebroken, title = "Resistance Broken", message = "Resistance Broken")
 alertcondition(supportbroken, title = "Support Broken", message = "Support Broken")
-plotshape(showsrbroken and resistancebroken, style = shape.triangleup, location = location.belowbar, color = color.new(color.lime, 0), size = size.tiny)
-plotshape(showsrbroken and supportbroken, style = shape.triangledown, location = location.abovebar, color = color.new(color.red, 0), size = size.tiny)
+plotshape(showsrbroken and resistancebroken, display = supportAndResistenceChannelsDisabled? display.none : display.all, style = shape.triangleup, location = location.belowbar, color = color.new(color.lime, 0), size = size.tiny)
+plotshape(showsrbroken and supportbroken, display = supportAndResistenceChannelsDisabled? display.none : display.all, style = shape.triangledown, location = location.abovebar, color = color.new(color.red, 0), size = size.tiny)
