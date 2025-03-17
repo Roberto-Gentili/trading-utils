@@ -86,7 +86,7 @@ criticalSpike15mLabel = "15m chart"
 criticalSpike5mLabel = "5m chart"
 criticalSpike1mLabel = "1m chart"
 spikePercentage = switch timeframe.period
-    "1M" => input.int(40, minval=1, title= "1M spike % size", group = criticalSpikeLabel, inline = criticalSpike1MLabel)
+    "1M" => input.float(40, minval=1, title= "1M spike % size", group = criticalSpikeLabel, inline = criticalSpike1MLabel)
     "1W" => input.float(40, minval=0, maxval=100, title="1W spike % size", group = criticalSpikeLabel, inline = criticalSpike1WLabel)
     "1D" => input.float(40, minval=0,  maxval=100, title="1D spike % size", group = criticalSpikeLabel, inline = criticalSpike1DLabel)
     "240" => input.float(40, minval=0,  maxval=100, title="4H spike % size", group = criticalSpikeLabel, inline = criticalSpike4HLabel)
@@ -107,9 +107,7 @@ comparingValue = switch timeframe.period
     "15" => input.float(0.75, minval=0,  maxval=100, title="% of cs variation", group = criticalSpikeLabel, inline = criticalSpike15mLabel)
     "5" => input.float(0.5, minval=0,  maxval=100, title="% of cs variation", group = criticalSpikeLabel, inline = criticalSpike5mLabel)
     "1" => input.float(0.25, minval=0, maxval=100, title="% of cs variation", group = criticalSpikeLabel, inline = criticalSpike1mLabel)
-    => 
-        runtime.error('No comparison value for period: ' + timeframe.period)
-        float(na)
+    =>  input.float(7.5, minval=0, maxval=100, title="% of cs variation", group = criticalSpikeLabel, inline = criticalSpike1mLabel)
 
 priceVariation = high - low
 lowSpikeValue = close < open ? close - low : open - low
@@ -130,15 +128,99 @@ alertcondition(buyCondition or sellCondition, title= "Buy/sell condition", messa
 supportAndResistenceChannelsLabel = "Support and resistence channels"
 supportAndResistenceChannelsDisabled = input.bool(false, title="Disabled", group = supportAndResistenceChannelsLabel)
 
-prd = input.int(defval = 10, title="Pivot Period", minval = 4, maxval = 30, group = supportAndResistenceChannelsLabel, tooltip="Used while calculating Pivot Points, checks left&right bars")
+autodetectSupportAndResistenceParams = input.bool(true, title="Autodetect parameters*", group = supportAndResistenceChannelsLabel)
+
+prd = if timeframe.period  == "1M" and autodetectSupportAndResistenceParams
+    4
+else if timeframe.period  == "1W" and autodetectSupportAndResistenceParams
+    4
+else if timeframe.period  == "1D" and autodetectSupportAndResistenceParams
+    6
+else if timeframe.period  == "240" and autodetectSupportAndResistenceParams
+    4
+else if timeframe.period  == "120" and autodetectSupportAndResistenceParams
+    4
+else if timeframe.period  == "60" and autodetectSupportAndResistenceParams
+    10
+else if timeframe.period  == "15" and autodetectSupportAndResistenceParams
+    10
+else if timeframe.period  == "5" and autodetectSupportAndResistenceParams
+    10
+else if timeframe.period  == "1" and autodetectSupportAndResistenceParams
+    10
+else 
+    input.int(defval = 10, title="Pivot Period*", minval = 1, maxval = 30, group = supportAndResistenceChannelsLabel, tooltip="Used while calculating Pivot Points, checks left&right bars")
+
 ppsrc = input.string(defval = 'High/Low', title="Source", options = ['High/Low', 'Close/Open'], group = supportAndResistenceChannelsLabel, tooltip="Source for Pivot Points")
-ChannelW = input.int(defval = 5, title = "Maximum Channel Width %", minval = 1, maxval = 8, group = supportAndResistenceChannelsLabel, tooltip="Calculated using Highest/Lowest levels in 300 bars")
-minstrength = input.int(defval = 1, title = "Minimum Strength", minval = 1, group = supportAndResistenceChannelsLabel, tooltip = "Channel must contain at least 2 Pivot Points")
-maxnumsr = input.int(defval = 6, title = "Maximum Number of S/R", minval = 1, maxval = 10, group = supportAndResistenceChannelsLabel, tooltip = "Maximum number of Support/Resistance Channels to Show") - 1
-loopback = input.int(defval = 290, title = "Loopback Period", minval = 100, maxval = 400, group = supportAndResistenceChannelsLabel, tooltip="While calculating S/R levels it checks Pivots in Loopback Period")
-res_col = input(defval = color.new(color.red, 75), title = "Resistance Color", group = "Colors 🟡🟢🟣")
-sup_col = input(defval = color.new(color.lime, 75), title = "Support Color", group = "Colors 🟡🟢🟣")
-inch_col = input(defval = color.new(color.gray, 75), title = "Color When Price in Channel", group = "Colors 🟡🟢🟣")
+
+ChannelW = if timeframe.period  == "1M" and autodetectSupportAndResistenceParams
+    5
+else if timeframe.period  == "1W" and autodetectSupportAndResistenceParams
+    5
+else if timeframe.period  == "1D" and autodetectSupportAndResistenceParams
+    4
+else if timeframe.period  == "240" and autodetectSupportAndResistenceParams
+    3
+else if timeframe.period  == "120" and autodetectSupportAndResistenceParams
+    3
+else if timeframe.period  == "60" and autodetectSupportAndResistenceParams
+    4
+else if timeframe.period  == "15" and autodetectSupportAndResistenceParams
+    4
+else if timeframe.period  == "5" and autodetectSupportAndResistenceParams
+    4
+else if timeframe.period  == "1" and autodetectSupportAndResistenceParams
+    4
+else 
+    input.int(defval = 5, title = "Maximum Channel Width %*", minval = 1, maxval = 20, group = supportAndResistenceChannelsLabel, tooltip="Calculated using Highest/Lowest levels in 300 bars")
+
+minstrength = if timeframe.period  == "1M" and autodetectSupportAndResistenceParams
+    1
+else if timeframe.period  == "1W" and autodetectSupportAndResistenceParams
+    1
+else if timeframe.period  == "1D" and autodetectSupportAndResistenceParams
+    1
+else if timeframe.period  == "240" and autodetectSupportAndResistenceParams
+    1
+else if timeframe.period  == "120" and autodetectSupportAndResistenceParams
+    1
+else if timeframe.period  == "60" and autodetectSupportAndResistenceParams
+    1
+else if timeframe.period  == "15" and autodetectSupportAndResistenceParams
+    1
+else if timeframe.period  == "5" and autodetectSupportAndResistenceParams
+    1
+else if timeframe.period  == "1" and autodetectSupportAndResistenceParams
+    1
+else 
+    input.int(defval = 1, title = "Minimum Strength*", minval = 1, group = supportAndResistenceChannelsLabel, tooltip = "Channel must contain at least 2 Pivot Points")
+
+maxnumsr = input.int(defval = 16, title = "Maximum Number of S/R", minval = 1, group = supportAndResistenceChannelsLabel, tooltip = "Maximum number of Support/Resistance Channels to Show") - 1
+
+loopback = if timeframe.period  == "1M" and autodetectSupportAndResistenceParams
+    28
+else if timeframe.period  == "1W" and autodetectSupportAndResistenceParams
+    53
+else if timeframe.period  == "1D" and autodetectSupportAndResistenceParams
+    370
+else if timeframe.period  == "240" and autodetectSupportAndResistenceParams
+    125
+else if timeframe.period  == "120" and autodetectSupportAndResistenceParams
+    132
+else if timeframe.period  == "60" and autodetectSupportAndResistenceParams
+    264
+else if timeframe.period  == "15" and autodetectSupportAndResistenceParams
+    480
+else if timeframe.period  == "5" and autodetectSupportAndResistenceParams
+    576
+else if timeframe.period  == "1" and autodetectSupportAndResistenceParams
+    864
+else
+    input.int(defval = 290, title = "Loopback Period*", minval = 1, maxval=2400, group = supportAndResistenceChannelsLabel, tooltip="While calculating S/R levels it checks Pivots in Loopback Period")
+
+res_col = input(defval = color.new(color.red, 85), title = "Resistance Color", group = "Colors 🟡🟢🟣")
+sup_col = input(defval = color.new(color.lime, 85), title = "Support Color", group = "Colors 🟡🟢🟣")
+inch_col = input(defval = color.new(color.gray, 85), title = "Color When Price in Channel", group = "Colors 🟡🟢🟣")
 showpp = input(defval = false, title = "Show Pivot Points", group = "Extras ⏶⏷")
 showsrbroken = input(defval = false, title = "Show Broken Support/Resistance", group = "Extras ⏶⏷")
 showthema1en = input(defval = false, title = "MA 1", inline = "ma1")
@@ -310,5 +392,5 @@ if not_in_a_channel
 
 alertcondition(resistancebroken, title = "Resistance Broken", message = "Resistance Broken")
 alertcondition(supportbroken, title = "Support Broken", message = "Support Broken")
-plotshape(showsrbroken and resistancebroken, display = supportAndResistenceChannelsDisabled? display.none : display.all, style = shape.triangleup, location = location.belowbar, color = color.new(color.lime, 0), size = size.tiny)
-plotshape(showsrbroken and supportbroken, display = supportAndResistenceChannelsDisabled? display.none : display.all, style = shape.triangledown, location = location.abovebar, color = color.new(color.red, 0), size = size.tiny)
+plotshape(showsrbroken and resistancebroken, display = supportAndResistenceChannelsDisabled? display.none : display.all, style = shape.arrowup, location = location.belowbar, color = color.new(color.lime, 0), size = size.large)
+plotshape(showsrbroken and supportbroken, display = supportAndResistenceChannelsDisabled? display.none : display.all, style = shape.arrowdown, location = location.abovebar, color = color.new(color.red, 0), size = size.large)
