@@ -143,8 +143,13 @@ alertcondition(bearCond, title='Regular Bearish Divergence', message='Found a ne
 stochRSIGroup = "Stochastic RSI settings"
 stochRSIDisabled = input.bool(false, title="Disabled", group = stochRSIGroup)
 smoothK = input.int(3, "K", minval=1, group = stochRSIGroup, inline = stochRSIGroup)
-//lengthStoch = input.int(14, "Stochastic Length", minval=1, group = stochRSIGroup, inline = stochRSIGroup)
-lengthStoch = rsiLengthInput
+smoothD = input.int(3, "D", minval=1, group = stochRSIGroup, inline = stochRSIGroup)
+maStochRSITypeInput = input.string("SMA", "Type", options = ["SMA", "EMA", "SMMA (RMA)", "WMA", "VWMA"], group = stochRSIGroup, display = display.data_window)
+lengthStoch = input.int(14, "Length", minval=1, group = stochRSIGroup)
+//lengthStoch = rsiLengthInput
 rsi1 = ta.rsi(rsiSourceInput, lengthStoch)
-k = ta.sma(ta.stoch(rsi1, rsi1, rsi1, lengthStoch), smoothK)
+
+k = ma(ta.stoch(rsi1, rsi1, rsi1, lengthStoch), smoothK, maStochRSITypeInput)
+d = ma(k, smoothD, maStochRSITypeInput)
+plot(d, "D", color=#FF6D00, display = stochRSIDisabled? display.none : display.all)
 plot(k, "K", color=#2962FF, display = stochRSIDisabled? display.none : display.all)
