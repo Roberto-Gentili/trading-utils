@@ -264,7 +264,7 @@ public class Application implements CommandLineRunner {
 						sendMail(
 							"roberto.gentili.1980@gmail.com,fercoletti@gmail.com",
 							"Segnalazione RSI crypto",
-							"<h1>Ciao! Ecco le crypto con RSI in ipervenduto/ipercomprato:</h1>" +
+							"<h1>Ciao! Rilevate crypto con RSI in ipervenduto/ipercomprato</h1>:</br>" +
 							toHTMLTable(rSIForCoin, defaultCollateral),
 							null
 						);
@@ -289,7 +289,7 @@ public class Application implements CommandLineRunner {
 		String.join(
 			"",
 			rSIForCoinEntrySet.entrySet().stream().map(
-				rec -> "<tr><td><a href=\"" + "https://www.binance.com/it/trade/" + rec.getKey() + "_" + collateral + "?type=isolated" + "\">" + rec.getKey() + "</a></td><td width=\"25px\"></td><td>" + rec.getValue() + "</td></tr>"
+				rec -> "<tr><td><a href=\"" + "https://www.binance.com/it/trade/" + rec.getKey() + "_" + collateral + "?type=isolated" + "\"><h2>" + rec.getKey() + "</h2></a></td><td width=\"25px\"></td><td><h2>" + rec.getValue() + "</h2></td></tr>"
 			).collect(Collectors.toList())
 		) +
 		"</table>";
