@@ -195,11 +195,13 @@ public class Application implements CommandLineRunner {
 			Map<String, Double> rSIForCoin = new TreeMap<>();
 			for (Map.Entry<Wallet, ProducerTask<Collection<String>>> walletForAvailableCoins : walletsForAvailableCoins.entrySet()) {
 				if (walletForAvailableCoins.getKey() instanceof BinanceWallet) {
-					Collection<String> marginUSDCCoins = ((BinanceWallet)walletForAvailableCoins.getKey()).getAllMarginAssetPairs()
-						.stream().filter(asset -> asset.get("quote").equals("USDC")).map(asset -> asset.get("base")).
-						map(String.class::cast).collect(Collectors.toList());
 					String defaultCollateral = "USDC";
-						//walletForAvailableCoins.getKey().getCollateralForCoin("DEFAULT");
+					//walletForAvailableCoins.getKey().getCollateralForCoin("DEFAULT");
+					Collection<String> marginUSDCCoins = ((BinanceWallet)walletForAvailableCoins.getKey()).getAllMarginAssetPairs()
+						.stream().filter(asset -> asset.get("quote").equals(defaultCollateral)).map(asset -> asset.get("base")).
+						map(String.class::cast).collect(Collectors.toList());
+
+
 					marginUSDCCoins.parallelStream().forEach(coin -> {
 						try {
 							BarSeries candlesticks = ((BinanceWallet)walletForAvailableCoins.getKey()).getCandlesticks(
@@ -257,16 +259,16 @@ public class Application implements CommandLineRunner {
 
 						}
 					});
-				}
-				if (!rSIForCoin.isEmpty()) {
-					sendMail(
-						"roberto.gentili.1980@gmail.com,fercoletti@gmail.com",
-						"Segnalazione RSI crypto",
-						"<h1>Ciao! Ecco le crypto con RSI in ipervenduto/ipercomprato:</h1>" +
-						toHTMLTable(rSIForCoin),
-						null
-					);
-					rSIForCoin.clear();
+					if (!rSIForCoin.isEmpty()) {
+						sendMail(
+							"roberto.gentili.1980@gmail.com,fercoletti@gmail.com",
+							"Segnalazione RSI crypto",
+							"<h1>Ciao! Ecco le crypto con RSI in ipervenduto/ipercomprato:</h1>" +
+							toHTMLTable(rSIForCoin, defaultCollateral),
+							null
+						);
+						rSIForCoin.clear();
+					}
 				}
 				org.burningwave.core.assembler.StaticComponentContainer.ManagedLoggerRepository.logInfo(
 					getClass()::getName,
@@ -360,12 +362,14 @@ public class Application implements CommandLineRunner {
 //		org.burningwave.core.assembler.StaticComponentContainer.ManagedLoggerRepository.logInfo(getClass()::getName, "Report succesfully updated - Elapsed time: " + getFormattedDifferenceOfMillis(currentTimeMillis(), initialTime));
 	}
 
-	private String toHTMLTable(Map<String, Double> rSIForCoinEntrySet) {
+	private String toHTMLTable(Map<String, Double> rSIForCoinEntrySet, String collateral) {
 		// TODO Auto-generated method stub
 		return "<table>" +
 		String.join(
 			"",
-			rSIForCoinEntrySet.entrySet().stream().map(rec -> "<tr><td>" + rec.getKey() + "</td><td width=\"25px\"></td><td>" + rec.getValue() + "</td></tr>").collect(Collectors.toList())
+			rSIForCoinEntrySet.entrySet().stream().map(
+				rec -> "<tr><td><a href=\"" + "https://www.binance.com/it/trade/" + rec.getKey() + "_" + collateral + "?type=isolated" + "\">" + rec.getKey() + "<\\a></td><td width=\"25px\"></td><td>" + rec.getValue() + "</td></tr>"
+			).collect(Collectors.toList())
 		) +
 		"</table>";
 	}
