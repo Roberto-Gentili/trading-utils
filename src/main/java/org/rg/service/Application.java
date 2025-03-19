@@ -255,14 +255,10 @@ public class Application implements CommandLineRunner {
 			}
 			if (!rSIForCoin.isEmpty()) {
 				sendMail(
-					"roberto.gentili.1980@gmail.com;fercoletti@gmail.com;",
+					"roberto.gentili.1980@gmail.com,fercoletti@gmail.com",
 					"Segnalazione RSI crypto",
 					"<h1>Ciao! Ecco le crypto con RSI in ipervenduto/ipercomprato:</h1>" +
-					String.join(
-						"</br>",
-						rSIForCoin.entrySet().stream().map(rec -> rec.getKey() + "&#9;" + rec.getValue())
-						.collect(Collectors.toList())
-					),
+					toHTMLTable(rSIForCoin),
 					null
 				);
 			}
@@ -349,6 +345,16 @@ public class Application implements CommandLineRunner {
 //			}
 //		}
 //		org.burningwave.core.assembler.StaticComponentContainer.ManagedLoggerRepository.logInfo(getClass()::getName, "Report succesfully updated - Elapsed time: " + getFormattedDifferenceOfMillis(currentTimeMillis(), initialTime));
+	}
+
+	private String toHTMLTable(Map<String, Double> rSIForCoinEntrySet) {
+		// TODO Auto-generated method stub
+		return "<table>" +
+		String.join(
+			"",
+			rSIForCoinEntrySet.entrySet().stream().map(rec -> "<tr><td>" + rec.getKey() + "</td><td>" + rec.getValue() + "</td></tr>").collect(Collectors.toList())
+		) +
+		"</table>";
 	}
 
 	public void sendMail(String to, String subject, String body, String... attachmentAbsolutePaths) throws MessagingException, IOException {
