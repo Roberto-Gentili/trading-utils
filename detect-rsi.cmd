@@ -1,5 +1,12 @@
 @echo off
 
+set JAVA_COMMAND=javaw.exe
+
+IF ["%~1"] == ["SHOW-LOG"] (
+	echo.
+	set JAVA_COMMAND=java.exe
+)
+
 set CURRENT_DIR=%~dp0
 set CURRENT_UNIT=%CURRENT_DIR:~0,2%
 set GIT_HOME=%CURRENT_UNIT%\Shared\Programmi\Git\current
@@ -19,6 +26,11 @@ git pull
 
 call mvn --settings %MVN_SETTINGS_PATH% clean dependency:list install
 
-call java.exe -DcryptoComApiKey=%CRYPTO_COM_API_KEY% -DcryptoComApiSecret=%CRYPTO_COM_API_SECRET% -DbinanceApiKey=%BINANCE_API_KEY% -DbinanceApiSecret=%BINANCE_API_SECRET% -DemailAccount=%BURNINGWAVE_ORG_ACCOUNT_NAME% -DemailPassword=%BURNINGWAVE_ORG_ACCOUNT_PASSWORD% -DmultiThreadingMode=normal -jar ./target/runner-1.0.0.jar org.rg.service.Runner
+IF ["%~1"] == ["LOGGING_ENABLED"] (
+	echo.
+	call java.exe -DcryptoComApiKey=%CRYPTO_COM_API_KEY% -DcryptoComApiSecret=%CRYPTO_COM_API_SECRET% -DbinanceApiKey=%BINANCE_API_KEY% -DbinanceApiSecret=%BINANCE_API_SECRET% -DemailAccount=%BURNINGWAVE_ORG_ACCOUNT_NAME% -DemailPassword=%BURNINGWAVE_ORG_ACCOUNT_PASSWORD% -DmultiThreadingMode=normal -jar ./target/runner-1.0.0.jar org.rg.service.Runner
+) else (
+	start "" javaw.exe -DcryptoComApiKey=%CRYPTO_COM_API_KEY% -DcryptoComApiSecret=%CRYPTO_COM_API_SECRET% -DbinanceApiKey=%BINANCE_API_KEY% -DbinanceApiSecret=%BINANCE_API_SECRET% -DemailAccount=%BURNINGWAVE_ORG_ACCOUNT_NAME% -DemailPassword=%BURNINGWAVE_ORG_ACCOUNT_PASSWORD% -DmultiThreadingMode=normal -jar ./target/runner-1.0.0.jar org.rg.service.Runner
+)
 
 timeout /t 5 /NOBREAK > NUL
