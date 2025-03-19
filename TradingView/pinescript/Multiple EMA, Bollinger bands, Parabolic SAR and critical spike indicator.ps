@@ -233,18 +233,6 @@ sup_col = input(defval = color.new(color.lime, 85), title = "Support Color", gro
 inch_col = input(defval = color.new(color.gray, 85), title = "Color When Price in Channel", group = "Colors 🟡🟢🟣")
 showpp = input(defval = false, title = "Show Pivot Points", group = "Extras ⏶⏷")
 showsrbroken = input(defval = false, title = "Show Broken Support/Resistance", group = "Extras ⏶⏷")
-showthema1en = input(defval = false, title = "MA 1", inline = "ma1")
-showthema1len = input(defval = 50, title = "", inline = "ma1")
-showthema1type = input.string(defval = "SMA", title = "", options = ["SMA", "EMA"], inline = "ma1")
-showthema2en = input(defval = false, title = "MA 2", inline = "ma2")
-showthema2len = input(defval = 200, title = "", inline = "ma2")
-showthema2type = input.string(defval = "SMA", title = "", options = ["SMA", "EMA"], inline = "ma2")
-
-ma1 = showthema1en ? (showthema1type == "SMA" ? ta.sma(close, showthema1len) : ta.ema(close, showthema1len)) : na
-ma2 = showthema2en ? (showthema2type == "SMA" ? ta.sma(close, showthema2len) : ta.ema(close, showthema2len)) : na
-
-plot(ma1, color = not na(ma1) ? color.blue : na, display = supportAndResistenceChannelsDisabled? display.none : display.all)
-plot(ma2, color = not na(ma2) ? color.red : na, display = supportAndResistenceChannelsDisabled? display.none : display.all)
 
 // get Pivot High/low
 float src1 =  ppsrc == 'High/Low' ? high : math.max(close, open)
