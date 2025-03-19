@@ -352,7 +352,7 @@ public class Application implements CommandLineRunner {
 		return "<table>" +
 		String.join(
 			"",
-			rSIForCoinEntrySet.entrySet().stream().map(rec -> "<tr><td>" + rec.getKey() + "</td><td>" + rec.getValue() + "</td></tr>").collect(Collectors.toList())
+			rSIForCoinEntrySet.entrySet().stream().map(rec -> "<tr><td>" + rec.getKey() + "</td><td width=\"25px\"></td><td>" + rec.getValue() + "</td></tr>").collect(Collectors.toList())
 		) +
 		"</table>";
 	}
