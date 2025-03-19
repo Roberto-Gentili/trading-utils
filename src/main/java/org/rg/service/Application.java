@@ -368,7 +368,7 @@ public class Application implements CommandLineRunner {
 		String.join(
 			"",
 			rSIForCoinEntrySet.entrySet().stream().map(
-				rec -> "<tr><td><a href=\"" + "https://www.binance.com/it/trade/" + rec.getKey() + "_" + collateral + "?type=isolated" + "\">" + rec.getKey() + "<\\a></td><td width=\"25px\"></td><td>" + rec.getValue() + "</td></tr>"
+				rec -> "<tr><td><a href=\"" + "https://www.binance.com/it/trade/" + rec.getKey() + "_" + collateral + "?type=isolated" + "\">" + rec.getKey() + "</a></td><td width=\"25px\"></td><td>" + rec.getValue() + "</td></tr>"
 			).collect(Collectors.toList())
 		) +
 		"</table>";
