@@ -190,77 +190,90 @@ public class Application implements CommandLineRunner {
 		}
 		Wallet.Interval analysisInterval = Wallet.Interval.ONE_DAYS;
 		int period = 200;
-		List<String> uppers = new ArrayList<>();
-		List<String> downers = new ArrayList<>();
-		Map<String, Double> rSIForCoin = new TreeMap<>();
-		for (Map.Entry<Wallet, ProducerTask<Collection<String>>> walletForAvailableCoins : walletsForAvailableCoins.entrySet()) {
-			if (walletForAvailableCoins.getKey() instanceof BinanceWallet) {
-//				Collection<String> allMarginAssets = ((BinanceWallet)walletForAvailableCoins.getKey())
-//					.getAllMarginAssets().stream().map(asset -> asset.get("assetName"))
-//					.map(String.class::cast).collect(Collectors.toList());
-//				Collection<String> coins = walletForAvailableCoins.getKey().getAvailableCoins();
-				Collection<String> marginUSDCCoins = ((BinanceWallet)walletForAvailableCoins.getKey()).getAllMarginAssetPairs()
-					.stream().filter(asset -> asset.get("quote").equals("USDC")).map(asset -> asset.get("base")).
-					map(String.class::cast).collect(Collectors.toList());
-				String defaultCollateral = "USDC";
-					//walletForAvailableCoins.getKey().getCollateralForCoin("DEFAULT");
-				marginUSDCCoins.parallelStream().forEach(coin -> {
-					try {
-						BarSeries candlesticks = ((BinanceWallet)walletForAvailableCoins.getKey()).getCandlesticks(
-							coin + defaultCollateral,
-							analysisInterval,
-							null,
-							period,
-							new BinanceWallet.CandleStick.Converter<BarSeries>() {
-								@Override
-								public BarSeries convert(Collection<List<?>> input) {
-									BarSeries series = new BaseBarSeriesBuilder().withName(coin + "-" + analysisInterval + "-" + period).build();
-					    	        for (List<?> candlestickData : input) {
-					    	        	series.addBar(
-						    	        	BaseBar.builder(DecimalNum::valueOf, Number.class)
-						                    .timePeriod(Duration.ofDays(1))
-						                    .endTime(
-					                    		ZonedDateTime.ofInstant(
-					                    			Instant.ofEpochMilli(
-				                    					(long)candlestickData.get(6)
-				                    				),ZoneId.systemDefault()
-				                    			)
-					                    	)
-						                    .openPrice(Double.parseDouble((String)candlestickData.get(1)))
-						                    .highPrice(Double.parseDouble((String)candlestickData.get(2)))
-						                    .lowPrice(Double.parseDouble((String)candlestickData.get(3)))
-						                    .closePrice(Double.parseDouble((String)candlestickData.get(4)))
-						                    .volume(Double.parseDouble((String)candlestickData.get(5)))
-						                    .build()
-						                );
-					    	        }
-					    	        return series;
+		Map<String, Double> alreadyComunicated = new TreeMap<>();
+		while (true) {
+			Map<String, Double> rSIForCoin = new TreeMap<>();
+			for (Map.Entry<Wallet, ProducerTask<Collection<String>>> walletForAvailableCoins : walletsForAvailableCoins.entrySet()) {
+				if (walletForAvailableCoins.getKey() instanceof BinanceWallet) {
+					Collection<String> marginUSDCCoins = ((BinanceWallet)walletForAvailableCoins.getKey()).getAllMarginAssetPairs()
+						.stream().filter(asset -> asset.get("quote").equals("USDC")).map(asset -> asset.get("base")).
+						map(String.class::cast).collect(Collectors.toList());
+					String defaultCollateral = "USDC";
+						//walletForAvailableCoins.getKey().getCollateralForCoin("DEFAULT");
+					marginUSDCCoins.parallelStream().forEach(coin -> {
+						try {
+							BarSeries candlesticks = ((BinanceWallet)walletForAvailableCoins.getKey()).getCandlesticks(
+								coin + defaultCollateral,
+								analysisInterval,
+								null,
+								period,
+								new BinanceWallet.CandleStick.Converter<BarSeries>() {
+									@Override
+									public BarSeries convert(Collection<List<?>> input) {
+										BarSeries series = new BaseBarSeriesBuilder().withName(coin + "-" + analysisInterval + "-" + period).build();
+						    	        for (List<?> candlestickData : input) {
+						    	        	series.addBar(
+							    	        	BaseBar.builder(DecimalNum::valueOf, Number.class)
+							                    .timePeriod(Duration.ofDays(1))
+							                    .endTime(
+						                    		ZonedDateTime.ofInstant(
+						                    			Instant.ofEpochMilli(
+					                    					(long)candlestickData.get(6)
+					                    				),ZoneId.systemDefault()
+					                    			)
+						                    	)
+							                    .openPrice(Double.parseDouble((String)candlestickData.get(1)))
+							                    .highPrice(Double.parseDouble((String)candlestickData.get(2)))
+							                    .lowPrice(Double.parseDouble((String)candlestickData.get(3)))
+							                    .closePrice(Double.parseDouble((String)candlestickData.get(4)))
+							                    .volume(Double.parseDouble((String)candlestickData.get(5)))
+							                    .build()
+							                );
+						    	        }
+						    	        return series;
+									}
+								}
+							);
+							ClosePriceIndicator closePrice = new ClosePriceIndicator(candlesticks);
+							RSIIndicator rSIIndicator = new RSIIndicator(closePrice, 14);
+							List<Num> values = rSIIndicator.stream().collect(Collectors.toList());
+							Double latestRSIValue = values.get(values.size() -1).doubleValue();
+							if ((latestRSIValue > 70 || latestRSIValue < 30) && latestRSIValue != 0) {
+								synchronized(rSIForCoin) {
+									if (!alreadyComunicated.containsKey(coin)) {
+										rSIForCoin.put(coin, latestRSIValue);
+										alreadyComunicated.put(coin, latestRSIValue);
+									} else {
+										org.burningwave.core.assembler.StaticComponentContainer.ManagedLoggerRepository.logInfo(
+											getClass()::getName,
+											"Coin {} with value {} already comunicated",
+											coin, latestRSIValue
+										);
+									}
 								}
 							}
-						);
-						ClosePriceIndicator closePrice = new ClosePriceIndicator(candlesticks);
-						RSIIndicator rSIIndicator = new RSIIndicator(closePrice, 14);
-						List<Num> values = rSIIndicator.stream().collect(Collectors.toList());
-						Double latestRSIValue = values.get(values.size() -1).doubleValue();
-						if ((latestRSIValue > 70 || latestRSIValue < 30) && latestRSIValue != 0) {
-							synchronized(rSIForCoin) {
-								rSIForCoin.put(coin, values.get(values.size() -1).doubleValue());
-							}
+
+						} catch (Throwable exc) {
+
 						}
-
-					} catch (Throwable exc) {
-
-					}
-				});
-			}
-			if (!rSIForCoin.isEmpty()) {
-				sendMail(
-					"roberto.gentili.1980@gmail.com,fercoletti@gmail.com",
-					"Segnalazione RSI crypto",
-					"<h1>Ciao! Ecco le crypto con RSI in ipervenduto/ipercomprato:</h1>" +
-					toHTMLTable(rSIForCoin),
-					null
+					});
+				}
+				if (!rSIForCoin.isEmpty()) {
+					sendMail(
+						"roberto.gentili.1980@gmail.com,fercoletti@gmail.com",
+						"Segnalazione RSI crypto",
+						"<h1>Ciao! Ecco le crypto con RSI in ipervenduto/ipercomprato:</h1>" +
+						toHTMLTable(rSIForCoin),
+						null
+					);
+					rSIForCoin.clear();
+				}
+				org.burningwave.core.assembler.StaticComponentContainer.ManagedLoggerRepository.logInfo(
+					getClass()::getName,
+					"Waiting 10 seconds"
 				);
+				Thread.sleep(10000);
+
 			}
 		}
 //		long initialTime = currentTimeMillis();
