@@ -16,6 +16,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.TreeMap;
 import java.util.stream.Collectors;
 
 import javax.mail.BodyPart;
@@ -191,11 +192,19 @@ public class Application implements CommandLineRunner {
 		int period = 200;
 		List<String> uppers = new ArrayList<>();
 		List<String> downers = new ArrayList<>();
+		Map<String, Double> rSIForCoin = new TreeMap<>();
 		for (Map.Entry<Wallet, ProducerTask<Collection<String>>> walletForAvailableCoins : walletsForAvailableCoins.entrySet()) {
 			if (walletForAvailableCoins.getKey() instanceof BinanceWallet) {
-				Collection<String> coins = walletForAvailableCoins.getKey().getAvailableCoins();
-				String defaultCollateral = walletForAvailableCoins.getKey().getCollateralForCoin("DEFAULT");
-				for (String coin : coins) {
+//				Collection<String> allMarginAssets = ((BinanceWallet)walletForAvailableCoins.getKey())
+//					.getAllMarginAssets().stream().map(asset -> asset.get("assetName"))
+//					.map(String.class::cast).collect(Collectors.toList());
+//				Collection<String> coins = walletForAvailableCoins.getKey().getAvailableCoins();
+				Collection<String> marginUSDCCoins = ((BinanceWallet)walletForAvailableCoins.getKey()).getAllMarginAssetPairs()
+					.stream().filter(asset -> asset.get("quote").equals("USDC")).map(asset -> asset.get("base")).
+					map(String.class::cast).collect(Collectors.toList());
+				String defaultCollateral = "USDC";
+					//walletForAvailableCoins.getKey().getCollateralForCoin("DEFAULT");
+				marginUSDCCoins.parallelStream().forEach(coin -> {
 					try {
 						BarSeries candlesticks = ((BinanceWallet)walletForAvailableCoins.getKey()).getCandlesticks(
 							coin + defaultCollateral,
@@ -233,23 +242,30 @@ public class Application implements CommandLineRunner {
 						RSIIndicator rSIIndicator = new RSIIndicator(closePrice, 14);
 						List<Num> values = rSIIndicator.stream().collect(Collectors.toList());
 						Double latestRSIValue = values.get(values.size() -1).doubleValue();
-						if (latestRSIValue > 70) {
-							System.err.println(coin + ": " + values.get(values.size() -1).doubleValue());
-						} else if (latestRSIValue < 20) {
-							System.err.println(coin + ": " + values.get(values.size() -1).doubleValue());
+						if ((latestRSIValue > 70 || latestRSIValue < 30) && latestRSIValue != 0) {
+							synchronized(rSIForCoin) {
+								rSIForCoin.put(coin, values.get(values.size() -1).doubleValue());
+							}
 						}
 
 					} catch (Throwable exc) {
 
 					}
-				}
+				});
 			}
-//			sendMail(
-//				"roberto.gentili.1980@gmail.com",
-//				"Invio report mensile criptovalute",
-//				"<h1>Ciao! In allegato trovi il report delle criptovalute.</h1>",
-//				null
-//			);
+			if (!rSIForCoin.isEmpty()) {
+				sendMail(
+					"roberto.gentili.1980@gmail.com;fercoletti@gmail.com;",
+					"Segnalazione RSI crypto",
+					"<h1>Ciao! Ecco le crypto con RSI in ipervenduto/ipercomprato:</h1>" +
+					String.join(
+						"</br>",
+						rSIForCoin.entrySet().stream().map(rec -> rec.getKey() + "&#9;" + rec.getValue())
+						.collect(Collectors.toList())
+					),
+					null
+				);
+			}
 		}
 //		long initialTime = currentTimeMillis();
 //		org.burningwave.core.assembler.StaticComponentContainer.ManagedLoggerRepository.logInfo(getClass()::getName, "Searching for '{}'", CRYPTO_REPORT_FILE_NAME);

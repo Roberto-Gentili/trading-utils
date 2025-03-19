@@ -134,6 +134,12 @@ public class BinanceWallet extends Wallet.Abst {
             Map<String, Object> asset = iterator.next();
             coinNames.add((String)asset.get("asset"));
         }
+        Collection<Map<String, Object>> allMarginAssets = getAllMarginAssets();
+        iterator = allMarginAssets.iterator();
+        while (iterator.hasNext()) {
+            Map<String, Object> asset = iterator.next();
+            coinNames.add((String)asset.get("assetName"));
+        }
         return coinNames;
     }
 
@@ -170,6 +176,46 @@ public class BinanceWallet extends Wallet.Abst {
         }
         return coinNames;
     }
+
+    public Collection<Map<String, Object>> getAllMarginAssets() {
+        Long currentTimeMillis = currentTimeMillis();
+        Map<String, String> queryParams = new HashMap<>();
+        String signature = Signer.accept(joinQueryParameters(queryParams), apiSecret);
+        UriComponentsBuilder uriComponentsBuilder =  UriComponentsBuilder.newInstance().scheme("https").host("api.binance.com")
+                .pathSegment("sapi")
+                .pathSegment("v1")
+                .pathSegment("margin")
+                .pathSegment("allAssets");
+        UriComponents uriComponents = uriComponentsBuilder
+                .queryParam("timestamp", String.valueOf(currentTimeMillis))
+                .queryParam("signature", signature).build();
+        HttpHeaders headers = new HttpHeaders();
+        headers.add("X-MBX-APIKEY", apiKey);
+        return restTemplate
+                .exchange(uriComponents.toString(), HttpMethod.GET, new HttpEntity<String>(headers), Collection.class)
+                .getBody();
+    }
+
+    public Collection<Map<String, Object>> getAllMarginAssetPairs() {
+        Long currentTimeMillis = currentTimeMillis();
+        Map<String, String> queryParams = new HashMap<>();
+        String signature = Signer.accept(joinQueryParameters(queryParams), apiSecret);
+        UriComponentsBuilder uriComponentsBuilder =  UriComponentsBuilder.newInstance().scheme("https").host("api.binance.com")
+                .pathSegment("sapi")
+                .pathSegment("v1")
+                .pathSegment("margin")
+                .pathSegment("isolated")
+                .pathSegment("allPairs");
+        UriComponents uriComponents = uriComponentsBuilder
+                .queryParam("timestamp", String.valueOf(currentTimeMillis))
+                .queryParam("signature", signature).build();
+        HttpHeaders headers = new HttpHeaders();
+        headers.add("X-MBX-APIKEY", apiKey);
+        return restTemplate
+                .exchange(uriComponents.toString(), HttpMethod.GET, new HttpEntity<String>(headers), Collection.class)
+                .getBody();
+    }
+
 
     @Override
     protected Double getValueForCoin(String coinName, String collateral) {
