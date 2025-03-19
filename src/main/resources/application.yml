@@ -1,0 +1,26 @@
+binance.coin:
+   collateral:
+      - DEFAULT: USDT
+      - LUNC: BUSD
+      - BUSD: USDT
+      - BETH: ETH
+   
+crypto-com.coin:
+   alias-for-name:
+      - LUNA: LUNA2
+   collateral:
+      - DEFAULT: USDT
+      - LUNA2: USDC
+      - LUNC: USDC
+      - BUSD: USDT
+
+timezone.default: Europe/Rome
+
+burningwave.core.static-component-container:
+   background-executor.all-tasks-monitoring.enabled: false
+   banner.hide: false
+   managed-logger.repository: 'org.burningwave.core.SLF4JManagedLoggerRepository'
+   modules.export-all-to-all: false
+   thread-supplier.max-detached-thread-count: 8
+   thread-supplier.max-detached-thread-count.increasing-step: 4
+   thread-supplier.max-poolable-thread-count: 0
