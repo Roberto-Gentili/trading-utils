@@ -173,6 +173,7 @@ public class Application implements CommandLineRunner {
 
 	@Override
 	public void run(String... args) throws Exception {
+		LocalDate today = LocalDate.now();
 		Map<Wallet, ProducerTask<Collection<String>>> walletsForAvailableCoins = new LinkedHashMap<>();
 		for(String beanName : appContext.getBeanNamesForType(Wallet.class)) {
 			Wallet wallet = appContext.getBean(beanName, Wallet.class);
@@ -190,7 +191,7 @@ public class Application implements CommandLineRunner {
 		}
 		Wallet.Interval analysisInterval = Wallet.Interval.ONE_DAYS;
 		int period = 200;
-		Map<String, Double> alreadyComunicated = new TreeMap<>();
+		Map<String, Double> alreadyNotified = new TreeMap<>();
 		while (true) {
 			Map<String, Double> rSIForCoin = new TreeMap<>();
 			for (Map.Entry<Wallet, ProducerTask<Collection<String>>> walletForAvailableCoins : walletsForAvailableCoins.entrySet()) {
@@ -242,9 +243,9 @@ public class Application implements CommandLineRunner {
 							Double latestRSIValue = values.get(values.size() -1).doubleValue();
 							if ((latestRSIValue > 70 || latestRSIValue < 30) && latestRSIValue != 0) {
 								synchronized(rSIForCoin) {
-									if (!alreadyComunicated.containsKey(coin)) {
+									if (!alreadyNotified.containsKey(coin)) {
 										rSIForCoin.put(coin, latestRSIValue);
-										alreadyComunicated.put(coin, latestRSIValue);
+										alreadyNotified.put(coin, latestRSIValue);
 									} else {
 										org.burningwave.core.assembler.StaticComponentContainer.ManagedLoggerRepository.logInfo(
 											getClass()::getName,
@@ -275,95 +276,15 @@ public class Application implements CommandLineRunner {
 					"Waiting 10 seconds"
 				);
 				Thread.sleep(10000);
-
+				if (LocalDate.now().getDayOfYear() != today.getDayOfYear()) {
+					today = LocalDate.now();
+					alreadyNotified.clear();
+				}
 			}
 		}
-//		long initialTime = currentTimeMillis();
-//		org.burningwave.core.assembler.StaticComponentContainer.ManagedLoggerRepository.logInfo(getClass()::getName, "Searching for '{}'", CRYPTO_REPORT_FILE_NAME);
-//		FileSystemItem srcWallet = org.burningwave.core.assembler.ComponentContainer.getInstance().getPathHelper().findResources(path -> path.endsWith(CRYPTO_REPORT_FILE_NAME)).stream().findFirst().get();
-//		org.burningwave.core.assembler.StaticComponentContainer.ManagedLoggerRepository.logInfo(getClass()::getName, "'{}' found in '{}'", srcWallet.getName(), srcWallet.getAbsolutePath());
-//		FileSystemItem mainProjectDir = srcWallet.findFirstInAllParents(FileSystemItem.Criteria.forAllFileThat(parent -> parent.getName().equals("target"))).getParent();
-//		FileSystemItem destWallet = FileSystemItem.ofPath(mainProjectDir.getAbsolutePath() + "/src/main/resources/" + srcWallet.getName());
-//		org.burningwave.core.assembler.StaticComponentContainer.ManagedLoggerRepository.logInfo(getClass()::getName, "Opening and reading '{}'", srcWallet.getName());
-//		try (InputStream srcWalletInputStream = srcWallet.toInputStream(); Workbook workbook = new XSSFWorkbook(srcWalletInputStream);) {
-//			Sheet sheet = workbook.getSheet(LABEL_BALANCE_01);
-//			int tokenTypeColumnIndex = getCellIndex(sheet, LABEL_TOKEN);
-//			Iterator<Row> rowIterator = sheet.rowIterator();
-//			//Skipping header
-//			rowIterator.next();
-//			Collection<QueuedTaskExecutor.Task> tasks = new ArrayList<>();
-//			org.burningwave.core.assembler.StaticComponentContainer.ManagedLoggerRepository.logInfo(getClass()::getName, "Connecting to remote services");
-//			while (rowIterator.hasNext()) {
-//				Row row = rowIterator.next();
-//				Cell cell = row.getCell(tokenTypeColumnIndex);
-//				if (cell != null) {
-//					tasks.add(
-//						org.burningwave.core.assembler.StaticComponentContainer.BackgroundExecutor.createTask(
-//							() -> {
-//								boolean updateExecuted = false;
-//								for (Map.Entry<Wallet, ProducerTask<Collection<String>>> walletForAvailableCoins : walletsForAvailableCoins.entrySet()) {
-//									if (walletForAvailableCoins.getValue().join().contains(cell.getStringCellValue())) {
-//										updateDataForCoin(
-//											sheet,
-//											walletForAvailableCoins.getKey(),
-//											cell.getStringCellValue()
-//										);
-//										updateExecuted = true;
-//									}
-//								}
-//								if (updateExecuted == true) {
-//									//updateInvestmentView(sheet.getWorkbook(), cell.getStringCellValue());
-//									org.burningwave.core.assembler.StaticComponentContainer.ManagedLoggerRepository.logInfo(getClass()::getName, "Data for coin {} successfully updated", cell.getStringCellValue());
-//								} else {
-//									getQuantityCell(sheet, cell.getStringCellValue()).setCellValue(0D);
-//								}
-//							}
-//						).setExceptionHandler((task, exc) -> {
-//							org.burningwave.core.assembler.StaticComponentContainer.ManagedLoggerRepository.logError(
-//								getClass()::getName,
-//								"Could not update data for coin {}",
-//								cell.getStringCellValue()
-//							);
-//							return false;
-//						}).submit()
-//					);
-//				} else {
-//					org.burningwave.core.assembler.StaticComponentContainer.ManagedLoggerRepository.logWarn(
-//						getClass()::getName,
-//						"Row {} has invalid data",
-//						row.getRowNum() + 1
-//					);
-//				}
-//			}
-//			tasks.stream().forEach(task-> task.join());
-//			LocalDateTime currentTime = LocalDateTime.now(ZoneId.of(environment.getProperty("timezone.default")));
-//			int updateDateCellIndex = getCellIndex(sheet, LABEL_LAST_UPDATE_TIME);
-//			LocalDateTime lastUpdateTime = sheet.getRow(1).getCell(updateDateCellIndex).getLocalDateTimeCellValue();
-//			sheet.getRow(1).getCell(updateDateCellIndex).setCellValue(currentTime);
-//			try (FileOutputStream outputStream = new FileOutputStream(destWallet.getAbsolutePath())) {
-//				Cell latestWalletBalanceCell = getLatestNotNullCell(sheet, LABEL_WALLET_BALANCE);
-//				Cell walletBalanceCell = sheet.getRow(1).getCell(getCellIndex(sheet, LABEL_WALLET_BALANCE));
-//				walletBalanceCell.setCellFormula(latestWalletBalanceCell.getAddress().formatAsString());
-//				XSSFFormulaEvaluator.evaluateAllFormulaCells(workbook);
-//				workbook.write(outputStream);
-//				Double balanceValue = evaluateCell(sheet, LABEL_BALANCE_02, 1).getNumericCellValue();
-//				if (balanceValue > 1000) {
-//					sendMail(
-//						"roberto.gentili.1980@gmail.com",
-//						"Saldo criptovalute in positivo",
-//						"<h1>Il saldo delle criptovalute è in positivo!</h1><br/><h2>Scarica da <a href=\"https://github.com/Roberto-Gentili/services/blob/main/src/main/resources/crypto-report.xlsx?raw=true\">qui</a> il report.</h2>"
-//					);
-//				}
-//			}
-//			if (currentTime.getDayOfMonth() == 1 && (lastUpdateTime == null || lastUpdateTime.getMonth() != currentTime.getMonth())) {
-//
-//			}
-//		}
-//		org.burningwave.core.assembler.StaticComponentContainer.ManagedLoggerRepository.logInfo(getClass()::getName, "Report succesfully updated - Elapsed time: " + getFormattedDifferenceOfMillis(currentTimeMillis(), initialTime));
 	}
 
 	private String toHTMLTable(Map<String, Double> rSIForCoinEntrySet, String collateral) {
-		// TODO Auto-generated method stub
 		return "<table>" +
 		String.join(
 			"",
