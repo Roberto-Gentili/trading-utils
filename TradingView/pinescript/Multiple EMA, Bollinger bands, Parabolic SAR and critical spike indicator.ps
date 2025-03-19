@@ -48,11 +48,12 @@ plot(ema, emaSixLabel, display = allEMASDisabled? display.none : display.all, co
 
 // Parabolic SAR
 parabolicSARLabel = "Parabolic SAR"
+parabolicSARDisabled = input.bool(true, title="Disabled", group = parabolicSARLabel)
 start = input(0.02, group=parabolicSARLabel, inline=parabolicSARLabel)
 increment = input(0.02, group=parabolicSARLabel, inline=parabolicSARLabel)
 maximum = input(0.2, group=parabolicSARLabel, inline=parabolicSARLabel)
 out = ta.sar(start, increment, maximum)
-plot(out, parabolicSARLabel, style=plot.style_cross, color=#2962FF, display = display.none)
+plot(out, parabolicSARLabel, style=plot.style_cross, color=#2962FF, display = parabolicSARDisabled? display.none : display.all, linewidth = 2)
 
 // Bollinger Bands
 bBLabel = "Bollinger bands"
