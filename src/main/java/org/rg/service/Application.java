@@ -263,7 +263,7 @@ public class Application implements CommandLineRunner {
 					if (!rSIForCoin.isEmpty()) {
 						sendMail(
 							"roberto.gentili.1980@gmail.com,fercoletti@gmail.com",
-							"Segnalazione RSI crypto",
+							"Segnalazione crypto con RSI in ipervenduto/ipercomprato",
 							"<h1>Ciao! Rilevate crypto con RSI in ipervenduto/ipercomprato:</h1>" +
 							toHTMLTable(rSIForCoin, defaultCollateral),
 							null
