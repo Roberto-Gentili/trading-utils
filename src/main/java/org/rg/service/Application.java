@@ -264,7 +264,7 @@ public class Application implements CommandLineRunner {
 						sendMail(
 							"roberto.gentili.1980@gmail.com,fercoletti@gmail.com",
 							"Segnalazione crypto con RSI in ipervenduto/ipercomprato",
-							"<h1>Ciao!</br>Sono state rilevate le seguenti crypto con RSI in ipervenduto/ipercomprato:</h1>" +
+							"<h1>Ciao!</br>Sono state rilevate le seguenti crypto con RSI in zona ipervenduto/ipercomprato:</h1>" +
 							toHTMLTable(rSIForCoin, defaultCollateral),
 							null
 						);
