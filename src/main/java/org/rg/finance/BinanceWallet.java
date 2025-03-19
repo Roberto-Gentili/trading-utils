@@ -1,10 +1,14 @@
 package org.rg.finance;
 
+import java.text.ParseException;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Collection;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.TreeSet;
@@ -14,6 +18,7 @@ import java.util.function.Supplier;
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 
+import org.rg.finance.BinanceWallet.CandleStick.Converter;
 import org.rg.util.Hex;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -324,6 +329,43 @@ public class BinanceWallet extends Wallet.Abst {
                 .getBody();*/
     }
 
+    public <O> O getCandlesticks(
+		String coinName,
+		Wallet.Interval interval,
+		Date endTime,
+		Integer limit,
+		CandleStick.Converter<O> dataConverter
+	) throws ParseException {
+    	limit = limit != null ? limit : 1500;
+    	endTime = endTime != null ? endTime :
+    		    new Date();
+    	Long currentTimeMillis = currentTimeMillis();
+        Map<String, String> queryParams = new HashMap<>();
+        if (coinName != null) {
+            queryParams.put("asset", coinName);
+        }
+        queryParams.put("timestamp", String.valueOf(currentTimeMillis));
+        UriComponentsBuilder uriComponentsBuilder =  UriComponentsBuilder.newInstance().scheme("https").host("api.binance.com")
+                .pathSegment("api")
+                .pathSegment("v3")
+                .pathSegment("klines");
+        UriComponents uriComponents = uriComponentsBuilder
+                .queryParam("symbol", coinName)
+                .queryParam("interval", interval)
+                .queryParam("timeZone", getCurrentTimezoneOffset())
+                .queryParam("endTime", endTime.toInstant().toEpochMilli())
+                .queryParam("limit", limit)
+                .build();
+        HttpHeaders headers = new HttpHeaders();
+        if (dataConverter == null) {
+        	dataConverter = (Converter<O>)new CandleStick.SimpleConverter();
+        }
+    	return dataConverter.convert(
+			(Collection<List<?>>)restTemplate.exchange(uriComponents.toString(),
+			HttpMethod.GET, new HttpEntity<String>(headers), Collection.class).getBody()
+		);
+    }
+
     private static class Signer {
         final static String HMAC_SHA256 = "HmacSHA256";
 
@@ -339,6 +381,59 @@ public class BinanceWallet extends Wallet.Abst {
             }
             return Hex.encode(hmacSha256, true);
         }
+
+    }
+
+    public static interface CandleStick {
+
+    	public static interface Converter<O> {
+
+    		public O convert(Collection<List<?>> input);
+
+    	}
+
+    	public static class SimpleConverter implements CandleStick.Converter<Map<Date, Map<String, Object>>> {
+
+    		@Override
+			public Map<Date, Map<String, Object>> convert(Collection<List<?>> input) {
+    			Map<Date, Map<String, Object>> output = new LinkedHashMap<>();
+    	        for (List<?> candlestickData : input) {
+    	        	Map<String, Object> candleStick = new LinkedHashMap<>();
+    	        	for (int i = 0; i < candlestickData.size(); i++) {
+    	        		if (i == 0) {
+    	        			Calendar calendar = Calendar.getInstance();
+    	        			calendar.setTimeInMillis((long)candlestickData.get(i));
+    	        			Date time = calendar.getTime();
+    	        			candleStick.put("start", time);
+    	        			output.put(time, candleStick);
+    	        		}
+    	        		if (i == 1) {
+    	        			candleStick.put("open", Double.parseDouble((String)candlestickData.get(i)));
+    	        		}
+    	        		if (i == 2) {
+    	        			candleStick.put("high", Double.parseDouble((String)candlestickData.get(i)));
+    	        		}
+    	        		if (i == 3) {
+    	        			candleStick.put("low", Double.parseDouble((String)candlestickData.get(i)));
+    	        		}
+    	        		if (i == 4) {
+    	        			candleStick.put("close", Double.parseDouble((String)candlestickData.get(i)));
+    	        		}
+    	        		if (i == 5) {
+    	        			candleStick.put("volume", Double.parseDouble((String)candlestickData.get(i)));
+    	        		}
+    	        		if (i == 6) {
+    	        			Calendar calendar = Calendar.getInstance();
+    	        			calendar.setTimeInMillis((long)candlestickData.get(i));
+    	        			Date time = calendar.getTime();
+    	        			candleStick.put("end", time);
+    	        		}
+    	        	}
+    	        }
+    	        return output;
+    		}
+
+    	}
 
     }
 

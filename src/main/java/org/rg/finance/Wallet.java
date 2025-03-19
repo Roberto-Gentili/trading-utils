@@ -3,12 +3,15 @@ package org.rg.finance;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.GregorianCalendar;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.TimeZone;
 import java.util.TreeSet;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -22,6 +25,29 @@ import org.springframework.web.client.RestTemplate;
 
 
 public interface Wallet {
+
+	public static enum Interval {
+		MONTH("1M"),
+		WEEK("1w"),
+		ONE_DAYS("1d"),
+		THREE_DAYS("3d"),
+		ONE_HOURS("1h"),
+		TWO_HOURS("2h"),
+		FOUR_HOURS("4h"),
+		SIX_HOURS("6h"),
+		EIGHT_HOURS("8h"),
+		TWELVE_HOURS("12h");
+
+		private Interval(String value) {
+			this.value = value;
+		}
+		private String value;
+
+	    @Override
+	    public String toString() {
+	        return value;
+	    }
+	}
 
 	public void setExecutorServiceSupplier(Supplier<ExecutorService> executorServiceSupplier);
 
@@ -212,9 +238,30 @@ public interface Wallet {
 	        return  retrieveCurrentTime() + this.timeOffset;
 	    }
 
+	    protected static String getCurrentTimezoneOffsetId() {
+	        TimeZone tz = TimeZone.getDefault();
+	        Calendar cal = GregorianCalendar.getInstance(tz);
+	        int offsetInMillis = tz.getOffset(cal.getTimeInMillis());
+	        String offset = String.format("%02d:%02d", Math.abs(offsetInMillis / 3600000), Math.abs((offsetInMillis / 60000) % 60));
+	        offset = (offsetInMillis >= 0 ? "+" : "-") + offset;
+	        return offset;
+	    }
+
+	    protected static int getCurrentTimezoneOffset() {
+	        TimeZone tz = TimeZone.getDefault();
+	        Calendar cal = GregorianCalendar.getInstance(tz);
+	        int offsetInMillis = tz.getOffset(cal.getTimeInMillis());
+	        return offsetInMillis / 3600000;
+	    }
+
 		protected Long retrieveCurrentTime() {
 			return LocalDateTime.now().atZone(ZoneId.systemDefault()).toInstant().toEpochMilli();
 		}
+
+		protected Long retrieveCurrentUTCTime() {
+			return LocalDateTime.now().atZone(ZoneId.of("UTC")).toInstant().toEpochMilli();
+		}
+
 
 		public void setTimeOffset(Long timeOffset) {
 			this.timeOffset = timeOffset;

@@ -2,16 +2,21 @@ package org.rg.service;
 
 import java.io.File;
 import java.io.IOException;
+import java.time.Duration;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.time.temporal.TemporalAdjusters;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.stream.Collectors;
 
 import javax.mail.BodyPart;
 import javax.mail.Message;
@@ -48,6 +53,13 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.core.env.Environment;
 import org.springframework.mail.javamail.JavaMailSenderImpl;
 import org.springframework.web.client.RestTemplate;
+import org.ta4j.core.BarSeries;
+import org.ta4j.core.BaseBar;
+import org.ta4j.core.BaseBarSeriesBuilder;
+import org.ta4j.core.indicators.RSIIndicator;
+import org.ta4j.core.indicators.helpers.ClosePriceIndicator;
+import org.ta4j.core.num.DecimalNum;
+import org.ta4j.core.num.Num;
 
 @EnableAutoConfiguration(exclude = { DataSourceAutoConfiguration.class, HibernateJpaAutoConfiguration.class })
 @SpringBootApplication
@@ -175,15 +187,69 @@ public class Application implements CommandLineRunner {
 				}).submit()
 			);
 		}
+		Wallet.Interval analysisInterval = Wallet.Interval.ONE_DAYS;
+		int period = 200;
+		List<String> uppers = new ArrayList<>();
+		List<String> downers = new ArrayList<>();
 		for (Map.Entry<Wallet, ProducerTask<Collection<String>>> walletForAvailableCoins : walletsForAvailableCoins.entrySet()) {
-			Collection<String> coins = walletForAvailableCoins.getKey().getAvailableCoins();
-			System.out.println(coins);
-			sendMail(
-				"roberto.gentili.1980@gmail.com",
-				"Invio report mensile criptovalute",
-				"<h1>Ciao! In allegato trovi il report delle criptovalute.</h1>",
-				null
-			);
+			if (walletForAvailableCoins.getKey() instanceof BinanceWallet) {
+				Collection<String> coins = walletForAvailableCoins.getKey().getAvailableCoins();
+				String defaultCollateral = walletForAvailableCoins.getKey().getCollateralForCoin("DEFAULT");
+				for (String coin : coins) {
+					try {
+						BarSeries candlesticks = ((BinanceWallet)walletForAvailableCoins.getKey()).getCandlesticks(
+							coin + defaultCollateral,
+							analysisInterval,
+							null,
+							period,
+							new BinanceWallet.CandleStick.Converter<BarSeries>() {
+								@Override
+								public BarSeries convert(Collection<List<?>> input) {
+									BarSeries series = new BaseBarSeriesBuilder().withName(coin + "-" + analysisInterval + "-" + period).build();
+					    	        for (List<?> candlestickData : input) {
+					    	        	series.addBar(
+						    	        	BaseBar.builder(DecimalNum::valueOf, Number.class)
+						                    .timePeriod(Duration.ofDays(1))
+						                    .endTime(
+					                    		ZonedDateTime.ofInstant(
+					                    			Instant.ofEpochMilli(
+				                    					(long)candlestickData.get(6)
+				                    				),ZoneId.systemDefault()
+				                    			)
+					                    	)
+						                    .openPrice(Double.parseDouble((String)candlestickData.get(1)))
+						                    .highPrice(Double.parseDouble((String)candlestickData.get(2)))
+						                    .lowPrice(Double.parseDouble((String)candlestickData.get(3)))
+						                    .closePrice(Double.parseDouble((String)candlestickData.get(4)))
+						                    .volume(Double.parseDouble((String)candlestickData.get(5)))
+						                    .build()
+						                );
+					    	        }
+					    	        return series;
+								}
+							}
+						);
+						ClosePriceIndicator closePrice = new ClosePriceIndicator(candlesticks);
+						RSIIndicator rSIIndicator = new RSIIndicator(closePrice, 14);
+						List<Num> values = rSIIndicator.stream().collect(Collectors.toList());
+						Double latestRSIValue = values.get(values.size() -1).doubleValue();
+						if (latestRSIValue > 70) {
+							System.err.println(coin + ": " + values.get(values.size() -1).doubleValue());
+						} else if (latestRSIValue < 20) {
+							System.err.println(coin + ": " + values.get(values.size() -1).doubleValue());
+						}
+
+					} catch (Throwable exc) {
+
+					}
+				}
+			}
+//			sendMail(
+//				"roberto.gentili.1980@gmail.com",
+//				"Invio report mensile criptovalute",
+//				"<h1>Ciao! In allegato trovi il report delle criptovalute.</h1>",
+//				null
+//			);
 		}
 //		long initialTime = currentTimeMillis();
 //		org.burningwave.core.assembler.StaticComponentContainer.ManagedLoggerRepository.logInfo(getClass()::getName, "Searching for '{}'", CRYPTO_REPORT_FILE_NAME);
