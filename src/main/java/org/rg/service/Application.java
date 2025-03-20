@@ -52,11 +52,15 @@ import org.ta4j.core.Bar;
 import org.ta4j.core.BarSeries;
 import org.ta4j.core.BaseBar;
 import org.ta4j.core.BaseBarSeriesBuilder;
+import org.ta4j.core.indicators.EMAIndicator;
 import org.ta4j.core.indicators.RSIIndicator;
-import org.ta4j.core.indicators.bollinger.BollingerBandFacade;
+import org.ta4j.core.indicators.bollinger.BollingerBandsLowerIndicator;
+import org.ta4j.core.indicators.bollinger.BollingerBandsMiddleIndicator;
+import org.ta4j.core.indicators.bollinger.BollingerBandsUpperIndicator;
 import org.ta4j.core.indicators.helpers.ClosePriceIndicator;
 import org.ta4j.core.indicators.pivotpoints.PivotPointIndicator;
 import org.ta4j.core.indicators.pivotpoints.TimeLevel;
+import org.ta4j.core.indicators.statistics.StandardDeviationIndicator;
 import org.ta4j.core.num.DecimalNum;
 import org.ta4j.core.num.Num;
 
@@ -264,12 +268,19 @@ public class Application implements CommandLineRunner {
 	) throws ParseException {
 		int lastCandleIndex = candlesticks.getBarCount() -1;
 		Bar toBeChecked = candlesticks.getBar(lastCandleIndex);
-		BollingerBandFacade bBFacade = new BollingerBandFacade(candlesticks, 20, 2);
+		ClosePriceIndicator closePrice = new ClosePriceIndicator(candlesticks);
+
+		EMAIndicator ema = new EMAIndicator(closePrice, 20);
+        StandardDeviationIndicator deviation = new StandardDeviationIndicator(closePrice, 2);
+        BollingerBandsMiddleIndicator middleBBand = new BollingerBandsMiddleIndicator(ema);
+        BollingerBandsLowerIndicator lowBBand = new BollingerBandsLowerIndicator(middleBBand, deviation);
+        BollingerBandsUpperIndicator upBBand = new BollingerBandsUpperIndicator(middleBBand, deviation);
+
 		boolean considerOnlyBBContacts = true;
 		Double spikePercentage = 40d;
 		Double comparingValue = 3d;
-		Double bBLower = bBFacade.lower().getValue(lastCandleIndex).doubleValue();
-		Double bBUpper = bBFacade.upper().getValue(lastCandleIndex).doubleValue();;
+		Double bBLower = lowBBand.getValue(lastCandleIndex).doubleValue();
+		Double bBUpper = upBBand.getValue(lastCandleIndex).doubleValue();;
 		Double high = toBeChecked.getHighPrice().doubleValue();
 		Double low = toBeChecked.getLowPrice().doubleValue();
 		Double priceVariation = high - low;
