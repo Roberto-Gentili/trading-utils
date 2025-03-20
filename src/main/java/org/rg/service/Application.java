@@ -206,7 +206,7 @@ public class Application implements CommandLineRunner {
 						try {
 							org.burningwave.core.assembler.StaticComponentContainer.ManagedLoggerRepository.logInfo(
 								getClass()::getName,
-								"Checking coin {}",
+								"Checking asset {}",
 								coin
 							);
 							BarSeries dailyCandleSticks = retrieveCandlestick(
@@ -218,15 +218,14 @@ public class Application implements CommandLineRunner {
 							);
 
 							checkLowAndHighRSIValue(coin, dailyCandleSticks, rSIForCoinAlreadyNotified, rSIForCoin, 14);
-							checkSupportAndResistanceCrossing(coin, dailyCandleSticks, rSIForCoinAlreadyNotified, rSIForCoin);
 							BarSeries fourHCandleSticks = retrieveCandlestick(
 								Interval.FOUR_HOURS,
-								200,
+								125,
 								walletForAvailableCoins,
 								defaultCollateral,
 								coin
 							);
-							checkSpike(fourHCandleSticks, coin, spikeForCoinAlreadyNotified, spikeForCoin);
+							checkSpike(dailyCandleSticks, fourHCandleSticks, coin, spikeForCoinAlreadyNotified, spikeForCoin);
 						} catch (Throwable exc) {
 							exc.printStackTrace();
 						}
@@ -250,55 +249,74 @@ public class Application implements CommandLineRunner {
 					if (!mailText.toString().isEmpty()) {
 						sendMail(
 							"roberto.gentili.1980@gmail.com,fercoletti@gmail.com",
-							"Segnalazione crypto con RSI in ipervenduto/ipercomprato",
+							"Segnalazione crypto",
 							presentation.append(mailText).toString(),
 							(String[])null
 						);
 					}
-				}
-				org.burningwave.core.assembler.StaticComponentContainer.ManagedLoggerRepository.logInfo(
-					getClass()::getName,
-					"Waiting 10 seconds"
-				);
-				Thread.sleep(10000);
-				if (LocalDate.now().getDayOfYear() != today.getDayOfYear()) {
-					today = LocalDate.now();
-					rSIForCoinAlreadyNotified.clear();
+					org.burningwave.core.assembler.StaticComponentContainer.ManagedLoggerRepository.logInfo(
+						getClass()::getName,
+						"Waiting 10 seconds"
+					);
+					Thread.sleep(10000);
+					if (LocalDate.now().getDayOfYear() != today.getDayOfYear()) {
+						today = LocalDate.now();
+						rSIForCoinAlreadyNotified.clear();
+					}
 				}
 			}
 		}
 	}
 
-	private void checkSupportAndResistanceCrossing(
-		String coin, BarSeries dailyCandleSticks,
-		Map<String, Double> rSIForCoinAlreadyNotified, Map<String, Double> rSIForCoin
+	private Map<String, Double> checkSupportAndResistanceCrossing(
+		BarSeries dailyCandleSticks,
+		TimeLevel timeLevel,
+		Interval interval
 	) {
-		PivotPointIndicator pivotPoint = new PivotPointIndicator(dailyCandleSticks, TimeLevel.DAY);
+		Map<String, Double> resistanceAndSupportLevels = new LinkedHashMap<>();
+		PivotPointIndicator pivotPoint = new PivotPointIndicator(dailyCandleSticks, timeLevel);
 		StandardReversalIndicator s1 = new StandardReversalIndicator(pivotPoint, SUPPORT_1);
 		StandardReversalIndicator s2 = new StandardReversalIndicator(pivotPoint, SUPPORT_2);
 		StandardReversalIndicator s3 = new StandardReversalIndicator(pivotPoint, SUPPORT_3);
 		StandardReversalIndicator r1 = new StandardReversalIndicator(pivotPoint, RESISTANCE_1);
 		StandardReversalIndicator r2 = new StandardReversalIndicator(pivotPoint, RESISTANCE_2);
 		StandardReversalIndicator r3 = new StandardReversalIndicator(pivotPoint, RESISTANCE_3);
-
-		s1.getValue(dailyCandleSticks.getEndIndex());
+//		org.burningwave.core.assembler.StaticComponentContainer.ManagedLoggerRepository.logInfo(
+//			getClass()::getName,
+//			"Price: {} - s1: {}; r1: {} - s2: {}; r2: {} - s3: {}; r3: {}  ",
+//			dailyCandleSticks.getBar(dailyCandleSticks.getEndIndex()).getClosePrice().doubleValue(),
+//			s1.getValue(dailyCandleSticks.getEndIndex()).doubleValue(),
+//			r1.getValue(dailyCandleSticks.getEndIndex()).doubleValue(),
+//			s2.getValue(dailyCandleSticks.getEndIndex()).doubleValue(),
+//			r2.getValue(dailyCandleSticks.getEndIndex()).doubleValue(),
+//			s3.getValue(dailyCandleSticks.getEndIndex()).doubleValue(),
+//			r3.getValue(dailyCandleSticks.getEndIndex()).doubleValue()
+//		);
+		resistanceAndSupportLevels.put("S1-" + interval.toString(), s1.getValue(dailyCandleSticks.getEndIndex()).doubleValue());
+		resistanceAndSupportLevels.put("R1-" + interval.toString(), r1.getValue(dailyCandleSticks.getEndIndex()).doubleValue());
+		resistanceAndSupportLevels.put("S2-" + interval.toString(), s2.getValue(dailyCandleSticks.getEndIndex()).doubleValue());
+		resistanceAndSupportLevels.put("R2-" + interval.toString(), r2.getValue(dailyCandleSticks.getEndIndex()).doubleValue());
+		resistanceAndSupportLevels.put("S3-" + interval.toString(), s3.getValue(dailyCandleSticks.getEndIndex()).doubleValue());
+		resistanceAndSupportLevels.put("R3-" + interval.toString(), r3.getValue(dailyCandleSticks.getEndIndex()).doubleValue());
+		return resistanceAndSupportLevels;
 	}
 
 	protected void checkSpike(
-		BarSeries candlesticks,
+		BarSeries dailyCandleSticks,
+		BarSeries fourHoursCandleSticks,
 		String coin,
 		Map<String, Spike> spikeForCoinAlreadyNotified,
 		Map<String, Spike> spikeForCoin
 	) throws ParseException {
-		int lastCandleIndex = candlesticks.getEndIndex();
-		Bar toBeChecked = candlesticks.getBar(lastCandleIndex);
+		int lastCandleIndex = fourHoursCandleSticks.getEndIndex();
+		Bar toBeChecked = fourHoursCandleSticks.getBar(lastCandleIndex);
 
 		boolean considerOnlyBBContacts = true;
 		Double spikePercentage = 40d;
 		Double comparingValue = 3d;
 		int bBMaPeriod = 20;
 		DecimalNum bBDev = DecimalNum.valueOf(2);
-		ClosePriceIndicator closePrice = new ClosePriceIndicator(candlesticks);
+		ClosePriceIndicator closePrice = new ClosePriceIndicator(fourHoursCandleSticks);
 		SMAIndicator ma = new SMAIndicator(closePrice, bBMaPeriod);
         StandardDeviationIndicator deviation = new StandardDeviationIndicator(closePrice, bBMaPeriod);
         BollingerBandsMiddleIndicator middleBBand = new BollingerBandsMiddleIndicator(ma);
@@ -326,9 +344,10 @@ public class Application implements CommandLineRunner {
 			lowSpikePercentage >= spikePercentage && totalCandleVariation >= comparingValue && lowSpikeValue >= highSpikeValue && (considerOnlyBBContacts ? (low <= bBLower) : true);
 		boolean sellCondition =
 			highSpikePercentage >= spikePercentage && totalCandleVariation >= comparingValue && highSpikeValue >= lowSpikeValue && (considerOnlyBBContacts ? (high >= bBUpper) : true);
-
+		Map<String, Double> supportAndResistance = checkSupportAndResistanceCrossing(fourHoursCandleSticks, TimeLevel.DAY, Interval.ONE_DAYS);
+		//supportAndResistance.putAll(checkSupportAndResistanceCrossing(dailyCandleSticks, TimeLevel.BARBASED, Interval.FOUR_HOURS));
 		if (buyCondition || sellCondition) {
-			Spike spike = new Spike(toBeChecked, buyCondition? (lowSpikePercentage * -1) : highSpikePercentage);
+			Spike spike = new Spike(toBeChecked, buyCondition? (lowSpikePercentage * -1) : highSpikePercentage, supportAndResistance);
 			synchronized(spikeForCoin) {
 				Bar latestNotified = Optional.ofNullable(spikeForCoinAlreadyNotified.get(coin)).map(Spike::getBar).orElseGet(() -> null);
 				if (latestNotified != null) {
@@ -421,8 +440,8 @@ public class Application implements CommandLineRunner {
 				rSIForCoinEntrySet.entrySet().stream().map(
 					rec ->
 						"<tr>" +
-							"<td><a href=\"" + "https://www.binance.com/it/trade/" + rec.getKey() + "_" + collateral + "?type=isolated" + "\"><h2>" + rec.getKey() + "</h2></a></td>"+
-							"<td width=\"25px\"></td><td><h2 style=\"color: " + (rec.getValue() <= 50 ? "green" : "red") +"\">" + rec.getValue() + "</h2></td>" +
+							"<td><a href=\"" + "https://www.binance.com/it/trade/" + rec.getKey() + "_" + collateral + "?type=isolated" + "\">" + rec.getKey() + "</a></td>"+
+							"<td width=\"25px\"></td><td><p style=\"color: " + (rec.getValue() <= 50 ? "green" : "red") +"\">" + rec.getValue() + "</p></td>" +
 						"</tr>"
 				).collect(Collectors.toList())
 			) +
@@ -430,18 +449,42 @@ public class Application implements CommandLineRunner {
 	}
 
 	private String spikesToHTMLTable(Map<String, Spike> spikeForCoin, String collateral) {
-		return "<table>" +
+		String header =
+		"<tr>" +
+			"<td><b>" +
+				"Asset name" +
+			"</b></td>" +
+			"<td><b>" +
+				"Spike variation" +
+			"</b></td>" +
+			"<td><b>" +
+				"Current price" +
+			"</b></td>" +
+			String.join("", spikeForCoin.entrySet().stream().findFirst().get().getValue().getSupportAndResistance().keySet().stream().map(supResLabel -> "<td><b>" + supResLabel + "</b></td>").collect(Collectors.toList())) +
+		"</tr>";
+		;
+		return "<table style=\"border-spacing: 20px;\">" +
+				header +
 				String.join(
 					"",
 					spikeForCoin.entrySet().stream().map(
 						rec ->
 							"<tr>" +
-								"<td><a href=\"" + "https://www.binance.com/it/trade/" + rec.getKey() + "_" + collateral + "?type=isolated" + "\"><h2>" + rec.getKey() + "</h2></a></td>"+
-								"<td width=\"25px\"></td><td><h2 style=\"color: " + (rec.getValue().getVariationPercentage() <= 0 ? "green" : "red") +"\">" + rec.getValue().getVariationPercentage() + "&#37;</h2></td>" +
+								"<td><a href=\"" + "https://www.binance.com/it/trade/" + rec.getKey() + "_" + collateral + "?type=isolated" + "\"><p>" + rec.getKey() + "</p></a></td>"+
+								"<td><p style=\"color: " + (rec.getValue().getVariationPercentage() <= 0 ? "green" : "red") +"\">" + format(rec.getValue().getVariationPercentage()) + "&#37;</p></td>" +
+								"<td>" + format(rec.getValue().getBar().getClosePrice().doubleValue()) +"</td>" +
+								String.join("", rec.getValue().getSupportAndResistance().values().stream().map(supResVal -> "<td>" + format(supResVal) + "</td>").collect(Collectors.toList())) +
 							"</tr>"
 					).collect(Collectors.toList())
 				) +
 			"</table>";
+	}
+
+
+
+	private String format(double value) {
+		// TODO Auto-generated method stub
+		return String.format("%1$,.6f", value);
 	}
 
 	public void sendMail(String to, String subject, String body, String... attachmentAbsolutePaths) throws MessagingException, IOException {
@@ -508,13 +551,12 @@ public class Application implements CommandLineRunner {
     private static class Spike {
     	private Bar bar;
     	private Double variationPercentage;
-		/**
-		 * @param bar
-		 * @param variationPercentage
-		 */
-		public Spike(Bar bar, Double variationPercentage) {
+    	private Map<String, Double> supportAndResistance;
+
+		public Spike(Bar bar, Double variationPercentage, Map<String, Double> supportAndResistance) {
 			this.bar = bar;
 			this.variationPercentage = variationPercentage;
+			this.supportAndResistance = supportAndResistance;
 		}
 		public Bar getBar() {
 			return bar;
@@ -522,6 +564,10 @@ public class Application implements CommandLineRunner {
 		public Double getVariationPercentage() {
 			return variationPercentage;
 		}
+		public Map<String, Double> getSupportAndResistance() {
+			return supportAndResistance;
+		}
+
 
     }
 
