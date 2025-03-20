@@ -9,6 +9,8 @@ import static org.ta4j.core.indicators.pivotpoints.PivotLevel.SUPPORT_3;
 
 import java.io.File;
 import java.io.IOException;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.text.ParseException;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -312,8 +314,8 @@ public class Application implements CommandLineRunner {
 		Bar toBeChecked = fourHoursCandleSticks.getBar(lastCandleIndex);
 
 		boolean considerOnlyBBContacts = true;
-		Double spikePercentage = 40d;
-		Double comparingValue = 3d;
+		BigDecimal spikePercentage = toBigDecimal(40d);
+		BigDecimal comparingValue = toBigDecimal(3d);
 		int bBMaPeriod = 20;
 		DecimalNum bBDev = DecimalNum.valueOf(2);
 		ClosePriceIndicator closePrice = new ClosePriceIndicator(fourHoursCandleSticks);
@@ -323,31 +325,31 @@ public class Application implements CommandLineRunner {
         BollingerBandsLowerIndicator lowBBand = new BollingerBandsLowerIndicator(middleBBand, deviation, bBDev);
         BollingerBandsUpperIndicator upBBand = new BollingerBandsUpperIndicator(middleBBand, deviation, bBDev);
 		//BollingerBandFacade bBFacade = new BollingerBandFacade(candlesticks, 20, 2);
-		Double bBLower =
-			//bBFacade.lower().getValue(lastCandleIndex).doubleValue();
-			lowBBand.getValue(lastCandleIndex).doubleValue();
-		Double bBUpper =
-			//bBFacade.upper().getValue(lastCandleIndex).doubleValue();
-			upBBand.getValue(lastCandleIndex).doubleValue();
-		Double high = toBeChecked.getHighPrice().doubleValue();
-		Double low = toBeChecked.getLowPrice().doubleValue();
-		Double priceVariation = high - low;
-		Double open = toBeChecked.getOpenPrice().doubleValue();
-		Double close = toBeChecked.getClosePrice().doubleValue();
-		Double lowSpikeValue = close < open ? close - low : open - low;
-		Double highSpikeValue = close > open ? high - close : high - open;
-		Double lowSpikePercentage = (lowSpikeValue * 100d)/priceVariation;
-		Double highSpikePercentage = (highSpikeValue * 100d)/priceVariation;
-		Double totalCandleVariation = ((high - low) / high) * 100d;
+		BigDecimal bBLower =
+			//toBigDecimal(bBFacade.lower().getValue(lastCandleIndex).doubleValue());
+			toBigDecimal(lowBBand.getValue(lastCandleIndex).doubleValue());
+		BigDecimal bBUpper =
+			//toBigDecimal(bBFacade.upper().getValue(lastCandleIndex).doubleValue());
+			toBigDecimal(upBBand.getValue(lastCandleIndex).doubleValue());
+		BigDecimal high = toBigDecimal(toBeChecked.getHighPrice().doubleValue());
+		BigDecimal low = toBigDecimal(toBeChecked.getLowPrice().doubleValue());
+		BigDecimal priceVariation = high.subtract(low);
+		BigDecimal open = toBigDecimal(toBeChecked.getOpenPrice().doubleValue());
+		BigDecimal close = toBigDecimal(toBeChecked.getClosePrice().doubleValue());
+		BigDecimal lowSpikeValue = close.compareTo(open) < 0 ? close.subtract(low) : open.subtract(low);
+		BigDecimal highSpikeValue = close.compareTo(open) > 0 ? high.subtract(close) : high.subtract(open);
+		BigDecimal lowSpikePercentage = divide(lowSpikeValue.multiply(toBigDecimal(100d)), priceVariation);
+		BigDecimal highSpikePercentage = divide(highSpikeValue.multiply(toBigDecimal(100d)), priceVariation);
+		BigDecimal totalCandleVariation = divide(high.subtract(low),high).multiply(toBigDecimal(100d));
 		//log.info('variation: {0}', totalCandleVariation)
 		boolean buyCondition =
-			lowSpikePercentage >= spikePercentage && totalCandleVariation >= comparingValue && lowSpikeValue >= highSpikeValue && (considerOnlyBBContacts ? (low <= bBLower) : true);
+			lowSpikePercentage.compareTo(spikePercentage) >= 0 && totalCandleVariation.compareTo(comparingValue) >= 0 && lowSpikeValue.compareTo(highSpikeValue) >= 0 && (considerOnlyBBContacts ? (low.compareTo(bBLower) <= 0) : true);
 		boolean sellCondition =
-			highSpikePercentage >= spikePercentage && totalCandleVariation >= comparingValue && highSpikeValue >= lowSpikeValue && (considerOnlyBBContacts ? (high >= bBUpper) : true);
+			highSpikePercentage.compareTo(spikePercentage) >= 0 && totalCandleVariation.compareTo(comparingValue) >= 0 && highSpikeValue.compareTo(lowSpikeValue) >= 0 && (considerOnlyBBContacts ? (high.compareTo(bBUpper) >= 0) : true);
 		Map<String, Double> supportAndResistance = checkSupportAndResistanceCrossing(fourHoursCandleSticks, TimeLevel.DAY, Interval.ONE_DAYS);
 		//supportAndResistance.putAll(checkSupportAndResistanceCrossing(dailyCandleSticks, TimeLevel.BARBASED, Interval.FOUR_HOURS));
 		if (buyCondition || sellCondition) {
-			Spike spike = new Spike(toBeChecked, buyCondition? (lowSpikePercentage * -1) : highSpikePercentage, supportAndResistance);
+			Spike spike = new Spike(toBeChecked, buyCondition? (lowSpikePercentage.negate().doubleValue()) : highSpikePercentage.doubleValue(), supportAndResistance);
 			synchronized(spikeForCoin) {
 				Bar latestNotified = Optional.ofNullable(spikeForCoinAlreadyNotified.get(coin)).map(Spike::getBar).orElseGet(() -> null);
 				if (latestNotified != null) {
@@ -367,6 +369,14 @@ public class Application implements CommandLineRunner {
 				}
 			}
 		}
+	}
+
+	private BigDecimal toBigDecimal(double value) {
+		return new BigDecimal(value).setScale(20, RoundingMode.HALF_DOWN);
+	}
+
+	private BigDecimal divide(BigDecimal a, BigDecimal b) {
+		return a.divide(b, 20, RoundingMode.HALF_DOWN);
 	}
 
 	protected void checkLowAndHighRSIValue(

@@ -398,7 +398,11 @@ public class BinanceWallet extends Wallet.Abst {
         UriComponents uriComponents = uriComponentsBuilder
                 .queryParam("symbol", coinName)
                 .queryParam("interval", interval)
-                .queryParam("timeZone", getCurrentTimezoneOffset())
+                .queryParam(
+            		"timeZone",
+            		0
+            		//getCurrentTimezoneOffset()
+        		)
                 .queryParam("endTime", endTime.toInstant().toEpochMilli())
                 .queryParam("limit", limit)
                 .build();
