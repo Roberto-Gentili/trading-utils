@@ -52,8 +52,8 @@ import org.ta4j.core.Bar;
 import org.ta4j.core.BarSeries;
 import org.ta4j.core.BaseBar;
 import org.ta4j.core.BaseBarSeriesBuilder;
-import org.ta4j.core.indicators.EMAIndicator;
 import org.ta4j.core.indicators.RSIIndicator;
+import org.ta4j.core.indicators.SMAIndicator;
 import org.ta4j.core.indicators.bollinger.BollingerBandsLowerIndicator;
 import org.ta4j.core.indicators.bollinger.BollingerBandsMiddleIndicator;
 import org.ta4j.core.indicators.bollinger.BollingerBandsUpperIndicator;
@@ -270,9 +270,9 @@ public class Application implements CommandLineRunner {
 		Bar toBeChecked = candlesticks.getBar(lastCandleIndex);
 		ClosePriceIndicator closePrice = new ClosePriceIndicator(candlesticks);
 
-		EMAIndicator ema = new EMAIndicator(closePrice, 20);
+		SMAIndicator ma = new SMAIndicator(closePrice, 20);
         StandardDeviationIndicator deviation = new StandardDeviationIndicator(closePrice, 2);
-        BollingerBandsMiddleIndicator middleBBand = new BollingerBandsMiddleIndicator(ema);
+        BollingerBandsMiddleIndicator middleBBand = new BollingerBandsMiddleIndicator(ma);
         BollingerBandsLowerIndicator lowBBand = new BollingerBandsLowerIndicator(middleBBand, deviation);
         BollingerBandsUpperIndicator upBBand = new BollingerBandsUpperIndicator(middleBBand, deviation);
 
