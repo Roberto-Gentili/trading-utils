@@ -372,11 +372,14 @@ public class Application implements CommandLineRunner {
 	}
 
 	private BigDecimal toBigDecimal(double value) {
-		return new BigDecimal(value).setScale(20, RoundingMode.HALF_DOWN);
+		return new BigDecimal(value).setScale(50, RoundingMode.HALF_DOWN);
 	}
 
 	private BigDecimal divide(BigDecimal a, BigDecimal b) {
-		return a.divide(b, 20, RoundingMode.HALF_DOWN);
+		if (b.compareTo(BigDecimal.ZERO) == 0) {
+			return BigDecimal.ZERO;
+		}
+		return a.divide(b, 50, RoundingMode.HALF_DOWN);
 	}
 
 	protected void checkLowAndHighRSIValue(
@@ -493,7 +496,6 @@ public class Application implements CommandLineRunner {
 
 
 	private String format(double value) {
-		// TODO Auto-generated method stub
 		return String.format("%1$,.6f", value);
 	}
 
