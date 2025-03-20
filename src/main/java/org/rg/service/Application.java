@@ -234,7 +234,7 @@ public class Application implements CommandLineRunner {
 					StringBuffer mailText = new StringBuffer("");
 					if (!rSIForCoin.isEmpty()) {
 						mailText.append(
-							"<h1>Sono stati rilevati i seguenti asset con RSI critico" + Interval.ONE_DAYS + ":</h1>" +
+							"<h1>Sono stati rilevati i seguenti asset con RSI critico su " + Interval.ONE_DAYS + ":</h1>" +
 							rSIToHTMLTable(rSIForCoin, defaultCollateral)
 						);
 						rSIForCoin.clear();
