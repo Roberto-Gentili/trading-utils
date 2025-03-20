@@ -26,29 +26,6 @@ import org.springframework.web.client.RestTemplate;
 
 public interface Wallet {
 
-	public static enum Interval {
-		MONTH("1M"),
-		WEEK("1w"),
-		ONE_DAYS("1d"),
-		THREE_DAYS("3d"),
-		ONE_HOURS("1h"),
-		TWO_HOURS("2h"),
-		FOUR_HOURS("4h"),
-		SIX_HOURS("6h"),
-		EIGHT_HOURS("8h"),
-		TWELVE_HOURS("12h");
-
-		private Interval(String value) {
-			this.value = value;
-		}
-		private String value;
-
-	    @Override
-	    public String toString() {
-	        return value;
-	    }
-	}
-
 	public void setExecutorServiceSupplier(Supplier<ExecutorService> executorServiceSupplier);
 
 	public String getId();

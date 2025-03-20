@@ -2,7 +2,7 @@ package org.rg.service;
 
 import java.io.File;
 import java.io.IOException;
-import java.time.Duration;
+import java.text.ParseException;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -11,10 +11,10 @@ import java.time.ZonedDateTime;
 import java.time.temporal.TemporalAdjusters;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Properties;
 import java.util.TreeMap;
 import java.util.stream.Collectors;
@@ -27,16 +27,10 @@ import javax.mail.internet.MimeBodyPart;
 import javax.mail.internet.MimeMessage;
 import javax.mail.internet.MimeMultipart;
 
-import org.apache.poi.ss.usermodel.Cell;
-import org.apache.poi.ss.usermodel.CellType;
-import org.apache.poi.ss.usermodel.FormulaEvaluator;
-import org.apache.poi.ss.usermodel.Row;
-import org.apache.poi.ss.usermodel.Sheet;
-import org.apache.poi.ss.usermodel.Workbook;
-import org.apache.poi.ss.util.CellReference;
 import org.burningwave.core.concurrent.QueuedTaskExecutor.ProducerTask;
 import org.rg.finance.BinanceWallet;
 import org.rg.finance.CryptoComWallet;
+import org.rg.finance.Interval;
 import org.rg.finance.Wallet;
 import org.rg.util.RestTemplateSupplier;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -54,11 +48,15 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.core.env.Environment;
 import org.springframework.mail.javamail.JavaMailSenderImpl;
 import org.springframework.web.client.RestTemplate;
+import org.ta4j.core.Bar;
 import org.ta4j.core.BarSeries;
 import org.ta4j.core.BaseBar;
 import org.ta4j.core.BaseBarSeriesBuilder;
 import org.ta4j.core.indicators.RSIIndicator;
+import org.ta4j.core.indicators.bollinger.BollingerBandFacade;
 import org.ta4j.core.indicators.helpers.ClosePriceIndicator;
+import org.ta4j.core.indicators.pivotpoints.PivotPointIndicator;
+import org.ta4j.core.indicators.pivotpoints.TimeLevel;
 import org.ta4j.core.num.DecimalNum;
 import org.ta4j.core.num.Num;
 
@@ -66,15 +64,6 @@ import org.ta4j.core.num.Num;
 @SpringBootApplication
 @SuppressWarnings({ "null" })
 public class Application implements CommandLineRunner {
-
-	private static final String CRYPTO_REPORT_FILE_NAME = "crypto-report.xlsx";
-	private static final String LABEL_INVESTMENT = "Investimento";
-	private static final String LABEL_QUANTITY = "Quantità";
-	private static final String LABEL_LAST_UPDATE_TIME = "Ultimo aggiornamento";
-	private static final String LABEL_BALANCE_01 = "Bilancio";
-	private static final String LABEL_BALANCE_02 = "Saldo";
-	private static final String LABEL_WALLET_BALANCE = "Saldo portafoglio";
-	private static final String LABEL_TOKEN = "Token";
 
 	@Autowired
 	private ApplicationContext appContext;
@@ -189,86 +178,69 @@ public class Application implements CommandLineRunner {
 				}).submit()
 			);
 		}
-		Wallet.Interval analysisInterval = Wallet.Interval.ONE_DAYS;
-		int period = 200;
-		Map<String, Double> alreadyNotified = new TreeMap<>();
+		Map<String, Double> rSIForCoinAlreadyNotified = new TreeMap<>();
+		Map<String, Spike> spikeForCoinAlreadyNotified = new TreeMap<>();
 		while (true) {
 			Map<String, Double> rSIForCoin = new TreeMap<>();
+			Map<String, Spike> spikeForCoin = new TreeMap<>();
 			for (Map.Entry<Wallet, ProducerTask<Collection<String>>> walletForAvailableCoins : walletsForAvailableCoins.entrySet()) {
 				if (walletForAvailableCoins.getKey() instanceof BinanceWallet) {
-					String defaultCollateral = "USDC";
-					//walletForAvailableCoins.getKey().getCollateralForCoin("DEFAULT");
+					String defaultCollateral = walletForAvailableCoins.getKey().getCollateralForCoin("DEFAULT");
 					Collection<String> marginUSDCCoins = ((BinanceWallet)walletForAvailableCoins.getKey()).getAllMarginAssetPairs()
 						.stream().filter(asset -> asset.get("quote").equals(defaultCollateral)).map(asset -> asset.get("base")).
 						map(String.class::cast).collect(Collectors.toList());
 
-
 					marginUSDCCoins.parallelStream().forEach(coin -> {
 						try {
-							BarSeries candlesticks = ((BinanceWallet)walletForAvailableCoins.getKey()).getCandlesticks(
-								coin + defaultCollateral,
-								analysisInterval,
-								null,
-								period,
-								new BinanceWallet.CandleStick.Converter<BarSeries>() {
-									@Override
-									public BarSeries convert(Collection<List<?>> input) {
-										BarSeries series = new BaseBarSeriesBuilder().withName(coin + "-" + analysisInterval + "-" + period).build();
-						    	        for (List<?> candlestickData : input) {
-						    	        	series.addBar(
-							    	        	BaseBar.builder(DecimalNum::valueOf, Number.class)
-							                    .timePeriod(Duration.ofDays(1))
-							                    .endTime(
-						                    		ZonedDateTime.ofInstant(
-						                    			Instant.ofEpochMilli(
-					                    					(long)candlestickData.get(6)
-					                    				),ZoneId.systemDefault()
-					                    			)
-						                    	)
-							                    .openPrice(Double.parseDouble((String)candlestickData.get(1)))
-							                    .highPrice(Double.parseDouble((String)candlestickData.get(2)))
-							                    .lowPrice(Double.parseDouble((String)candlestickData.get(3)))
-							                    .closePrice(Double.parseDouble((String)candlestickData.get(4)))
-							                    .volume(Double.parseDouble((String)candlestickData.get(5)))
-							                    .build()
-							                );
-						    	        }
-						    	        return series;
-									}
-								}
+							org.burningwave.core.assembler.StaticComponentContainer.ManagedLoggerRepository.logInfo(
+								getClass()::getName,
+								"Checking coin {}",
+								coin
 							);
-							ClosePriceIndicator closePrice = new ClosePriceIndicator(candlesticks);
-							RSIIndicator rSIIndicator = new RSIIndicator(closePrice, 14);
-							List<Num> values = rSIIndicator.stream().collect(Collectors.toList());
-							Double latestRSIValue = values.get(values.size() -1).doubleValue();
-							if ((latestRSIValue > 70 || latestRSIValue < 30) && latestRSIValue != 0) {
-								synchronized(rSIForCoin) {
-									if (!alreadyNotified.containsKey(coin)) {
-										rSIForCoin.put(coin, latestRSIValue);
-										alreadyNotified.put(coin, latestRSIValue);
-									} else {
-										org.burningwave.core.assembler.StaticComponentContainer.ManagedLoggerRepository.logInfo(
-											getClass()::getName,
-											"Coin {} with value {} already comunicated",
-											coin, latestRSIValue
-										);
-									}
-								}
-							}
-
+							BarSeries dailyCandleSticks = retrieveCandlestick(
+								Interval.ONE_DAYS,
+								370,
+								walletForAvailableCoins,
+								defaultCollateral,
+								coin
+							);
+							PivotPointIndicator pivotPoint = new PivotPointIndicator(dailyCandleSticks, TimeLevel.DAY);
+							checkLowAndHighRSIValue(coin, dailyCandleSticks, rSIForCoinAlreadyNotified, rSIForCoin, 14);
+							BarSeries fourHCandleSticks = retrieveCandlestick(
+								Interval.FOUR_HOURS,
+								125,
+								walletForAvailableCoins,
+								defaultCollateral,
+								coin
+							);
+							checkSpike(fourHCandleSticks, coin, spikeForCoinAlreadyNotified, spikeForCoin);
 						} catch (Throwable exc) {
-
+							exc.printStackTrace();
 						}
 					});
+					StringBuffer presentation = new StringBuffer("<h1>Ciao!</h1>");
+					StringBuffer mailText = new StringBuffer("");
 					if (!rSIForCoin.isEmpty()) {
+						mailText.append(
+							"<h1>Sono state rilevate le seguenti crypto con RSI critico:</h1>" +
+							rSIToHTMLTable(rSIForCoin, defaultCollateral)
+						);
+						rSIForCoin.clear();
+					}
+					if (!spikeForCoin.isEmpty()) {
+						mailText.append(
+							"<h1>Sono state rilevate le seguenti crypto con spike:</h1>" +
+							spikesToHTMLTable(spikeForCoin, defaultCollateral)
+						);
+						spikeForCoin.clear();
+					}
+					if (!mailText.toString().isEmpty()) {
 						sendMail(
 							"roberto.gentili.1980@gmail.com,fercoletti@gmail.com",
 							"Segnalazione crypto con RSI in ipervenduto/ipercomprato",
-							"<h1>Ciao!</br>Sono state rilevate le seguenti crypto con RSI in zona ipervenduto/ipercomprato:</h1>" +
-							toHTMLTable(rSIForCoin, defaultCollateral),
-							null
+							presentation.append(mailText).toString(),
+							(String[])null
 						);
-						rSIForCoin.clear();
 					}
 				}
 				org.burningwave.core.assembler.StaticComponentContainer.ManagedLoggerRepository.logInfo(
@@ -278,21 +250,157 @@ public class Application implements CommandLineRunner {
 				Thread.sleep(10000);
 				if (LocalDate.now().getDayOfYear() != today.getDayOfYear()) {
 					today = LocalDate.now();
-					alreadyNotified.clear();
+					rSIForCoinAlreadyNotified.clear();
 				}
 			}
 		}
 	}
 
-	private String toHTMLTable(Map<String, Double> rSIForCoinEntrySet, String collateral) {
+	protected void checkSpike(
+		BarSeries candlesticks,
+		String coin,
+		Map<String, Spike> spikeForCoinAlreadyNotified,
+		Map<String, Spike> spikeForCoin
+	) throws ParseException {
+		int lastCandleIndex = candlesticks.getBarCount() -1;
+		Bar toBeChecked = candlesticks.getBar(lastCandleIndex);
+		BollingerBandFacade bBFacade = new BollingerBandFacade(candlesticks, 20, 2);
+		boolean considerOnlyBBContacts = true;
+		Double spikePercentage = 40d;
+		Double comparingValue = 3d;
+		Double bBLower = bBFacade.lower().getValue(lastCandleIndex).doubleValue();
+		Double bBUpper = bBFacade.upper().getValue(lastCandleIndex).doubleValue();;
+		Double high = toBeChecked.getHighPrice().doubleValue();
+		Double low = toBeChecked.getLowPrice().doubleValue();
+		Double priceVariation = high - low;
+		Double open = toBeChecked.getOpenPrice().doubleValue();
+		Double close = toBeChecked.getClosePrice().doubleValue();
+		Double lowSpikeValue = close < open ? close - low : open - low;
+		Double highSpikeValue = close > open ? high - close : high - open;
+		Double lowSpikePercentage = (lowSpikeValue * 100d)/priceVariation;
+		Double highSpikePercentage = (highSpikeValue * 100d)/priceVariation;
+		Double totalCandleVariation = ((high - low) / high) * 100d;
+		//log.info('variation: {0}', totalCandleVariation)
+		boolean buyCondition =
+			lowSpikePercentage >= spikePercentage && totalCandleVariation >= comparingValue && lowSpikeValue >= highSpikeValue && (considerOnlyBBContacts ? (low <= bBLower) : true);
+		boolean sellCondition =
+			highSpikePercentage >= spikePercentage && totalCandleVariation >= comparingValue && highSpikeValue >= lowSpikeValue && (considerOnlyBBContacts ? (high >= bBUpper) : true);
+
+		if (buyCondition || sellCondition) {
+			Spike spike = new Spike(toBeChecked, buyCondition? (lowSpikePercentage * -1) : highSpikePercentage);
+			synchronized(spikeForCoin) {
+				Bar latestNotified = Optional.ofNullable(spikeForCoinAlreadyNotified.get(coin)).map(Spike::getBar).orElseGet(() -> null);
+				if (latestNotified != null) {
+					if (latestNotified.getBeginTime().compareTo(toBeChecked.getBeginTime()) != 0) {
+						spikeForCoin.put(coin, spike);
+						spikeForCoinAlreadyNotified.put(coin, spike);
+					} else {
+						org.burningwave.core.assembler.StaticComponentContainer.ManagedLoggerRepository.logInfo(
+							getClass()::getName,
+							"Spike already notified for coin {}",
+							coin
+						);
+					}
+				} else {
+					spikeForCoin.put(coin, spike);
+					spikeForCoinAlreadyNotified.put(coin, spike);
+				}
+			}
+		}
+	}
+
+	protected void checkLowAndHighRSIValue(
+		String coin,
+		BarSeries candlesticks,
+		Map<String, Double> alreadyNotified,
+		Map<String, Double> rSIForCoin,
+		int period
+	) {
+		ClosePriceIndicator closePrice = new ClosePriceIndicator(candlesticks);
+		RSIIndicator rSIIndicator = new RSIIndicator(closePrice, period);
+		List<Num> values = rSIIndicator.stream().collect(Collectors.toList());
+		Double latestRSIValue = values.get(values.size() -1).doubleValue();
+		if ((latestRSIValue > 70 || latestRSIValue < 30) && latestRSIValue != 0) {
+			synchronized(rSIForCoin) {
+				if (!alreadyNotified.containsKey(coin)) {
+					rSIForCoin.put(coin, latestRSIValue);
+					alreadyNotified.put(coin, latestRSIValue);
+				} else {
+					org.burningwave.core.assembler.StaticComponentContainer.ManagedLoggerRepository.logInfo(
+						getClass()::getName,
+						"Coin {} with value {} already notified for RSI value",
+						coin, latestRSIValue
+					);
+				}
+			}
+		}
+	}
+
+	protected BarSeries retrieveCandlestick(Interval analysisInterval, int period,
+			Map.Entry<Wallet, ProducerTask<Collection<String>>> walletForAvailableCoins, String defaultCollateral,
+			String coin) throws ParseException {
+		return ((BinanceWallet)walletForAvailableCoins.getKey()).getCandlesticks(
+			coin + defaultCollateral,
+			analysisInterval,
+			null,
+			period,
+			new BinanceWallet.CandleStick.Converter<BarSeries>() {
+				@Override
+				public BarSeries convert(Collection<List<?>> input) {
+					BarSeries series = new BaseBarSeriesBuilder().withName(coin + "-" + analysisInterval + "-" + period).build();
+			        for (List<?> candlestickData : input) {
+			        	series.addBar(
+		    	        	BaseBar.builder(DecimalNum::valueOf, Number.class)
+		                    .timePeriod(analysisInterval.toDuration())
+		                    .endTime(
+		                		ZonedDateTime.ofInstant(
+		                			Instant.ofEpochMilli(
+		            					(long)candlestickData.get(6)
+		            				),ZoneId.systemDefault()
+		            			)
+		                	)
+		                    .openPrice(Double.parseDouble((String)candlestickData.get(1)))
+		                    .highPrice(Double.parseDouble((String)candlestickData.get(2)))
+		                    .lowPrice(Double.parseDouble((String)candlestickData.get(3)))
+		                    .closePrice(Double.parseDouble((String)candlestickData.get(4)))
+		                    .volume(Double.parseDouble((String)candlestickData.get(5)))
+		                    .build()
+		                );
+			        }
+			        return series;
+				}
+			}
+		);
+	}
+
+	private String rSIToHTMLTable(Map<String, Double> rSIForCoinEntrySet, String collateral) {
 		return "<table>" +
-		String.join(
-			"",
-			rSIForCoinEntrySet.entrySet().stream().map(
-				rec -> "<tr><td><a href=\"" + "https://www.binance.com/it/trade/" + rec.getKey() + "_" + collateral + "?type=isolated" + "\"><h2>" + rec.getKey() + "</h2></a></td><td width=\"25px\"></td><td><h2 style=\"color: " + (rec.getValue() <= 50 ? "green" : "red") +"\">" + rec.getValue() + "</h2></td></tr>"
-			).collect(Collectors.toList())
-		) +
+			String.join(
+				"",
+				rSIForCoinEntrySet.entrySet().stream().map(
+					rec ->
+						"<tr>" +
+							"<td><a href=\"" + "https://www.binance.com/it/trade/" + rec.getKey() + "_" + collateral + "?type=isolated" + "\"><h2>" + rec.getKey() + "</h2></a></td>"+
+							"<td width=\"25px\"></td><td><h2 style=\"color: " + (rec.getValue() <= 50 ? "green" : "red") +"\">" + rec.getValue() + "</h2></td>" +
+						"</tr>"
+				).collect(Collectors.toList())
+			) +
 		"</table>";
+	}
+
+	private String spikesToHTMLTable(Map<String, Spike> spikeForCoin, String collateral) {
+		return "<table>" +
+				String.join(
+					"",
+					spikeForCoin.entrySet().stream().map(
+						rec ->
+							"<tr>" +
+								"<td><a href=\"" + "https://www.binance.com/it/trade/" + rec.getKey() + "_" + collateral + "?type=isolated" + "\"><h2>" + rec.getKey() + "</h2></a></td>"+
+								"<td width=\"25px\"></td><td><h2 style=\"color: " + (rec.getValue().getVariationPercentage() <= 0 ? "green" : "red") +"\">" + rec.getValue().getVariationPercentage() + "&#37;</h2></td>" +
+							"</tr>"
+					).collect(Collectors.toList())
+				) +
+			"</table>";
 	}
 
 	public void sendMail(String to, String subject, String body, String... attachmentAbsolutePaths) throws MessagingException, IOException {
@@ -333,72 +441,6 @@ public class Application implements CommandLineRunner {
 		mailSender.send(email);
 	}
 
-	public Cell evaluateCell(Sheet sheet, String headerName, int rowIndex) {
-		FormulaEvaluator evaluator = sheet.getWorkbook().getCreationHelper().createFormulaEvaluator();
-		CellReference cellReference = new CellReference(rowIndex, getCellIndex(sheet, headerName));
-		Row row = sheet.getRow(cellReference.getRow());
-		Cell cell = row.getCell(cellReference.getCol());
-		evaluator.evaluateFormulaCell(cell);
-		return cell;
-	}
-
-	private int getCellIndex(Sheet sheet, String name) {
-		return getCellIndex(sheet, 0, name);
-	}
-
-	private int getCellIndex(Sheet sheet, int headerIndex, String name) {
-		Row header = sheet.getRow(headerIndex);
-		Iterator<Cell> cellIterator = header.cellIterator();
-		int cellIndex = -1;
-		int currentIndex = -1;
-		while (cellIterator.hasNext()) {
-			Cell cell = cellIterator.next();
-			currentIndex++;
-			if (CellType.STRING.equals(cell.getCellType()) && name.equalsIgnoreCase(cell.getStringCellValue()) ) {
-				cellIndex = currentIndex;
-				break;
-			}
-		}
-		return cellIndex;
-	}
-
-	private Cell getLatestNotNullCell(Sheet sheet, String name) {
-		return getLatestNotNullCell(sheet, 0, name);
-	}
-
-	private Cell getLatestNotNullCell(Sheet sheet, int headerIndex, String name) {
-		int cellIndex = getCellIndex(sheet, name);
-		Iterator<Row> rowIterator = sheet.rowIterator();
-		Cell cell = null;
-		while (rowIterator.hasNext()) {
-			Cell temp = rowIterator.next().getCell(cellIndex);
-			if (!(temp == null || temp.getCellType() == CellType.BLANK)) {
-				cell = temp;
-			}
-		}
-		return cell;
-	}
-
-	private void updateDataForCoin(Sheet sheet, Wallet wallet, String coinName) {
-		Cell quantityCell = getQuantityCell(sheet, coinName);
-		if (quantityCell != null) {
-			Double quantity = wallet.getQuantityForCoin(coinName);
-			if (quantity != null) {
-				quantityCell.setCellValue(quantity);
-			}
-			Cell valueCell = getValueCell(sheet, coinName);
-			if (valueCell != null) {
-				if (!coinName.equals(wallet.getCollateralForCoin(coinName))) {
-					Double value = wallet.getValueForCoin(coinName);
-					if (value != null) {
-						valueCell.setCellValue(value);
-					}
-				} else {
-					valueCell.setCellValue(1.0D);
-				}
-			}
-		}
-	}
 
 	private boolean todayIsFirstDayOfTheYear() {
 		LocalDate now = LocalDate.now(ZoneId.of(environment.getProperty("timezone.default")));
@@ -412,53 +454,6 @@ public class Application implements CommandLineRunner {
 			now.getHour() == hour && now.getMinute() <= minute;
 	}
 
-	private void updateInvestmentView(Workbook workbook, String coinName) {
-		Sheet investmentSheet = workbook.getSheet(LABEL_INVESTMENT + " " + coinName);
-		if (investmentSheet != null) {
-			Cell quantityCell = getQuantityCell(workbook.getSheet(LABEL_BALANCE_01), coinName);
-			if (quantityCell == null) {
-				return;
-			}
-			Double newValue = quantityCell.getNumericCellValue();
-			int cellIdx = getCellIndex(investmentSheet, LABEL_QUANTITY);
-			Cell firstCell = investmentSheet.getRow(1).getCell(cellIdx);
-			Double oldValue = firstCell.getNumericCellValue();
-			if (todayIsFirstDayOfTheYear() && isCurrentTimeMinorOrEqualsThan(1, 59)) {
-				firstCell.setCellValue(newValue);
-				newValue = evaluateCell(investmentSheet, LABEL_QUANTITY, 2).getNumericCellValue();
-				firstCell.setCellValue(newValue);
-			} else if (oldValue != null && oldValue < newValue) {
-				firstCell.setCellValue(newValue);
-			}
-		}
-	}
-
-	private Cell getQuantityCell(Sheet sheet, String coinName) {
-		return getCellForCoin(sheet, coinName, 1);
-	}
-
-	private Cell getValueCell(Sheet sheet, String coinName) {
-		return getCellForCoin(sheet, coinName, 2);
-	}
-
-	private Cell getCellForCoin(Sheet sheet, String coinName, int offset) {
-		Iterator<Row> rowIterator = sheet.rowIterator();
-		while (rowIterator.hasNext()) {
-			Row row = rowIterator.next();
-			Iterator<Cell> cellIterator = row.cellIterator();
-			while (cellIterator.hasNext()) {
-				Cell cell = cellIterator.next();
-				if (CellType.STRING.equals(cell.getCellType()) && coinName.equals(cell.getStringCellValue())) {
-					while (offset-- > 0) {
-						cell = cellIterator.next();
-					}
-					return cell;
-				}
-			}
-		}
-		return null;
-	}
-
 	private String getFormattedDifferenceOfMillis(long value1, long value2) {
 		String valueFormatted = String.format("%04d", (value1 - value2));
 		return valueFormatted.substring(0, valueFormatted.length() - 3) + "," + valueFormatted.substring(valueFormatted.length() -3);
@@ -468,4 +463,25 @@ public class Application implements CommandLineRunner {
     private Long currentTimeMillis() {
         return LocalDateTime.now().atZone(ZoneId.systemDefault()).toInstant().toEpochMilli();
     }
+
+    private static class Spike {
+    	private Bar bar;
+    	private Double variationPercentage;
+		/**
+		 * @param bar
+		 * @param variationPercentage
+		 */
+		public Spike(Bar bar, Double variationPercentage) {
+			this.bar = bar;
+			this.variationPercentage = variationPercentage;
+		}
+		public Bar getBar() {
+			return bar;
+		}
+		public Double getVariationPercentage() {
+			return variationPercentage;
+		}
+
+    }
+
 }

@@ -1,8 +1,8 @@
 binance.coin:
    collateral:
-      - DEFAULT: USDT
-      - LUNC: BUSD
-      - BUSD: USDT
+      - DEFAULT: USDC
+      - LUNC: USDC
+      - BUSD: USDC
       - BETH: ETH
    
 crypto-com.coin:

@@ -377,7 +377,7 @@ public class BinanceWallet extends Wallet.Abst {
 
     public <O> O getCandlesticks(
 		String coinName,
-		Wallet.Interval interval,
+		Interval interval,
 		Date endTime,
 		Integer limit,
 		CandleStick.Converter<O> dataConverter
