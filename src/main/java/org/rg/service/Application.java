@@ -234,14 +234,14 @@ public class Application implements CommandLineRunner {
 					StringBuffer mailText = new StringBuffer("");
 					if (!rSIForCoin.isEmpty()) {
 						mailText.append(
-							"<h1>Sono state rilevate le seguenti crypto con RSI critico:</h1>" +
+							"<h1>Sono stati rilevati i seguenti asset con RSI critico:</h1>" +
 							rSIToHTMLTable(rSIForCoin, defaultCollateral)
 						);
 						rSIForCoin.clear();
 					}
 					if (!spikeForCoin.isEmpty()) {
 						mailText.append(
-							"<h1>Sono state rilevate le seguenti crypto con spike:</h1>" +
+							"<h1>Sono stati i seguenti asset con spike sul 4H:</h1>" +
 							spikesToHTMLTable(spikeForCoin, defaultCollateral)
 						);
 						spikeForCoin.clear();
@@ -249,7 +249,7 @@ public class Application implements CommandLineRunner {
 					if (!mailText.toString().isEmpty()) {
 						sendMail(
 							"roberto.gentili.1980@gmail.com,fercoletti@gmail.com",
-							"Segnalazione crypto",
+							"Segnalazioni asset",
 							presentation.append(mailText).toString(),
 							(String[])null
 						);
