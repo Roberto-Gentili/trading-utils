@@ -234,14 +234,14 @@ public class Application implements CommandLineRunner {
 					StringBuffer mailText = new StringBuffer("");
 					if (!rSIForCoin.isEmpty()) {
 						mailText.append(
-							"<h1>Sono stati rilevati i seguenti asset con RSI critico:</h1>" +
+							"<h1>Sono stati rilevati i seguenti asset con RSI critico" + Interval.ONE_DAYS + ":</h1>" +
 							rSIToHTMLTable(rSIForCoin, defaultCollateral)
 						);
 						rSIForCoin.clear();
 					}
 					if (!spikeForCoin.isEmpty()) {
 						mailText.append(
-							"<h1>Sono stati i seguenti asset con spike sul 4H:</h1>" +
+							"<h1>Sono stati rilevati i seguenti asset con spike sulle bande di Bollinger su " + Interval.FOUR_HOURS + ":</h1>" +
 							spikesToHTMLTable(spikeForCoin, defaultCollateral)
 						);
 						spikeForCoin.clear();
