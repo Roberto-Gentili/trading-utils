@@ -2,11 +2,6 @@
 
 set JAVA_COMMAND=javaw.exe
 
-IF ["%~1"] == ["SHOW-LOG"] (
-	echo.
-	set JAVA_COMMAND=java.exe
-)
-
 set CURRENT_DIR=%~dp0
 set CURRENT_UNIT=%CURRENT_DIR:~0,2%
 set GIT_HOME=%CURRENT_UNIT%\Shared\Programmi\Git\current
