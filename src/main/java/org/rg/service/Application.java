@@ -1,5 +1,12 @@
 package org.rg.service;
 
+import static org.ta4j.core.indicators.pivotpoints.PivotLevel.RESISTANCE_1;
+import static org.ta4j.core.indicators.pivotpoints.PivotLevel.RESISTANCE_2;
+import static org.ta4j.core.indicators.pivotpoints.PivotLevel.RESISTANCE_3;
+import static org.ta4j.core.indicators.pivotpoints.PivotLevel.SUPPORT_1;
+import static org.ta4j.core.indicators.pivotpoints.PivotLevel.SUPPORT_2;
+import static org.ta4j.core.indicators.pivotpoints.PivotLevel.SUPPORT_3;
+
 import java.io.File;
 import java.io.IOException;
 import java.text.ParseException;
@@ -59,6 +66,7 @@ import org.ta4j.core.indicators.bollinger.BollingerBandsMiddleIndicator;
 import org.ta4j.core.indicators.bollinger.BollingerBandsUpperIndicator;
 import org.ta4j.core.indicators.helpers.ClosePriceIndicator;
 import org.ta4j.core.indicators.pivotpoints.PivotPointIndicator;
+import org.ta4j.core.indicators.pivotpoints.StandardReversalIndicator;
 import org.ta4j.core.indicators.pivotpoints.TimeLevel;
 import org.ta4j.core.indicators.statistics.StandardDeviationIndicator;
 import org.ta4j.core.num.DecimalNum;
@@ -208,11 +216,12 @@ public class Application implements CommandLineRunner {
 								defaultCollateral,
 								coin
 							);
-							PivotPointIndicator pivotPoint = new PivotPointIndicator(dailyCandleSticks, TimeLevel.DAY);
+
 							checkLowAndHighRSIValue(coin, dailyCandleSticks, rSIForCoinAlreadyNotified, rSIForCoin, 14);
+							checkSupportAndResistanceCrossing(coin, dailyCandleSticks, rSIForCoinAlreadyNotified, rSIForCoin);
 							BarSeries fourHCandleSticks = retrieveCandlestick(
 								Interval.FOUR_HOURS,
-								125,
+								200,
 								walletForAvailableCoins,
 								defaultCollateral,
 								coin
@@ -260,27 +269,48 @@ public class Application implements CommandLineRunner {
 		}
 	}
 
+	private void checkSupportAndResistanceCrossing(
+		String coin, BarSeries dailyCandleSticks,
+		Map<String, Double> rSIForCoinAlreadyNotified, Map<String, Double> rSIForCoin
+	) {
+		PivotPointIndicator pivotPoint = new PivotPointIndicator(dailyCandleSticks, TimeLevel.DAY);
+		StandardReversalIndicator s1 = new StandardReversalIndicator(pivotPoint, SUPPORT_1);
+		StandardReversalIndicator s2 = new StandardReversalIndicator(pivotPoint, SUPPORT_2);
+		StandardReversalIndicator s3 = new StandardReversalIndicator(pivotPoint, SUPPORT_3);
+		StandardReversalIndicator r1 = new StandardReversalIndicator(pivotPoint, RESISTANCE_1);
+		StandardReversalIndicator r2 = new StandardReversalIndicator(pivotPoint, RESISTANCE_2);
+		StandardReversalIndicator r3 = new StandardReversalIndicator(pivotPoint, RESISTANCE_3);
+
+		s1.getValue(dailyCandleSticks.getEndIndex());
+	}
+
 	protected void checkSpike(
 		BarSeries candlesticks,
 		String coin,
 		Map<String, Spike> spikeForCoinAlreadyNotified,
 		Map<String, Spike> spikeForCoin
 	) throws ParseException {
-		int lastCandleIndex = candlesticks.getBarCount() -1;
+		int lastCandleIndex = candlesticks.getEndIndex();
 		Bar toBeChecked = candlesticks.getBar(lastCandleIndex);
-		ClosePriceIndicator closePrice = new ClosePriceIndicator(candlesticks);
-
-		SMAIndicator ma = new SMAIndicator(closePrice, 20);
-        StandardDeviationIndicator deviation = new StandardDeviationIndicator(closePrice, 2);
-        BollingerBandsMiddleIndicator middleBBand = new BollingerBandsMiddleIndicator(ma);
-        BollingerBandsLowerIndicator lowBBand = new BollingerBandsLowerIndicator(middleBBand, deviation);
-        BollingerBandsUpperIndicator upBBand = new BollingerBandsUpperIndicator(middleBBand, deviation);
 
 		boolean considerOnlyBBContacts = true;
 		Double spikePercentage = 40d;
 		Double comparingValue = 3d;
-		Double bBLower = lowBBand.getValue(lastCandleIndex).doubleValue();
-		Double bBUpper = upBBand.getValue(lastCandleIndex).doubleValue();;
+		int bBMaPeriod = 20;
+		DecimalNum bBDev = DecimalNum.valueOf(2);
+		ClosePriceIndicator closePrice = new ClosePriceIndicator(candlesticks);
+		SMAIndicator ma = new SMAIndicator(closePrice, bBMaPeriod);
+        StandardDeviationIndicator deviation = new StandardDeviationIndicator(closePrice, bBMaPeriod);
+        BollingerBandsMiddleIndicator middleBBand = new BollingerBandsMiddleIndicator(ma);
+        BollingerBandsLowerIndicator lowBBand = new BollingerBandsLowerIndicator(middleBBand, deviation, bBDev);
+        BollingerBandsUpperIndicator upBBand = new BollingerBandsUpperIndicator(middleBBand, deviation, bBDev);
+		//BollingerBandFacade bBFacade = new BollingerBandFacade(candlesticks, 20, 2);
+		Double bBLower =
+			//bBFacade.lower().getValue(lastCandleIndex).doubleValue();
+			lowBBand.getValue(lastCandleIndex).doubleValue();
+		Double bBUpper =
+			//bBFacade.upper().getValue(lastCandleIndex).doubleValue();
+			upBBand.getValue(lastCandleIndex).doubleValue();
 		Double high = toBeChecked.getHighPrice().doubleValue();
 		Double low = toBeChecked.getLowPrice().doubleValue();
 		Double priceVariation = high - low;
@@ -330,7 +360,7 @@ public class Application implements CommandLineRunner {
 		ClosePriceIndicator closePrice = new ClosePriceIndicator(candlesticks);
 		RSIIndicator rSIIndicator = new RSIIndicator(closePrice, period);
 		List<Num> values = rSIIndicator.stream().collect(Collectors.toList());
-		Double latestRSIValue = values.get(values.size() -1).doubleValue();
+		Double latestRSIValue = values.get(candlesticks.getEndIndex()).doubleValue();
 		if ((latestRSIValue > 70 || latestRSIValue < 30) && latestRSIValue != 0) {
 			synchronized(rSIForCoin) {
 				if (!alreadyNotified.containsKey(coin)) {
