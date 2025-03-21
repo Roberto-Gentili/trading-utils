@@ -207,6 +207,9 @@ public class Application implements CommandLineRunner {
 			Map<String, Asset> spikeForCoin = new ConcurrentHashMap<>();
 			Map<String, Asset> suddenMovement = new ConcurrentHashMap();
 			Asset.Collection dataCollection = new Asset.Collection();
+			int oneDayCandleStickSize = 370;
+			int fourHoursCandleStickSize = 200;
+			int oneHoursCandleStickSize = 200;
 			for (Map.Entry<Wallet, ProducerTask<Collection<String>>> walletForAvailableCoins : walletsForAvailableCoins.entrySet()) {
 				if (walletForAvailableCoins.getKey() instanceof BinanceWallet) {
 					String defaultCollateral = walletForAvailableCoins.getKey().getCollateralForCoin("DEFAULT");
@@ -223,21 +226,21 @@ public class Application implements CommandLineRunner {
 							);
 							BarSeries dailyCandleSticks = retrieveCandlestick(
 								Interval.ONE_DAYS,
-								370,
+								oneDayCandleStickSize,
 								walletForAvailableCoins,
 								defaultCollateral,
 								coin
 							);
 							BarSeries fourHCandleSticks = retrieveCandlestick(
 								Interval.FOUR_HOURS,
-								200,
+								fourHoursCandleStickSize,
 								walletForAvailableCoins,
 								defaultCollateral,
 								coin
 							);
 							BarSeries oneHCandleSticks = retrieveCandlestick(
 								Interval.ONE_HOURS,
-								200,
+								oneHoursCandleStickSize,
 								walletForAvailableCoins,
 								defaultCollateral,
 								coin
@@ -264,10 +267,26 @@ public class Application implements CommandLineRunner {
 									dataCollection,
 									detected
 								);
+							List<Supplier<Map<String, Double>>> supportAndResistanceSuppliers =
+								new ArrayList<>();
+							if (dailyCandleSticks.getBarCount() >= oneDayCandleStickSize) {
+								supportAndResistanceSuppliers.add(
+									() -> checkSupportAndResistanceCrossing(dailyCandleSticks, TimeLevel.DAY, Interval.ONE_DAYS)
+								);
+							}
+							if (fourHCandleSticks.getBarCount() >= oneDayCandleStickSize) {
+								supportAndResistanceSuppliers.add(
+									() -> checkSupportAndResistanceCrossing(fourHCandleSticks, TimeLevel.BARBASED, Interval.FOUR_HOURS)
+								);
+							}
+							if (oneHCandleSticks.getBarCount() >= oneHoursCandleStickSize) {
+								supportAndResistanceSuppliers.add(
+									() -> checkSupportAndResistanceCrossing(oneHCandleSticks, TimeLevel.BARBASED, Interval.ONE_HOURS)
+								);
+							}
 							dataCollection.addSupportAndResistanceFor(
 								detected,
-								() -> checkSupportAndResistanceCrossing(dailyCandleSticks, TimeLevel.DAY, Interval.ONE_DAYS),
-								() -> checkSupportAndResistanceCrossing(fourHCandleSticks, TimeLevel.BARBASED, Interval.FOUR_HOURS)
+								supportAndResistanceSuppliers
 							);
 						} catch (Throwable exc) {
 							org.burningwave.core.assembler.StaticComponentContainer.ManagedLoggerRepository.logError(
@@ -629,7 +648,7 @@ public class Application implements CommandLineRunner {
 
     		public void addSupportAndResistanceFor(
 				Asset asset,
-				Supplier<Map<String, Double>>... supportAndResistanceSuppliers
+				List<Supplier<Map<String, Double>>> supportAndResistanceSuppliers
 			) {
     			if (asset != null) {
     				for (Supplier<Map<String, Double>> supportAndResistanceSupplier : supportAndResistanceSuppliers) {
