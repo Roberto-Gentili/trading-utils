@@ -69,7 +69,7 @@ import org.ta4j.core.indicators.pivotpoints.TimeLevel;
 @SpringBootApplication
 @SuppressWarnings({ "null" })
 public class Application implements CommandLineRunner {
-	static final String mailFontSizeInPixel = "15%";
+	static final String mailFontSizeInPixel = "35px";
 
 	@Autowired
 	private ApplicationContext appContext;
@@ -265,7 +265,7 @@ public class Application implements CommandLineRunner {
 											defaultCollateral,
 											candlesticks,
 											false, //Enable Bollinger bands check,
-											5d
+											10d
 										),
 										Interval.FOUR_HOURS,
 										suddenMovementForCoinAlreadyNotified,
