@@ -304,11 +304,11 @@ public class Application implements CommandLineRunner {
 						);
 					}
 					dataCollection.clear();
-					org.burningwave.core.assembler.StaticComponentContainer.ManagedLoggerRepository.logInfo(
-						getClass()::getName,
-						"Waiting 10 seconds"
-					);
-					Thread.sleep(10000);
+//					org.burningwave.core.assembler.StaticComponentContainer.ManagedLoggerRepository.logInfo(
+//						getClass()::getName,
+//						"Waiting 10 seconds"
+//					);
+//					Thread.sleep(10000);
 				}
 			}
 		}
@@ -645,7 +645,7 @@ public class Application implements CommandLineRunner {
 
 
     	private static class Collection {
-    		private static List<String> LABELS = Arrays.asList("Asset name", "collateral", "Latest price", "Latest price", "RSI on " + Interval.ONE_DAYS , "Price variation % on " + Interval.FOUR_HOURS, "Support and resistance levels");
+    		private static List<String> LABELS = Arrays.asList("Asset name", "collateral", "Latest price from " + Interval.ONE_DAYS, "Latest price", "RSI on " + Interval.ONE_DAYS , "Price variation % on " + Interval.FOUR_HOURS, "Support and resistance levels");
     		private static int ASSET_NAME_LABEL_INDEX = 0;
     		private static int COLLATERAL_LABEL_INDEX = 1;
     		private static int LATEST_1D_BAR_LABEL_INDEX = 2;
