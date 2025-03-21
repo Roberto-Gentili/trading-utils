@@ -274,7 +274,7 @@ public class Application implements CommandLineRunner {
 									() -> checkSupportAndResistanceCrossing(dailyCandleSticks, TimeLevel.DAY, Interval.ONE_DAYS)
 								);
 							}
-							if (fourHCandleSticks.getBarCount() >= oneDayCandleStickSize) {
+							if (fourHCandleSticks.getBarCount() >= fourHoursCandleStickSize) {
 								supportAndResistanceSuppliers.add(
 									() -> checkSupportAndResistanceCrossing(fourHCandleSticks, TimeLevel.BARBASED, Interval.FOUR_HOURS)
 								);
