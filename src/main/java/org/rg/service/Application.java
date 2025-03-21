@@ -273,13 +273,11 @@ public class Application implements CommandLineRunner {
 								supportAndResistanceSuppliers.add(
 									() -> checkSupportAndResistanceCrossing(dailyCandleSticks, TimeLevel.DAY, Interval.ONE_DAYS)
 								);
-							}
-							if (fourHCandleSticks.getBarCount() >= fourHoursCandleStickSize) {
+							} else 	if (fourHCandleSticks.getBarCount() >= fourHoursCandleStickSize) {
 								supportAndResistanceSuppliers.add(
 									() -> checkSupportAndResistanceCrossing(fourHCandleSticks, TimeLevel.BARBASED, Interval.FOUR_HOURS)
 								);
-							}
-							if (oneHCandleSticks.getBarCount() >= oneHoursCandleStickSize) {
+							} else if (oneHCandleSticks.getBarCount() >= oneHoursCandleStickSize) {
 								supportAndResistanceSuppliers.add(
 									() -> checkSupportAndResistanceCrossing(oneHCandleSticks, TimeLevel.BARBASED, Interval.ONE_HOURS)
 								);
@@ -313,6 +311,13 @@ public class Application implements CommandLineRunner {
 							presentation.append(dataCollection.toHTML()).toString(),
 							(String[])null
 						);
+					}
+					for (Asset asset : dataCollection.datas) {
+						if (asset.getRSIOn1D() != null) {
+							rSIForCoinAlreadyNotified.put(asset.getAssetName(), asset);
+						} else if (asset.getPriceVariationPercentageOn4H() != null) {
+							spikeForCoinAlreadyNotified.put(asset.getAssetName(), asset);
+						}
 					}
 					dataCollection.clear();
 					org.burningwave.core.assembler.StaticComponentContainer.ManagedLoggerRepository.logInfo(
@@ -370,6 +375,36 @@ public class Application implements CommandLineRunner {
 		resistanceAndSupportLevels.put("S3-" + interval.toString(), s3.getValue(dailyCandleSticks.getEndIndex()).doubleValue());
 		resistanceAndSupportLevels.put("R3-" + interval.toString(), r3.getValue(dailyCandleSticks.getEndIndex()).doubleValue());
 		return resistanceAndSupportLevels;
+	}
+
+
+	protected Asset checkLowAndHighRSIValue(
+		String coin,
+		String collateral,
+		BarSeries dailyCandleSticks,
+		Map<String, Asset> alreadyNotified,
+		Map<String, Asset> rSIForCoin,
+		int period
+	) {
+		ClosePriceIndicator closePrice = new ClosePriceIndicator(dailyCandleSticks);
+		RSIIndicator rSIIndicator = new RSIIndicator(closePrice, period);
+		List<Num> values = rSIIndicator.stream().collect(Collectors.toList());
+		Double latestRSIValue = values.get(dailyCandleSticks.getEndIndex()).doubleValue();
+		Asset data = null;
+		if ((latestRSIValue > 70 || latestRSIValue < 30) && latestRSIValue != 0) {
+			if (!alreadyNotified.containsKey(coin)) {
+				data = new Asset(coin, collateral, dailyCandleSticks.getBar(dailyCandleSticks.getEndIndex()), latestRSIValue, null, null);
+				rSIForCoin.put(coin, data);
+				alreadyNotified.put(coin, data);
+			} else {
+				org.burningwave.core.assembler.StaticComponentContainer.ManagedLoggerRepository.logInfo(
+					getClass()::getName,
+					"Coin {} with value {} already notified for RSI value",
+					coin, latestRSIValue
+				);
+			}
+		}
+		return data;
 	}
 
 	protected Asset checkSpike(
@@ -448,35 +483,6 @@ public class Application implements CommandLineRunner {
 			return BigDecimal.ZERO;
 		}
 		return a.divide(b, 50, RoundingMode.HALF_DOWN);
-	}
-
-	protected Asset checkLowAndHighRSIValue(
-		String coin,
-		String collateral,
-		BarSeries dailyCandleSticks,
-		Map<String, Asset> alreadyNotified,
-		Map<String, Asset> rSIForCoin,
-		int period
-	) {
-		ClosePriceIndicator closePrice = new ClosePriceIndicator(dailyCandleSticks);
-		RSIIndicator rSIIndicator = new RSIIndicator(closePrice, period);
-		List<Num> values = rSIIndicator.stream().collect(Collectors.toList());
-		Double latestRSIValue = values.get(dailyCandleSticks.getEndIndex()).doubleValue();
-		Asset data = null;
-		if ((latestRSIValue > 70 || latestRSIValue < 30) && latestRSIValue != 0) {
-			if (!alreadyNotified.containsKey(coin)) {
-				data = new Asset(coin, collateral, dailyCandleSticks.getBar(dailyCandleSticks.getEndIndex()), latestRSIValue, null, null);
-				rSIForCoin.put(coin, data);
-				alreadyNotified.put(coin, data);
-			} else {
-				org.burningwave.core.assembler.StaticComponentContainer.ManagedLoggerRepository.logInfo(
-					getClass()::getName,
-					"Coin {} with value {} already notified for RSI value",
-					coin, latestRSIValue
-				);
-			}
-		}
-		return data;
 	}
 
 	protected BarSeries retrieveCandlestick(Interval analysisInterval, int period,
@@ -619,10 +625,10 @@ public class Application implements CommandLineRunner {
 		public Bar getBar() {
 			return (Bar)values.get(Collection.LABELS.get(Collection.LATEST_BAR_LABEL_INDEX));
 		}
-		public Double getRSI() {
+		public Double getRSIOn1D() {
 			return (Double)values.get(Collection.LABELS.get(Collection.RSI_LABEL_INDEX));
 		}
-		public Double getVariationPercentage() {
+		public Double getPriceVariationPercentageOn4H() {
 			return (Double)values.get(Collection.LABELS.get(Collection.PRICE_VARIATION_PERCENTAGE_LABEL_INDEX));
 		}
 		public Map<String, Double> getSupportAndResistance() {
@@ -631,7 +637,7 @@ public class Application implements CommandLineRunner {
 
 
     	private static class Collection {
-    		private static List<String> LABELS = Arrays.asList("Asset name", "collateral", "Latest Bar", "RSI on " + Interval.ONE_DAYS , "Price variation % on " + Interval.FOUR_HOURS, "Support and resistance levels");
+    		private static List<String> LABELS = Arrays.asList("Asset name", "collateral", "Latest price", "RSI on " + Interval.ONE_DAYS , "Price variation % on " + Interval.FOUR_HOURS, "Support and resistance levels");
     		private static int ASSET_NAME_LABEL_INDEX = 0;
     		private static int COLLATERAL_LABEL_INDEX = 1;
     		private static int LATEST_BAR_LABEL_INDEX = 2;
@@ -738,7 +744,7 @@ public class Application implements CommandLineRunner {
 	        						} else if (value instanceof Double) {
 	        							htmlCellValue = format((Double)value);
 	        						} else if (value instanceof Bar) {
-	        							htmlCellValue = "" + ((Bar)value).getClosePrice().doubleValue();
+	        							htmlCellValue = "" + format(((Bar)value).getClosePrice().doubleValue());
 	        						} else {
 	        							htmlCellValue = value.toString();
 	        						}
