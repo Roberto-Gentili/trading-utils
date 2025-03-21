@@ -1,6 +1,5 @@
 package org.rg.finance;
 
-import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collection;
@@ -381,7 +380,7 @@ public class BinanceWallet extends Wallet.Abst {
 		Date endTime,
 		Integer limit,
 		CandleStick.Converter<O> dataConverter
-	) throws ParseException {
+	) {
     	limit = limit != null ? limit : 1500;
     	endTime = endTime != null ? endTime :
     		    new Date();

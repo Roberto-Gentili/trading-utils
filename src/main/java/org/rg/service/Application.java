@@ -9,14 +9,10 @@ import static org.ta4j.core.indicators.pivotpoints.PivotLevel.SUPPORT_3;
 
 import java.io.File;
 import java.io.IOException;
-import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.text.ParseException;
-import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
-import java.time.ZonedDateTime;
 import java.time.temporal.TemporalAdjusters;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -43,7 +39,6 @@ import javax.mail.internet.MimeMessage;
 import javax.mail.internet.MimeMultipart;
 
 import org.burningwave.core.concurrent.QueuedTaskExecutor.ProducerTask;
-import org.burningwave.core.function.ThrowingSupplier;
 import org.rg.finance.BinanceWallet;
 import org.rg.finance.CryptoComWallet;
 import org.rg.finance.Interval;
@@ -66,20 +61,9 @@ import org.springframework.mail.javamail.JavaMailSenderImpl;
 import org.springframework.web.client.RestTemplate;
 import org.ta4j.core.Bar;
 import org.ta4j.core.BarSeries;
-import org.ta4j.core.BaseBar;
-import org.ta4j.core.BaseBarSeriesBuilder;
-import org.ta4j.core.indicators.RSIIndicator;
-import org.ta4j.core.indicators.SMAIndicator;
-import org.ta4j.core.indicators.bollinger.BollingerBandsLowerIndicator;
-import org.ta4j.core.indicators.bollinger.BollingerBandsMiddleIndicator;
-import org.ta4j.core.indicators.bollinger.BollingerBandsUpperIndicator;
-import org.ta4j.core.indicators.helpers.ClosePriceIndicator;
 import org.ta4j.core.indicators.pivotpoints.PivotPointIndicator;
 import org.ta4j.core.indicators.pivotpoints.StandardReversalIndicator;
 import org.ta4j.core.indicators.pivotpoints.TimeLevel;
-import org.ta4j.core.indicators.statistics.StandardDeviationIndicator;
-import org.ta4j.core.num.DecimalNum;
-import org.ta4j.core.num.Num;
 
 @EnableAutoConfiguration(exclude = { DataSourceAutoConfiguration.class, HibernateJpaAutoConfiguration.class })
 @SpringBootApplication
@@ -204,7 +188,7 @@ public class Application implements CommandLineRunner {
 		Map<String, Bar> suddenMovementForCoinAlreadyNotified = new ConcurrentHashMap<>();
 		while (true) {
 			Asset.Collection dataCollection = new Asset.Collection();
-			int oneDayCandleStickSize = 370;
+			int oneDayCandleStickQuantity = 370;
 			int fourHoursCandleStickSize = 200;
 			int oneHoursCandleStickSize = 200;
 			for (Map.Entry<Wallet, ProducerTask<Collection<String>>> walletForAvailableCoins : walletsForAvailableCoins.entrySet()) {
@@ -221,62 +205,69 @@ public class Application implements CommandLineRunner {
 								"Loading data from remote for asset {}...",
 								coin
 							);
-							BarSeries dailyCandleSticks = retrieveCandlestick(
-								Interval.ONE_DAYS,
-								oneDayCandleStickSize,
-								walletForAvailableCoins,
-								defaultCollateral,
-								coin
-							);
-							BarSeries fourHCandleSticks = retrieveCandlestick(
-								Interval.FOUR_HOURS,
-								fourHoursCandleStickSize,
-								walletForAvailableCoins,
-								defaultCollateral,
-								coin
-							);
-							BarSeries oneHCandleSticks = retrieveCandlestick(
-								Interval.ONE_HOURS,
-								oneHoursCandleStickSize,
-								walletForAvailableCoins,
-								defaultCollateral,
-								coin
-							);
+							Map<Interval, BarSeries> candlesticks = new AssetDataLoader(
+								walletForAvailableCoins.getKey(),
+								coin,
+								defaultCollateral
+							).loadInParallel(Interval.ONE_DAYS, oneDayCandleStickQuantity)
+							.loadInParallel(Interval.FOUR_HOURS, fourHoursCandleStickSize)
+							.loadInParallel(Interval.ONE_HOURS, oneHoursCandleStickSize)
+							.retrieve();
 							org.burningwave.core.assembler.StaticComponentContainer.ManagedLoggerRepository.logInfo(
 								getClass()::getName,
 								"... All data loaded from remote for asset {}",
 								coin
 							);
 							Asset detected =
-								process(() ->
-									checkLowAndHighRSIValue(
-										coin, defaultCollateral, dailyCandleSticks,
-										fourHCandleSticks, rSIForCoinAlreadyNotified, 14
+								process(
+									new RSIDetector(
+										coin,
+										defaultCollateral,
+										candlesticks,
+										14
 									),
+									Interval.ONE_DAYS,
+									rSIForCoinAlreadyNotified,
 									dataCollection
 								);
 							detected =
-								process(() ->
-									checkSpike(
-										coin, defaultCollateral, dailyCandleSticks, fourHCandleSticks,
-										spikeForCoinAlreadyNotified
+								process(
+									new SpikeDetector(
+										coin,
+										defaultCollateral,
+										candlesticks
 									),
+									Interval.FOUR_HOURS,
+									rSIForCoinAlreadyNotified,
 									dataCollection,
 									detected
 								);
 							List<Supplier<Map<String, Double>>> supportAndResistanceSuppliers =
 								new ArrayList<>();
-							if (dailyCandleSticks.getBarCount() >= oneDayCandleStickSize) {
+							if (candlesticks.get(Interval.ONE_DAYS).getBarCount() >= oneDayCandleStickQuantity) {
 								supportAndResistanceSuppliers.add(
-									() -> checkSupportAndResistanceCrossing(dailyCandleSticks, TimeLevel.DAY, Interval.ONE_DAYS)
+									() -> checkSupportAndResistanceCrossing(
+											candlesticks.get(Interval.ONE_DAYS),
+											TimeLevel.DAY,
+											Interval.ONE_DAYS
+										)
 								);
-							} else 	if (fourHCandleSticks.getBarCount() >= fourHoursCandleStickSize) {
+							} else 	if (candlesticks.get(Interval.FOUR_HOURS).getBarCount() >= fourHoursCandleStickSize) {
 								supportAndResistanceSuppliers.add(
-									() -> checkSupportAndResistanceCrossing(fourHCandleSticks, TimeLevel.BARBASED, Interval.FOUR_HOURS)
+									() -> checkSupportAndResistanceCrossing(
+										candlesticks.get(Interval.FOUR_HOURS),
+										TimeLevel.BARBASED,
+										Interval.FOUR_HOURS
+									)
 								);
-							} else if (oneHCandleSticks.getBarCount() >= oneHoursCandleStickSize) {
+							} else if (candlesticks.get(Interval.ONE_HOURS).getBarCount() >= oneHoursCandleStickSize) {
 								supportAndResistanceSuppliers.add(
-									() -> checkSupportAndResistanceCrossing(oneHCandleSticks, TimeLevel.BARBASED, Interval.ONE_HOURS)
+									() -> checkSupportAndResistanceCrossing(
+										candlesticks.get(
+										Interval.ONE_HOURS),
+										TimeLevel.BARBASED,
+										Interval.ONE_HOURS
+									)
 								);
 							}
 							dataCollection.addSupportAndResistanceFor(
@@ -314,8 +305,19 @@ public class Application implements CommandLineRunner {
 		}
 	}
 
-	private Asset process(ThrowingSupplier<Asset, Throwable> dataSupplier, Asset.Collection dataCollection, Asset... previousProcessedData) throws Throwable {
-		Asset newData = dataSupplier.get();
+	private Asset process(
+		CriticalIndicatorValueDetector dataSupplier,
+		Interval interval,
+		Map<String, Bar> alreadyNotified,
+		Asset.Collection dataCollection,
+		Asset... previousProcessedData
+	) throws Throwable {
+		Asset newData = checkIfAlreadyNotified(
+			dataSupplier.compute(interval),
+			interval,
+			dataSupplier.getCandlesticks(),
+			alreadyNotified
+		);
 		dataCollection.addOrMergeAndReplace(newData);
 		return newData != null?
 			newData :
@@ -357,177 +359,37 @@ public class Application implements CommandLineRunner {
 		return resistanceAndSupportLevels;
 	}
 
-
-	protected Asset checkLowAndHighRSIValue(
-		String coin,
-		String collateral,
-		BarSeries dailyCandleSticks,
-		BarSeries fourHoursCandleSticks,
-		Map<String, Bar> alreadyNotified,
-		int period
-	) {
-		ClosePriceIndicator closePrice = new ClosePriceIndicator(dailyCandleSticks);
-		RSIIndicator rSIIndicator = new RSIIndicator(closePrice, period);
-		List<Num> values = rSIIndicator.stream().collect(Collectors.toList());
-		Double latestRSIValue = values.get(dailyCandleSticks.getEndIndex()).doubleValue();
-		Bar latestDailyCandleStick = dailyCandleSticks.getBar(dailyCandleSticks.getEndIndex());
-		Asset data = null;
-		if ((latestRSIValue > 70 || latestRSIValue < 30) && latestRSIValue != 0) {
-			Bar latestNotified = alreadyNotified.get(coin);
-			boolean alreadyNotifiedFlag = false;
-			if (latestNotified != null) {
-				if (latestNotified.getBeginTime().compareTo(latestDailyCandleStick.getBeginTime()) != 0) {
-					alreadyNotified.put(coin, latestDailyCandleStick);
-				} else {
-					alreadyNotifiedFlag = true;
-					org.burningwave.core.assembler.StaticComponentContainer.ManagedLoggerRepository.logInfo(
-						getClass()::getName,
-						"Coin {} with value {} already notified for RSI value",
-						coin, latestRSIValue
-					);
-				}
-			} else {
-				alreadyNotified.put(coin, latestDailyCandleStick);
-			}
-			if (!alreadyNotifiedFlag) {
-				data = new Asset(
-					coin,
-					collateral,
-					latestDailyCandleStick,
-					fourHoursCandleSticks.getBar(fourHoursCandleSticks.getEndIndex()),
-					latestRSIValue,
-					null,
-					null
-				);
-			}
-		}
-		return data;
-	}
-
-	protected Asset checkSpike(
-		String coin,
-		String collateral,
-		BarSeries dailyCandleSticks,
-		BarSeries fourHoursCandleSticks,
+	protected Asset checkIfAlreadyNotified(
+		Asset asset,
+		Interval interval,
+		Map<Interval, BarSeries> candlesticks,
 		Map<String, Bar> alreadyNotified
 	) throws ParseException {
-		int lastCandleIndex = fourHoursCandleSticks.getEndIndex();
-		Bar latest4HBar = fourHoursCandleSticks.getBar(lastCandleIndex);
-
-		boolean considerOnlyBBContacts = true;
-		BigDecimal spikePercentage = toBigDecimal(40d);
-		BigDecimal comparingValue = toBigDecimal(3d);
-		int bBMaPeriod = 20;
-		DecimalNum bBDev = DecimalNum.valueOf(2);
-		ClosePriceIndicator closePrice = new ClosePriceIndicator(fourHoursCandleSticks);
-		SMAIndicator ma = new SMAIndicator(closePrice, bBMaPeriod);
-        StandardDeviationIndicator deviation = new StandardDeviationIndicator(closePrice, bBMaPeriod);
-        BollingerBandsMiddleIndicator middleBBand = new BollingerBandsMiddleIndicator(ma);
-        BollingerBandsLowerIndicator lowBBand = new BollingerBandsLowerIndicator(middleBBand, deviation, bBDev);
-        BollingerBandsUpperIndicator upBBand = new BollingerBandsUpperIndicator(middleBBand, deviation, bBDev);
-		//BollingerBandFacade bBFacade = new BollingerBandFacade(candlesticks, 20, 2);
-		BigDecimal bBLower =
-			//toBigDecimal(bBFacade.lower().getValue(lastCandleIndex).doubleValue());
-			toBigDecimal(lowBBand.getValue(lastCandleIndex).doubleValue());
-		BigDecimal bBUpper =
-			//toBigDecimal(bBFacade.upper().getValue(lastCandleIndex).doubleValue());
-			toBigDecimal(upBBand.getValue(lastCandleIndex).doubleValue());
-		BigDecimal high = toBigDecimal(latest4HBar.getHighPrice().doubleValue());
-		BigDecimal low = toBigDecimal(latest4HBar.getLowPrice().doubleValue());
-		BigDecimal priceVariation = high.subtract(low);
-		BigDecimal open = toBigDecimal(latest4HBar.getOpenPrice().doubleValue());
-		BigDecimal close = toBigDecimal(latest4HBar.getClosePrice().doubleValue());
-		BigDecimal lowSpikeValue = close.compareTo(open) < 0 ? close.subtract(low) : open.subtract(low);
-		BigDecimal highSpikeValue = close.compareTo(open) > 0 ? high.subtract(close) : high.subtract(open);
-		BigDecimal lowSpikePercentage = divide(lowSpikeValue.multiply(toBigDecimal(100d)), priceVariation);
-		BigDecimal highSpikePercentage = divide(highSpikeValue.multiply(toBigDecimal(100d)), priceVariation);
-		BigDecimal totalCandleVariation = divide(high.subtract(low),high).multiply(toBigDecimal(100d));
-		//log.info('variation: {0}', totalCandleVariation)
-		boolean buyCondition =
-			lowSpikePercentage.compareTo(spikePercentage) >= 0 && totalCandleVariation.compareTo(comparingValue) >= 0 && lowSpikeValue.compareTo(highSpikeValue) >= 0 && (considerOnlyBBContacts ? (low.compareTo(bBLower) <= 0) : true);
-		boolean sellCondition =
-			highSpikePercentage.compareTo(spikePercentage) >= 0 && totalCandleVariation.compareTo(comparingValue) >= 0 && highSpikeValue.compareTo(lowSpikeValue) >= 0 && (considerOnlyBBContacts ? (high.compareTo(bBUpper) >= 0) : true);
-		Asset data = null;
-		if (buyCondition || sellCondition) {
-			Bar latestNotified = alreadyNotified.get(coin);
-			boolean alreadyNotifiedFlag = false;
-			if (latestNotified != null) {
-				if (latestNotified.getBeginTime().compareTo(latest4HBar.getBeginTime()) != 0) {
-					alreadyNotified.put(coin, latest4HBar);
-				} else {
-					alreadyNotifiedFlag = true;
-					org.burningwave.core.assembler.StaticComponentContainer.ManagedLoggerRepository.logInfo(
-						getClass()::getName,
-						"Spike already notified for coin {}",
-						coin
-					);
-				}
+		if (asset == null) {
+			return null;
+		}
+		Bar latestNotified = alreadyNotified.get(asset.getAssetName());
+		boolean alreadyNotifiedFlag = false;
+		Bar latestBar = candlesticks.get(interval).getLastBar();
+		if (latestNotified != null) {
+			if (latestNotified.getBeginTime().compareTo(latestBar.getBeginTime()) != 0) {
+				alreadyNotified.put(asset.getAssetName(), latestBar);
 			} else {
-				alreadyNotified.put(coin, latest4HBar);
-			}
-			if (!alreadyNotifiedFlag) {
-				data = new Asset(
-					coin,
-					collateral,
-					dailyCandleSticks.getBar(dailyCandleSticks.getEndIndex()),
-					latest4HBar,
-					null,
-					buyCondition? (lowSpikePercentage.negate().doubleValue()) : highSpikePercentage.doubleValue(),
-					null
+				alreadyNotifiedFlag = true;
+				org.burningwave.core.assembler.StaticComponentContainer.ManagedLoggerRepository.logInfo(
+					getClass()::getName,
+					"Variation already notified for coin {}",
+					asset.getAssetName()
 				);
 			}
+		} else {
+			alreadyNotified.put(asset.getAssetName(), latestBar);
 		}
-		return data;
-	}
-
-	private BigDecimal toBigDecimal(double value) {
-		return new BigDecimal(value).setScale(50, RoundingMode.HALF_DOWN);
-	}
-
-	private BigDecimal divide(BigDecimal a, BigDecimal b) {
-		if (b.compareTo(BigDecimal.ZERO) == 0) {
-			return BigDecimal.ZERO;
+		if (!alreadyNotifiedFlag) {
+			return asset;
 		}
-		return a.divide(b, 50, RoundingMode.HALF_DOWN);
+		return null;
 	}
-
-	protected BarSeries retrieveCandlestick(Interval analysisInterval, int period,
-			Map.Entry<Wallet, ProducerTask<Collection<String>>> walletForAvailableCoins, String defaultCollateral,
-			String coin) throws ParseException {
-		return ((BinanceWallet)walletForAvailableCoins.getKey()).getCandlesticks(
-			coin + defaultCollateral,
-			analysisInterval,
-			null,
-			period,
-			new BinanceWallet.CandleStick.Converter<BarSeries>() {
-				@Override
-				public BarSeries convert(Collection<List<?>> input) {
-					BarSeries series = new BaseBarSeriesBuilder().withName(coin + "-" + analysisInterval + "-" + period).build();
-			        for (List<?> candlestickData : input) {
-			        	series.addBar(
-		    	        	BaseBar.builder(DecimalNum::valueOf, Number.class)
-		                    .timePeriod(analysisInterval.toDuration())
-		                    .endTime(
-		                		ZonedDateTime.ofInstant(
-		                			Instant.ofEpochMilli(
-		            					(long)candlestickData.get(6)
-		            				),ZoneId.systemDefault()
-		            			)
-		                	)
-		                    .openPrice(Double.parseDouble((String)candlestickData.get(1)))
-		                    .highPrice(Double.parseDouble((String)candlestickData.get(2)))
-		                    .lowPrice(Double.parseDouble((String)candlestickData.get(3)))
-		                    .closePrice(Double.parseDouble((String)candlestickData.get(4)))
-		                    .volume(Double.parseDouble((String)candlestickData.get(5)))
-		                    .build()
-		                );
-			        }
-			        return series;
-				}
-			}
-		);
-	}
-
 
 	private static String format(double value) {
 		return String.format("%1$,.6f", value);
@@ -594,13 +456,13 @@ public class Application implements CommandLineRunner {
         return LocalDateTime.now().atZone(ZoneId.systemDefault()).toInstant().toEpochMilli();
     }
 
-    private static class Asset {
+    public static class Asset {
+    	private Map<String, Object> values;
 
 		public Asset(
 			String assetName,
 			String collateral,
-			Bar oneDHBar,
-			Bar fourHBar,
+			Map<Interval, BarSeries> candleSticks,
 			Double rSILevel,
 			Double variationPercentage,
 			Map<String, Double> supportAndResistance
@@ -608,8 +470,8 @@ public class Application implements CommandLineRunner {
 			values = new LinkedHashMap<>();
 			values.put(Collection.LABELS.get(Collection.ASSET_NAME_LABEL_INDEX), assetName);
 			values.put(Collection.LABELS.get(Collection.COLLATERAL_LABEL_INDEX), collateral);
-			values.put(Collection.LABELS.get(Collection.LATEST_1D_BAR_LABEL_INDEX), oneDHBar);
-			values.put(Collection.LABELS.get(Collection.LATEST_4H_BAR_LABEL_INDEX), fourHBar);
+			values.put(Collection.LABELS.get(Collection.LATEST_1D_BAR_LABEL_INDEX), candleSticks.get(Interval.ONE_DAYS).getBar(candleSticks.get(Interval.ONE_DAYS).getEndIndex()));
+			values.put(Collection.LABELS.get(Collection.LATEST_4H_BAR_LABEL_INDEX), candleSticks.get(Interval.FOUR_HOURS).getBar(candleSticks.get(Interval.FOUR_HOURS).getEndIndex()));
 			values.put(Collection.LABELS.get(Collection.RSI_LABEL_INDEX), rSILevel);
 			values.put(Collection.LABELS.get(Collection.PRICE_VARIATION_PERCENTAGE_LABEL_INDEX), variationPercentage);
 			values.put(Collection.LABELS.get(Collection.SUPPORT_AND_RESISTANCE_LABEL_INDEX), supportAndResistance);
@@ -645,7 +507,7 @@ public class Application implements CommandLineRunner {
 
 
     	private static class Collection {
-    		private static List<String> LABELS = Arrays.asList("Asset name", "collateral", "Latest price from " + Interval.ONE_DAYS, "Latest price", "RSI on " + Interval.ONE_DAYS , "Price variation % on " + Interval.FOUR_HOURS, "Support and resistance levels");
+    		private static List<String> LABELS = Arrays.asList("Asset name", "collateral", "Latest price from " + Interval.ONE_DAYS, "Latest price", "RSI on " + Interval.ONE_DAYS , "Spike size in % on " + Interval.FOUR_HOURS, "Support and resistance levels");
     		private static int ASSET_NAME_LABEL_INDEX = 0;
     		private static int COLLATERAL_LABEL_INDEX = 1;
     		private static int LATEST_1D_BAR_LABEL_INDEX = 2;
@@ -779,8 +641,6 @@ public class Application implements CommandLineRunner {
     			"</tr>";
     		}
     	}
-
-    	private Map<String, Object> values;
 
     }
 
