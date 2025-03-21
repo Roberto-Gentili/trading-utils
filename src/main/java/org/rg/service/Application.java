@@ -257,6 +257,20 @@ public class Application implements CommandLineRunner {
 										dataCollection,
 										detected
 									);
+								detected =
+									process(
+										new BigCandleDetector(
+											coin,
+											defaultCollateral,
+											candlesticks,
+											false, //Enable Bollinger bands check,
+											5d
+										),
+										Interval.FOUR_HOURS,
+										suddenMovementForCoinAlreadyNotified,
+										dataCollection,
+										detected
+									);
 							List<Supplier<Map<String, Double>>> supportAndResistanceSuppliers = new ArrayList<>();
 							if (candlesticks.get(Interval.ONE_DAYS).getBarCount() >= oneDayCandleStickQuantity) {
 								supportAndResistanceSuppliers.add(
@@ -301,7 +315,7 @@ public class Application implements CommandLineRunner {
 					if (!dataCollection.isEmpty()) {
 						sendMail(
 							"roberto.gentili.1980@gmail.com"
-							+ ",fercoletti@gmail.com"
+							//+ ",fercoletti@gmail.com"
 							,
 							"Segnalazione asset",
 							presentation.append(dataCollection.toHTML()).toString(),
@@ -623,7 +637,7 @@ public class Application implements CommandLineRunner {
     			datas.sort((assetOne, assetTwo) -> {
     				return (assetOne.getAssetName() + assetOne.getCollateral()).compareTo(assetTwo.getAssetName() + assetTwo.getCollateral());
     			});
-    			return "<table style=\"border-spacing: 20px;\">" +
+    			return "<table style=\"border-spacing: 20px;font-size:25px;\">" +
 					"<tr>" +
 						String.join("", LABELS.stream().filter(hideColumnFilter()).map(label -> "<td><b>" + label + "</b></td>").collect(Collectors.toList())) +
 						String.join("", dynamicLabelsGroupOne.stream().map(label -> "<td><b>" + label + "</b></td>").collect(Collectors.toList())) +
