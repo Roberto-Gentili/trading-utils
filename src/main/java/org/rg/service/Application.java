@@ -199,13 +199,10 @@ public class Application implements CommandLineRunner {
 				}).submit()
 			);
 		}
-		Map<String, Asset> rSIForCoinAlreadyNotified = new ConcurrentHashMap<>();
-		Map<String, Asset> spikeForCoinAlreadyNotified = new ConcurrentHashMap<>();
-		Map<String, Asset> suddenMovementForCoinAlreadyNotified = new ConcurrentHashMap<>();
+		Map<String, Bar> rSIForCoinAlreadyNotified = new ConcurrentHashMap<>();
+		Map<String, Bar> spikeForCoinAlreadyNotified = new ConcurrentHashMap<>();
+		Map<String, Bar> suddenMovementForCoinAlreadyNotified = new ConcurrentHashMap<>();
 		while (true) {
-			Map<String, Asset> rSIForCoin = new ConcurrentHashMap<>();
-			Map<String, Asset> spikeForCoin = new ConcurrentHashMap<>();
-			Map<String, Asset> suddenMovement = new ConcurrentHashMap();
 			Asset.Collection dataCollection = new Asset.Collection();
 			int oneDayCandleStickSize = 370;
 			int fourHoursCandleStickSize = 200;
@@ -254,7 +251,7 @@ public class Application implements CommandLineRunner {
 								process(() ->
 									checkLowAndHighRSIValue(
 										coin, defaultCollateral, dailyCandleSticks,
-										rSIForCoinAlreadyNotified, rSIForCoin, 14
+										fourHCandleSticks, rSIForCoinAlreadyNotified, 14
 									),
 									dataCollection
 								);
@@ -262,7 +259,7 @@ public class Application implements CommandLineRunner {
 								process(() ->
 									checkSpike(
 										coin, defaultCollateral, dailyCandleSticks, fourHCandleSticks,
-										spikeForCoinAlreadyNotified, spikeForCoin
+										spikeForCoinAlreadyNotified
 									),
 									dataCollection,
 									detected
@@ -296,12 +293,6 @@ public class Application implements CommandLineRunner {
 						}
 					});
 					StringBuffer presentation = new StringBuffer("<h1>Ciao!</h1>Sono stati rilevati i seguenti asset con variazioni rilevanti");
-					if (!rSIForCoin.isEmpty()) {
-
-					}
-					if (!spikeForCoin.isEmpty()) {
-						spikeForCoin.clear();
-					}
 					if (!dataCollection.isEmpty()) {
 						sendMail(
 							"roberto.gentili.1980@gmail.com"
@@ -312,24 +303,12 @@ public class Application implements CommandLineRunner {
 							(String[])null
 						);
 					}
-					for (Asset asset : dataCollection.datas) {
-						if (asset.getRSIOn1D() != null) {
-							rSIForCoinAlreadyNotified.put(asset.getAssetName(), asset);
-						}
-						if (asset.getPriceVariationPercentageOn4H() != null) {
-							spikeForCoinAlreadyNotified.put(asset.getAssetName(), asset);
-						}
-					}
 					dataCollection.clear();
 					org.burningwave.core.assembler.StaticComponentContainer.ManagedLoggerRepository.logInfo(
 						getClass()::getName,
 						"Waiting 10 seconds"
 					);
 					Thread.sleep(10000);
-					if (LocalDate.now().getDayOfYear() != today.getDayOfYear()) {
-						today = LocalDate.now();
-						rSIForCoinAlreadyNotified.clear();
-					}
 				}
 			}
 		}
@@ -383,25 +362,42 @@ public class Application implements CommandLineRunner {
 		String coin,
 		String collateral,
 		BarSeries dailyCandleSticks,
-		Map<String, Asset> alreadyNotified,
-		Map<String, Asset> rSIForCoin,
+		BarSeries fourHoursCandleSticks,
+		Map<String, Bar> alreadyNotified,
 		int period
 	) {
 		ClosePriceIndicator closePrice = new ClosePriceIndicator(dailyCandleSticks);
 		RSIIndicator rSIIndicator = new RSIIndicator(closePrice, period);
 		List<Num> values = rSIIndicator.stream().collect(Collectors.toList());
 		Double latestRSIValue = values.get(dailyCandleSticks.getEndIndex()).doubleValue();
+		Bar latestDailyCandleStick = dailyCandleSticks.getBar(dailyCandleSticks.getEndIndex());
 		Asset data = null;
 		if ((latestRSIValue > 70 || latestRSIValue < 30) && latestRSIValue != 0) {
-			if (!alreadyNotified.containsKey(coin)) {
-				data = new Asset(coin, collateral, dailyCandleSticks.getBar(dailyCandleSticks.getEndIndex()), latestRSIValue, null, null);
-				rSIForCoin.put(coin, data);
-				alreadyNotified.put(coin, data);
+			Bar latestNotified = alreadyNotified.get(coin);
+			boolean alreadyNotifiedFlag = false;
+			if (latestNotified != null) {
+				if (latestNotified.getBeginTime().compareTo(latestDailyCandleStick.getBeginTime()) != 0) {
+					alreadyNotified.put(coin, latestDailyCandleStick);
+				} else {
+					alreadyNotifiedFlag = true;
+					org.burningwave.core.assembler.StaticComponentContainer.ManagedLoggerRepository.logInfo(
+						getClass()::getName,
+						"Coin {} with value {} already notified for RSI value",
+						coin, latestRSIValue
+					);
+				}
 			} else {
-				org.burningwave.core.assembler.StaticComponentContainer.ManagedLoggerRepository.logInfo(
-					getClass()::getName,
-					"Coin {} with value {} already notified for RSI value",
-					coin, latestRSIValue
+				alreadyNotified.put(coin, latestDailyCandleStick);
+			}
+			if (!alreadyNotifiedFlag) {
+				data = new Asset(
+					coin,
+					collateral,
+					latestDailyCandleStick,
+					fourHoursCandleSticks.getBar(fourHoursCandleSticks.getEndIndex()),
+					latestRSIValue,
+					null,
+					null
 				);
 			}
 		}
@@ -413,13 +409,12 @@ public class Application implements CommandLineRunner {
 		String collateral,
 		BarSeries dailyCandleSticks,
 		BarSeries fourHoursCandleSticks,
-		Map<String, Asset> spikeForCoinAlreadyNotified,
-		Map<String, Asset> spikeForCoin
+		Map<String, Bar> alreadyNotified
 	) throws ParseException {
 		int lastCandleIndex = fourHoursCandleSticks.getEndIndex();
-		Bar toBeChecked = fourHoursCandleSticks.getBar(lastCandleIndex);
+		Bar latest4HBar = fourHoursCandleSticks.getBar(lastCandleIndex);
 
-		boolean considerOnlyBBContacts = false;
+		boolean considerOnlyBBContacts = true;
 		BigDecimal spikePercentage = toBigDecimal(40d);
 		BigDecimal comparingValue = toBigDecimal(3d);
 		int bBMaPeriod = 20;
@@ -437,11 +432,11 @@ public class Application implements CommandLineRunner {
 		BigDecimal bBUpper =
 			//toBigDecimal(bBFacade.upper().getValue(lastCandleIndex).doubleValue());
 			toBigDecimal(upBBand.getValue(lastCandleIndex).doubleValue());
-		BigDecimal high = toBigDecimal(toBeChecked.getHighPrice().doubleValue());
-		BigDecimal low = toBigDecimal(toBeChecked.getLowPrice().doubleValue());
+		BigDecimal high = toBigDecimal(latest4HBar.getHighPrice().doubleValue());
+		BigDecimal low = toBigDecimal(latest4HBar.getLowPrice().doubleValue());
 		BigDecimal priceVariation = high.subtract(low);
-		BigDecimal open = toBigDecimal(toBeChecked.getOpenPrice().doubleValue());
-		BigDecimal close = toBigDecimal(toBeChecked.getClosePrice().doubleValue());
+		BigDecimal open = toBigDecimal(latest4HBar.getOpenPrice().doubleValue());
+		BigDecimal close = toBigDecimal(latest4HBar.getClosePrice().doubleValue());
 		BigDecimal lowSpikeValue = close.compareTo(open) < 0 ? close.subtract(low) : open.subtract(low);
 		BigDecimal highSpikeValue = close.compareTo(open) > 0 ? high.subtract(close) : high.subtract(open);
 		BigDecimal lowSpikePercentage = divide(lowSpikeValue.multiply(toBigDecimal(100d)), priceVariation);
@@ -454,13 +449,13 @@ public class Application implements CommandLineRunner {
 			highSpikePercentage.compareTo(spikePercentage) >= 0 && totalCandleVariation.compareTo(comparingValue) >= 0 && highSpikeValue.compareTo(lowSpikeValue) >= 0 && (considerOnlyBBContacts ? (high.compareTo(bBUpper) >= 0) : true);
 		Asset data = null;
 		if (buyCondition || sellCondition) {
-			data = new Asset(coin, collateral, toBeChecked, null, buyCondition? (lowSpikePercentage.negate().doubleValue()) : highSpikePercentage.doubleValue(), null);
-			Bar latestNotified = Optional.ofNullable(spikeForCoinAlreadyNotified.get(coin)).map(Asset::getBar).orElseGet(() -> null);
+			Bar latestNotified = alreadyNotified.get(coin);
+			boolean alreadyNotifiedFlag = false;
 			if (latestNotified != null) {
-				if (latestNotified.getBeginTime().compareTo(toBeChecked.getBeginTime()) != 0) {
-					spikeForCoin.put(coin, data);
-					spikeForCoinAlreadyNotified.put(coin, data);
+				if (latestNotified.getBeginTime().compareTo(latest4HBar.getBeginTime()) != 0) {
+					alreadyNotified.put(coin, latest4HBar);
 				} else {
+					alreadyNotifiedFlag = true;
 					org.burningwave.core.assembler.StaticComponentContainer.ManagedLoggerRepository.logInfo(
 						getClass()::getName,
 						"Spike already notified for coin {}",
@@ -468,8 +463,18 @@ public class Application implements CommandLineRunner {
 					);
 				}
 			} else {
-				spikeForCoin.put(coin, data);
-				spikeForCoinAlreadyNotified.put(coin, data);
+				alreadyNotified.put(coin, latest4HBar);
+			}
+			if (!alreadyNotifiedFlag) {
+				data = new Asset(
+					coin,
+					collateral,
+					dailyCandleSticks.getBar(dailyCandleSticks.getEndIndex()),
+					latest4HBar,
+					null,
+					buyCondition? (lowSpikePercentage.negate().doubleValue()) : highSpikePercentage.doubleValue(),
+					null
+				);
 			}
 		}
 		return data;
@@ -594,7 +599,8 @@ public class Application implements CommandLineRunner {
 		public Asset(
 			String assetName,
 			String collateral,
-			Bar bar,
+			Bar oneDHBar,
+			Bar fourHBar,
 			Double rSILevel,
 			Double variationPercentage,
 			Map<String, Double> supportAndResistance
@@ -602,7 +608,8 @@ public class Application implements CommandLineRunner {
 			values = new LinkedHashMap<>();
 			values.put(Collection.LABELS.get(Collection.ASSET_NAME_LABEL_INDEX), assetName);
 			values.put(Collection.LABELS.get(Collection.COLLATERAL_LABEL_INDEX), collateral);
-			values.put(Collection.LABELS.get(Collection.LATEST_BAR_LABEL_INDEX), bar);
+			values.put(Collection.LABELS.get(Collection.LATEST_1D_BAR_LABEL_INDEX), oneDHBar);
+			values.put(Collection.LABELS.get(Collection.LATEST_4H_BAR_LABEL_INDEX), fourHBar);
 			values.put(Collection.LABELS.get(Collection.RSI_LABEL_INDEX), rSILevel);
 			values.put(Collection.LABELS.get(Collection.PRICE_VARIATION_PERCENTAGE_LABEL_INDEX), variationPercentage);
 			values.put(Collection.LABELS.get(Collection.SUPPORT_AND_RESISTANCE_LABEL_INDEX), supportAndResistance);
@@ -623,8 +630,8 @@ public class Application implements CommandLineRunner {
 		public String getCollateral() {
 			return (String)values.get(Collection.LABELS.get(Collection.COLLATERAL_LABEL_INDEX));
 		}
-		public Bar getBar() {
-			return (Bar)values.get(Collection.LABELS.get(Collection.LATEST_BAR_LABEL_INDEX));
+		public Bar getLatest4HBar() {
+			return (Bar)values.get(Collection.LABELS.get(Collection.LATEST_4H_BAR_LABEL_INDEX));
 		}
 		public Double getRSIOn1D() {
 			return (Double)values.get(Collection.LABELS.get(Collection.RSI_LABEL_INDEX));
@@ -638,13 +645,14 @@ public class Application implements CommandLineRunner {
 
 
     	private static class Collection {
-    		private static List<String> LABELS = Arrays.asList("Asset name", "collateral", "Latest price", "RSI on " + Interval.ONE_DAYS , "Price variation % on " + Interval.FOUR_HOURS, "Support and resistance levels");
+    		private static List<String> LABELS = Arrays.asList("Asset name", "collateral", "Latest price", "Latest price", "RSI on " + Interval.ONE_DAYS , "Price variation % on " + Interval.FOUR_HOURS, "Support and resistance levels");
     		private static int ASSET_NAME_LABEL_INDEX = 0;
     		private static int COLLATERAL_LABEL_INDEX = 1;
-    		private static int LATEST_BAR_LABEL_INDEX = 2;
-    		private static int RSI_LABEL_INDEX = 3;
-    		private static int PRICE_VARIATION_PERCENTAGE_LABEL_INDEX = 4;
-    		private static int SUPPORT_AND_RESISTANCE_LABEL_INDEX = 5;
+    		private static int LATEST_1D_BAR_LABEL_INDEX = 2;
+    		private static int LATEST_4H_BAR_LABEL_INDEX = 3;
+    		private static int RSI_LABEL_INDEX = 4;
+    		private static int PRICE_VARIATION_PERCENTAGE_LABEL_INDEX = 5;
+    		private static int SUPPORT_AND_RESISTANCE_LABEL_INDEX = 6;
     		private List<Asset> datas;
     		private Set<String> dynamicLabels;
 
@@ -725,7 +733,8 @@ public class Application implements CommandLineRunner {
     		private Predicate<String> hideColumnFilter() {
     			return label -> {
     				return !label.equals(LABELS.get(SUPPORT_AND_RESISTANCE_LABEL_INDEX)) &&
-						!label.equals(LABELS.get(COLLATERAL_LABEL_INDEX))	;
+						!label.equals(LABELS.get(COLLATERAL_LABEL_INDEX)) &&
+						!label.equals(LABELS.get(LATEST_1D_BAR_LABEL_INDEX));
     			};
     		}
 
