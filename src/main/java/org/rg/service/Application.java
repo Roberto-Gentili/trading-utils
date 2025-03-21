@@ -198,7 +198,7 @@ public class Application implements CommandLineRunner {
 						.stream().filter(asset -> asset.get("quote").equals(defaultCollateral)).map(asset -> asset.get("base")).
 						map(String.class::cast).collect(Collectors.toList());
 
-					marginUSDCCoins.parallelStream().forEach(coin -> {
+					marginUSDCCoins.stream().forEach(coin -> {
 						try {
 							org.burningwave.core.assembler.StaticComponentContainer.ManagedLoggerRepository.logInfo(
 								getClass()::getName,
@@ -238,12 +238,11 @@ public class Application implements CommandLineRunner {
 										candlesticks
 									),
 									Interval.FOUR_HOURS,
-									rSIForCoinAlreadyNotified,
+									spikeForCoinAlreadyNotified,
 									dataCollection,
 									detected
 								);
-							List<Supplier<Map<String, Double>>> supportAndResistanceSuppliers =
-								new ArrayList<>();
+							List<Supplier<Map<String, Double>>> supportAndResistanceSuppliers = new ArrayList<>();
 							if (candlesticks.get(Interval.ONE_DAYS).getBarCount() >= oneDayCandleStickQuantity) {
 								supportAndResistanceSuppliers.add(
 									() -> checkSupportAndResistanceCrossing(
