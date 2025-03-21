@@ -305,7 +305,7 @@ public class Application implements CommandLineRunner {
 					if (!dataCollection.isEmpty()) {
 						sendMail(
 							"roberto.gentili.1980@gmail.com"
-							//+ ",fercoletti@gmail.com"
+							+ ",fercoletti@gmail.com"
 							,
 							"Segnalazione asset",
 							presentation.append(dataCollection.toHTML()).toString(),
@@ -315,7 +315,8 @@ public class Application implements CommandLineRunner {
 					for (Asset asset : dataCollection.datas) {
 						if (asset.getRSIOn1D() != null) {
 							rSIForCoinAlreadyNotified.put(asset.getAssetName(), asset);
-						} else if (asset.getPriceVariationPercentageOn4H() != null) {
+						}
+						if (asset.getPriceVariationPercentageOn4H() != null) {
 							spikeForCoinAlreadyNotified.put(asset.getAssetName(), asset);
 						}
 					}
@@ -740,7 +741,7 @@ public class Application implements CommandLineRunner {
 	        						} else if (label.equals(LABELS.get(RSI_LABEL_INDEX))) {
 	        							htmlCellValue = "<p style=\"color: " + ((Double)value <= 50 ? "green" : "red") +"\">" + format((Double)value) + "</p>";
 	        						} else if (label.equals(LABELS.get(PRICE_VARIATION_PERCENTAGE_LABEL_INDEX))) {
-	        							htmlCellValue = "<p style=\"color: " + ((Double)value <= 0 ? "green" : "red") +"\">" + value + "</p>";
+	        							htmlCellValue = "<p style=\"color: " + ((Double)value <= 0 ? "green" : "red") +"\">" + format((Double) value) + "</p>";
 	        						} else if (value instanceof Double) {
 	        							htmlCellValue = format((Double)value);
 	        						} else if (value instanceof Bar) {
