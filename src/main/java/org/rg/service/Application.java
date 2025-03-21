@@ -19,13 +19,19 @@ import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.temporal.TemporalAdjusters;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
+import java.util.Iterator;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Properties;
-import java.util.TreeMap;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Predicate;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import javax.mail.BodyPart;
@@ -37,6 +43,7 @@ import javax.mail.internet.MimeMessage;
 import javax.mail.internet.MimeMultipart;
 
 import org.burningwave.core.concurrent.QueuedTaskExecutor.ProducerTask;
+import org.burningwave.core.function.ThrowingSupplier;
 import org.rg.finance.BinanceWallet;
 import org.rg.finance.CryptoComWallet;
 import org.rg.finance.Interval;
@@ -192,11 +199,14 @@ public class Application implements CommandLineRunner {
 				}).submit()
 			);
 		}
-		Map<String, Double> rSIForCoinAlreadyNotified = new TreeMap<>();
-		Map<String, Spike> spikeForCoinAlreadyNotified = new TreeMap<>();
+		Map<String, Asset> rSIForCoinAlreadyNotified = new ConcurrentHashMap<>();
+		Map<String, Asset> spikeForCoinAlreadyNotified = new ConcurrentHashMap<>();
+		Map<String, Asset> suddenMovementForCoinAlreadyNotified = new ConcurrentHashMap<>();
 		while (true) {
-			Map<String, Double> rSIForCoin = new TreeMap<>();
-			Map<String, Spike> spikeForCoin = new TreeMap<>();
+			Map<String, Asset> rSIForCoin = new ConcurrentHashMap<>();
+			Map<String, Asset> spikeForCoin = new ConcurrentHashMap<>();
+			Map<String, Asset> suddenMovement = new ConcurrentHashMap();
+			Asset.Collection dataCollection = new Asset.Collection();
 			for (Map.Entry<Wallet, ProducerTask<Collection<String>>> walletForAvailableCoins : walletsForAvailableCoins.entrySet()) {
 				if (walletForAvailableCoins.getKey() instanceof BinanceWallet) {
 					String defaultCollateral = walletForAvailableCoins.getKey().getCollateralForCoin("DEFAULT");
@@ -208,7 +218,7 @@ public class Application implements CommandLineRunner {
 						try {
 							org.burningwave.core.assembler.StaticComponentContainer.ManagedLoggerRepository.logInfo(
 								getClass()::getName,
-								"Checking asset {}",
+								"Loading data from remote for asset {}...",
 								coin
 							);
 							BarSeries dailyCandleSticks = retrieveCandlestick(
@@ -218,44 +228,74 @@ public class Application implements CommandLineRunner {
 								defaultCollateral,
 								coin
 							);
-
-							checkLowAndHighRSIValue(coin, dailyCandleSticks, rSIForCoinAlreadyNotified, rSIForCoin, 14);
 							BarSeries fourHCandleSticks = retrieveCandlestick(
 								Interval.FOUR_HOURS,
-								125,
+								200,
 								walletForAvailableCoins,
 								defaultCollateral,
 								coin
 							);
-							checkSpike(dailyCandleSticks, fourHCandleSticks, coin, spikeForCoinAlreadyNotified, spikeForCoin);
+							BarSeries oneHCandleSticks = retrieveCandlestick(
+								Interval.ONE_HOURS,
+								200,
+								walletForAvailableCoins,
+								defaultCollateral,
+								coin
+							);
+							org.burningwave.core.assembler.StaticComponentContainer.ManagedLoggerRepository.logInfo(
+								getClass()::getName,
+								"... All data loaded from remote for asset {}",
+								coin
+							);
+							Asset detected =
+								process(() ->
+									checkLowAndHighRSIValue(
+										coin, defaultCollateral, dailyCandleSticks,
+										rSIForCoinAlreadyNotified, rSIForCoin, 14
+									),
+									dataCollection
+								);
+							detected =
+								process(() ->
+									checkSpike(
+										coin, defaultCollateral, dailyCandleSticks, fourHCandleSticks,
+										spikeForCoinAlreadyNotified, spikeForCoin
+									),
+									dataCollection,
+									detected
+								);
+							dataCollection.addSupportAndResistanceFor(
+								detected,
+								() -> checkSupportAndResistanceCrossing(dailyCandleSticks, TimeLevel.DAY, Interval.ONE_DAYS),
+								() -> checkSupportAndResistanceCrossing(fourHCandleSticks, TimeLevel.BARBASED, Interval.FOUR_HOURS)
+							);
 						} catch (Throwable exc) {
-							exc.printStackTrace();
+							org.burningwave.core.assembler.StaticComponentContainer.ManagedLoggerRepository.logError(
+								getClass()::getName,
+								"Exception occurred while processing asset {}",
+								exc,
+								coin
+							);
 						}
 					});
-					StringBuffer presentation = new StringBuffer("<h1>Ciao!</h1>");
-					StringBuffer mailText = new StringBuffer("");
+					StringBuffer presentation = new StringBuffer("<h1>Ciao!</h1>Sono stati rilevati i seguenti asset con variazioni rilevanti");
 					if (!rSIForCoin.isEmpty()) {
-						mailText.append(
-							"<h1>Sono stati rilevati i seguenti asset con RSI critico su " + Interval.ONE_DAYS + ":</h1>" +
-							rSIToHTMLTable(rSIForCoin, defaultCollateral)
-						);
-						rSIForCoin.clear();
+
 					}
 					if (!spikeForCoin.isEmpty()) {
-						mailText.append(
-							"<h1>Sono stati rilevati i seguenti asset con spike sulle bande di Bollinger su " + Interval.FOUR_HOURS + ":</h1>" +
-							spikesToHTMLTable(spikeForCoin, defaultCollateral)
-						);
 						spikeForCoin.clear();
 					}
-					if (!mailText.toString().isEmpty()) {
+					if (!dataCollection.isEmpty()) {
 						sendMail(
-							"roberto.gentili.1980@gmail.com,fercoletti@gmail.com",
-							"Segnalazioni asset",
-							presentation.append(mailText).toString(),
+							"roberto.gentili.1980@gmail.com"
+							//+ ",fercoletti@gmail.com"
+							,
+							"Segnalazione asset",
+							presentation.append(dataCollection.toHTML()).toString(),
 							(String[])null
 						);
 					}
+					dataCollection.clear();
 					org.burningwave.core.assembler.StaticComponentContainer.ManagedLoggerRepository.logInfo(
 						getClass()::getName,
 						"Waiting 10 seconds"
@@ -270,7 +310,17 @@ public class Application implements CommandLineRunner {
 		}
 	}
 
-	private Map<String, Double> checkSupportAndResistanceCrossing(
+	private Asset process(ThrowingSupplier<Asset, Throwable> dataSupplier, Asset.Collection dataCollection, Asset... previousProcessedData) throws Throwable {
+		Asset newData = dataSupplier.get();
+		dataCollection.addOrMergeAndReplace(newData);
+		return newData != null?
+			newData :
+			previousProcessedData.length > 0 ?
+				previousProcessedData[previousProcessedData.length -1] :
+				null;
+	}
+
+	private static Map<String, Double> checkSupportAndResistanceCrossing(
 		BarSeries dailyCandleSticks,
 		TimeLevel timeLevel,
 		Interval interval
@@ -303,17 +353,18 @@ public class Application implements CommandLineRunner {
 		return resistanceAndSupportLevels;
 	}
 
-	protected void checkSpike(
+	protected Asset checkSpike(
+		String coin,
+		String collateral,
 		BarSeries dailyCandleSticks,
 		BarSeries fourHoursCandleSticks,
-		String coin,
-		Map<String, Spike> spikeForCoinAlreadyNotified,
-		Map<String, Spike> spikeForCoin
+		Map<String, Asset> spikeForCoinAlreadyNotified,
+		Map<String, Asset> spikeForCoin
 	) throws ParseException {
 		int lastCandleIndex = fourHoursCandleSticks.getEndIndex();
 		Bar toBeChecked = fourHoursCandleSticks.getBar(lastCandleIndex);
 
-		boolean considerOnlyBBContacts = true;
+		boolean considerOnlyBBContacts = false;
 		BigDecimal spikePercentage = toBigDecimal(40d);
 		BigDecimal comparingValue = toBigDecimal(3d);
 		int bBMaPeriod = 20;
@@ -346,29 +397,27 @@ public class Application implements CommandLineRunner {
 			lowSpikePercentage.compareTo(spikePercentage) >= 0 && totalCandleVariation.compareTo(comparingValue) >= 0 && lowSpikeValue.compareTo(highSpikeValue) >= 0 && (considerOnlyBBContacts ? (low.compareTo(bBLower) <= 0) : true);
 		boolean sellCondition =
 			highSpikePercentage.compareTo(spikePercentage) >= 0 && totalCandleVariation.compareTo(comparingValue) >= 0 && highSpikeValue.compareTo(lowSpikeValue) >= 0 && (considerOnlyBBContacts ? (high.compareTo(bBUpper) >= 0) : true);
-		Map<String, Double> supportAndResistance = checkSupportAndResistanceCrossing(fourHoursCandleSticks, TimeLevel.DAY, Interval.ONE_DAYS);
-		//supportAndResistance.putAll(checkSupportAndResistanceCrossing(dailyCandleSticks, TimeLevel.BARBASED, Interval.FOUR_HOURS));
+		Asset data = null;
 		if (buyCondition || sellCondition) {
-			Spike spike = new Spike(toBeChecked, buyCondition? (lowSpikePercentage.negate().doubleValue()) : highSpikePercentage.doubleValue(), supportAndResistance);
-			synchronized(spikeForCoin) {
-				Bar latestNotified = Optional.ofNullable(spikeForCoinAlreadyNotified.get(coin)).map(Spike::getBar).orElseGet(() -> null);
-				if (latestNotified != null) {
-					if (latestNotified.getBeginTime().compareTo(toBeChecked.getBeginTime()) != 0) {
-						spikeForCoin.put(coin, spike);
-						spikeForCoinAlreadyNotified.put(coin, spike);
-					} else {
-						org.burningwave.core.assembler.StaticComponentContainer.ManagedLoggerRepository.logInfo(
-							getClass()::getName,
-							"Spike already notified for coin {}",
-							coin
-						);
-					}
+			data = new Asset(coin, collateral, toBeChecked, null, buyCondition? (lowSpikePercentage.negate().doubleValue()) : highSpikePercentage.doubleValue(), null);
+			Bar latestNotified = Optional.ofNullable(spikeForCoinAlreadyNotified.get(coin)).map(Asset::getBar).orElseGet(() -> null);
+			if (latestNotified != null) {
+				if (latestNotified.getBeginTime().compareTo(toBeChecked.getBeginTime()) != 0) {
+					spikeForCoin.put(coin, data);
+					spikeForCoinAlreadyNotified.put(coin, data);
 				} else {
-					spikeForCoin.put(coin, spike);
-					spikeForCoinAlreadyNotified.put(coin, spike);
+					org.burningwave.core.assembler.StaticComponentContainer.ManagedLoggerRepository.logInfo(
+						getClass()::getName,
+						"Spike already notified for coin {}",
+						coin
+					);
 				}
+			} else {
+				spikeForCoin.put(coin, data);
+				spikeForCoinAlreadyNotified.put(coin, data);
 			}
 		}
+		return data;
 	}
 
 	private BigDecimal toBigDecimal(double value) {
@@ -382,31 +431,33 @@ public class Application implements CommandLineRunner {
 		return a.divide(b, 50, RoundingMode.HALF_DOWN);
 	}
 
-	protected void checkLowAndHighRSIValue(
+	protected Asset checkLowAndHighRSIValue(
 		String coin,
-		BarSeries candlesticks,
-		Map<String, Double> alreadyNotified,
-		Map<String, Double> rSIForCoin,
+		String collateral,
+		BarSeries dailyCandleSticks,
+		Map<String, Asset> alreadyNotified,
+		Map<String, Asset> rSIForCoin,
 		int period
 	) {
-		ClosePriceIndicator closePrice = new ClosePriceIndicator(candlesticks);
+		ClosePriceIndicator closePrice = new ClosePriceIndicator(dailyCandleSticks);
 		RSIIndicator rSIIndicator = new RSIIndicator(closePrice, period);
 		List<Num> values = rSIIndicator.stream().collect(Collectors.toList());
-		Double latestRSIValue = values.get(candlesticks.getEndIndex()).doubleValue();
+		Double latestRSIValue = values.get(dailyCandleSticks.getEndIndex()).doubleValue();
+		Asset data = null;
 		if ((latestRSIValue > 70 || latestRSIValue < 30) && latestRSIValue != 0) {
-			synchronized(rSIForCoin) {
-				if (!alreadyNotified.containsKey(coin)) {
-					rSIForCoin.put(coin, latestRSIValue);
-					alreadyNotified.put(coin, latestRSIValue);
-				} else {
-					org.burningwave.core.assembler.StaticComponentContainer.ManagedLoggerRepository.logInfo(
-						getClass()::getName,
-						"Coin {} with value {} already notified for RSI value",
-						coin, latestRSIValue
-					);
-				}
+			if (!alreadyNotified.containsKey(coin)) {
+				data = new Asset(coin, collateral, dailyCandleSticks.getBar(dailyCandleSticks.getEndIndex()), latestRSIValue, null, null);
+				rSIForCoin.put(coin, data);
+				alreadyNotified.put(coin, data);
+			} else {
+				org.burningwave.core.assembler.StaticComponentContainer.ManagedLoggerRepository.logInfo(
+					getClass()::getName,
+					"Coin {} with value {} already notified for RSI value",
+					coin, latestRSIValue
+				);
 			}
 		}
+		return data;
 	}
 
 	protected BarSeries retrieveCandlestick(Interval analysisInterval, int period,
@@ -446,56 +497,8 @@ public class Application implements CommandLineRunner {
 		);
 	}
 
-	private String rSIToHTMLTable(Map<String, Double> rSIForCoinEntrySet, String collateral) {
-		return "<table>" +
-			String.join(
-				"",
-				rSIForCoinEntrySet.entrySet().stream().map(
-					rec ->
-						"<tr>" +
-							"<td><a href=\"" + "https://www.binance.com/it/trade/" + rec.getKey() + "_" + collateral + "?type=isolated" + "\">" + rec.getKey() + "</a></td>"+
-							"<td width=\"25px\"></td><td><p style=\"color: " + (rec.getValue() <= 50 ? "green" : "red") +"\">" + rec.getValue() + "</p></td>" +
-						"</tr>"
-				).collect(Collectors.toList())
-			) +
-		"</table>";
-	}
 
-	private String spikesToHTMLTable(Map<String, Spike> spikeForCoin, String collateral) {
-		String header =
-		"<tr>" +
-			"<td><b>" +
-				"Asset name" +
-			"</b></td>" +
-			"<td><b>" +
-				"Spike variation" +
-			"</b></td>" +
-			"<td><b>" +
-				"Current price" +
-			"</b></td>" +
-			String.join("", spikeForCoin.entrySet().stream().findFirst().get().getValue().getSupportAndResistance().keySet().stream().map(supResLabel -> "<td><b>" + supResLabel + "</b></td>").collect(Collectors.toList())) +
-		"</tr>";
-		;
-		return "<table style=\"border-spacing: 20px;\">" +
-				header +
-				String.join(
-					"",
-					spikeForCoin.entrySet().stream().map(
-						rec ->
-							"<tr>" +
-								"<td><a href=\"" + "https://www.binance.com/it/trade/" + rec.getKey() + "_" + collateral + "?type=isolated" + "\"><p>" + rec.getKey() + "</p></a></td>"+
-								"<td><p style=\"color: " + (rec.getValue().getVariationPercentage() <= 0 ? "green" : "red") +"\">" + format(rec.getValue().getVariationPercentage()) + "&#37;</p></td>" +
-								"<td>" + format(rec.getValue().getBar().getClosePrice().doubleValue()) +"</td>" +
-								String.join("", rec.getValue().getSupportAndResistance().values().stream().map(supResVal -> "<td>" + format(supResVal) + "</td>").collect(Collectors.toList())) +
-							"</tr>"
-					).collect(Collectors.toList())
-				) +
-			"</table>";
-	}
-
-
-
-	private String format(double value) {
+	private static String format(double value) {
 		return String.format("%1$,.6f", value);
 	}
 
@@ -560,26 +563,189 @@ public class Application implements CommandLineRunner {
         return LocalDateTime.now().atZone(ZoneId.systemDefault()).toInstant().toEpochMilli();
     }
 
-    private static class Spike {
-    	private Bar bar;
-    	private Double variationPercentage;
-    	private Map<String, Double> supportAndResistance;
+    private static class Asset {
 
-		public Spike(Bar bar, Double variationPercentage, Map<String, Double> supportAndResistance) {
-			this.bar = bar;
-			this.variationPercentage = variationPercentage;
-			this.supportAndResistance = supportAndResistance;
+		public Asset(
+			String assetName,
+			String collateral,
+			Bar bar,
+			Double rSILevel,
+			Double variationPercentage,
+			Map<String, Double> supportAndResistance
+		) {
+			values = new LinkedHashMap<>();
+			values.put(Collection.LABELS.get(Collection.ASSET_NAME_LABEL_INDEX), assetName);
+			values.put(Collection.LABELS.get(Collection.COLLATERAL_LABEL_INDEX), collateral);
+			values.put(Collection.LABELS.get(Collection.LATEST_BAR_LABEL_INDEX), bar);
+			values.put(Collection.LABELS.get(Collection.RSI_LABEL_INDEX), rSILevel);
+			values.put(Collection.LABELS.get(Collection.PRICE_VARIATION_PERCENTAGE_LABEL_INDEX), variationPercentage);
+			values.put(Collection.LABELS.get(Collection.SUPPORT_AND_RESISTANCE_LABEL_INDEX), supportAndResistance);
+		}
+		public void addSupportAndResistance(Map<String, Double> values) {
+			Map<String, Double> supportAndResistance =
+				(Map<String, Double>)this.values.get(Collection.LABELS.get(Collection.SUPPORT_AND_RESISTANCE_LABEL_INDEX));
+			if (supportAndResistance != null) {
+				supportAndResistance.putAll(values);
+			} else {
+				this.values.put(Collection.LABELS.get(Collection.SUPPORT_AND_RESISTANCE_LABEL_INDEX), values);
+			}
+
+		}
+		public String getAssetName() {
+			return (String)values.get(Collection.LABELS.get(Collection.ASSET_NAME_LABEL_INDEX));
+		}
+		public String getCollateral() {
+			return (String)values.get(Collection.LABELS.get(Collection.COLLATERAL_LABEL_INDEX));
 		}
 		public Bar getBar() {
-			return bar;
+			return (Bar)values.get(Collection.LABELS.get(Collection.LATEST_BAR_LABEL_INDEX));
+		}
+		public Double getRSI() {
+			return (Double)values.get(Collection.LABELS.get(Collection.RSI_LABEL_INDEX));
 		}
 		public Double getVariationPercentage() {
-			return variationPercentage;
+			return (Double)values.get(Collection.LABELS.get(Collection.PRICE_VARIATION_PERCENTAGE_LABEL_INDEX));
 		}
 		public Map<String, Double> getSupportAndResistance() {
-			return supportAndResistance;
+			return (Map<String, Double>)values.get(Collection.LABELS.get(Collection.SUPPORT_AND_RESISTANCE_LABEL_INDEX));
 		}
 
+
+    	private static class Collection {
+    		private static List<String> LABELS = Arrays.asList("Asset name", "collateral", "Latest Bar", "RSI on " + Interval.ONE_DAYS , "Price variation % on " + Interval.FOUR_HOURS, "Support and resistance levels");
+    		private static int ASSET_NAME_LABEL_INDEX = 0;
+    		private static int COLLATERAL_LABEL_INDEX = 1;
+    		private static int LATEST_BAR_LABEL_INDEX = 2;
+    		private static int RSI_LABEL_INDEX = 3;
+    		private static int PRICE_VARIATION_PERCENTAGE_LABEL_INDEX = 4;
+    		private static int SUPPORT_AND_RESISTANCE_LABEL_INDEX = 5;
+    		private List<Asset> datas;
+    		private Set<String> dynamicLabels;
+
+    		public Collection() {
+    			datas = new ArrayList<>();
+    			dynamicLabels = new LinkedHashSet<>();
+    		}
+
+    		public void addSupportAndResistanceFor(
+				Asset asset,
+				Supplier<Map<String, Double>>... supportAndResistanceSuppliers
+			) {
+    			if (asset != null) {
+    				for (Supplier<Map<String, Double>> supportAndResistanceSupplier : supportAndResistanceSuppliers) {
+    					Map<String, Double> supportAndResistance = supportAndResistanceSupplier.get();
+        				asset.addSupportAndResistance(supportAndResistance);
+    				}
+    				addOrMergeAndReplace(asset);
+    			}
+			}
+
+			public void clear() {
+    			datas.clear();
+			}
+
+			public synchronized Collection addOrMergeAndReplace(Asset data) {
+    			if (data == null) {
+    				return this;
+    			}
+    			Map<String, Double> supportAndResistance = data.getSupportAndResistance();
+    			if (supportAndResistance != null) {
+    				dynamicLabels.addAll(supportAndResistance.keySet());
+    			}
+    			Iterator<Asset> oldDataIterator = datas.iterator();
+    			while (oldDataIterator.hasNext()) {
+    				Asset dataAlreadyAdded = oldDataIterator.next();
+    				if (dataAlreadyAdded.getAssetName().equals(data.getAssetName()) && dataAlreadyAdded.getCollateral().equals(data.getCollateral())) {
+    					data = mergeInNewData(dataAlreadyAdded, data);
+    					oldDataIterator.remove();
+    					break;
+    				}
+    			}
+    			datas.add(data);
+     			return this;
+    		}
+
+			private Asset mergeInNewData(Asset oldD, Asset newD) {
+				for (String label : LABELS) {
+					newD.values.putIfAbsent(label, oldD.values.get(label));
+				}
+				Map<String, Double> oldDSupportAndResistance = oldD.getSupportAndResistance();
+				Map<String, Double> newDSupportAndResistance = newD.getSupportAndResistance();
+				if (oldDSupportAndResistance != newDSupportAndResistance) {
+					for (String label : oldDSupportAndResistance.keySet()) {
+						newDSupportAndResistance.putIfAbsent(label, oldDSupportAndResistance.get(label));
+					}
+				}
+				return newD;
+			}
+
+    		public boolean isEmpty() {
+    			return datas.isEmpty();
+    		}
+
+    		public String toHTML() {
+    			datas.sort((assetOne, assetTwo) -> {
+    				return (assetOne.getAssetName() + assetOne.getCollateral()).compareTo(assetTwo.getAssetName() + assetTwo.getCollateral());
+    			});
+    			return "<table style=\"border-spacing: 20px;\">" +
+					"<tr>" +
+						String.join("", LABELS.stream().filter(hideColumnFilter()).map(label -> "<td><b>" + label + "</b></td>").collect(Collectors.toList())) +
+						String.join("", dynamicLabels.stream().map(label -> "<td><b>" + label + "</b></td>").collect(Collectors.toList())) +
+					"</tr>" +
+					String.join("", datas.stream().map(this::toHTML).collect(Collectors.toList())) +
+				"</table>";
+    		}
+
+    		private Predicate<String> hideColumnFilter() {
+    			return label -> {
+    				return !label.equals(LABELS.get(SUPPORT_AND_RESISTANCE_LABEL_INDEX)) &&
+						!label.equals(LABELS.get(COLLATERAL_LABEL_INDEX))	;
+    			};
+    		}
+
+    		private String toHTML(Asset data) {
+    			return "<tr>" +
+    					String.join(
+        					"",LABELS.stream().filter(hideColumnFilter()).map(label -> {
+        						Object value = data.values.get(label);
+        						String htmlCellValue;
+        						if (value != null) {
+	        						if (label.equals(LABELS.get(ASSET_NAME_LABEL_INDEX))) {
+	        							htmlCellValue = "<a href=\"" + "https://www.binance.com/it/trade/" + value + "_" + data.values.get(LABELS.get(COLLATERAL_LABEL_INDEX)) + "?type=isolated" + "\">" + data.values.get(label) + "</a>";
+	        						} else if (label.equals(LABELS.get(RSI_LABEL_INDEX))) {
+	        							htmlCellValue = "<p style=\"color: " + ((Double)value <= 50 ? "green" : "red") +"\">" + format((Double)value) + "</p>";
+	        						} else if (label.equals(LABELS.get(PRICE_VARIATION_PERCENTAGE_LABEL_INDEX))) {
+	        							htmlCellValue = "<p style=\"color: " + ((Double)value <= 0 ? "green" : "red") +"\">" + value + "</p>";
+	        						} else if (value instanceof Double) {
+	        							htmlCellValue = format((Double)value);
+	        						} else if (value instanceof Bar) {
+	        							htmlCellValue = "" + ((Bar)value).getClosePrice().doubleValue();
+	        						} else {
+	        							htmlCellValue = value.toString();
+	        						}
+        						} else {
+        							htmlCellValue = "NA";
+        						}
+        						return "<td>" + htmlCellValue + "</td>";
+        					}).collect(Collectors.toList())
+        				) +
+    					String.join(
+        					"",dynamicLabels.stream().filter(hideColumnFilter()).map(label -> {
+        						Double value = Optional.ofNullable(data.getSupportAndResistance()).map(supAndRes -> supAndRes.get(label)).orElseGet(() -> null);
+        						String htmlCellValue;
+        						if (value != null) {
+        							htmlCellValue = format((Double)value);
+        						} else {
+        							htmlCellValue = "NA";
+        						}
+        						return "<td>" + htmlCellValue + "</td>";
+        					}).collect(Collectors.toList())
+        				) +
+    			"</tr>";
+    		}
+    	}
+
+    	private Map<String, Object> values;
 
     }
 
