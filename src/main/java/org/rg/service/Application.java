@@ -235,7 +235,8 @@ public class Application implements CommandLineRunner {
 									new SpikeDetector(
 										coin,
 										defaultCollateral,
-										candlesticks
+										candlesticks,
+										true //Enable Bollinger bands check
 									),
 									Interval.FOUR_HOURS,
 									spikeForCoinAlreadyNotified,
@@ -282,7 +283,7 @@ public class Application implements CommandLineRunner {
 							);
 						}
 					});
-					StringBuffer presentation = new StringBuffer("<h1>Ciao!</h1>Sono stati rilevati i seguenti asset con variazioni rilevanti");
+					StringBuffer presentation = new StringBuffer("Ciao!</br>Sono stati rilevati i seguenti asset con variazioni rilevanti");
 					if (!dataCollection.isEmpty()) {
 						sendMail(
 							"roberto.gentili.1980@gmail.com"

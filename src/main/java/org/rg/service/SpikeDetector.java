@@ -16,8 +16,15 @@ import org.ta4j.core.indicators.statistics.StandardDeviationIndicator;
 import org.ta4j.core.num.DecimalNum;
 
 public class SpikeDetector extends CriticalIndicatorValueDetectorAbst {
-	public SpikeDetector(String mainAsset, String collateralAsset, Map<Interval, BarSeries> candlesticks) {
+	boolean considerOnlyBBContacts = true;
+	public SpikeDetector(
+		String mainAsset,
+		String collateralAsset,
+		Map<Interval, BarSeries> candlesticks,
+		boolean considerOnlyBBContacts
+	) {
 		super(mainAsset, collateralAsset, candlesticks);
+		this.considerOnlyBBContacts = considerOnlyBBContacts;
 	}
 
 	@Override
@@ -26,7 +33,6 @@ public class SpikeDetector extends CriticalIndicatorValueDetectorAbst {
 	) {
 		int lastCandleIndex = candlesticks.get(interval).getEndIndex();
 		Bar latestBar = candlesticks.get(interval).getBar(lastCandleIndex);
-		boolean considerOnlyBBContacts = true;
 		BigDecimal spikePercentage = toBigDecimal(40d);
 		BigDecimal comparingValue = toBigDecimal(3d);
 		int bBMaPeriod = 20;
