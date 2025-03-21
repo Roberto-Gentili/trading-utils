@@ -250,7 +250,7 @@ public class Application implements CommandLineRunner {
 											defaultCollateral,
 											candlesticks,
 											false, //Enable Bollinger bands check,
-											5d
+											3d
 										),
 										Interval.ONE_HOURS,
 										suddenMovementForCoinAlreadyNotified,
@@ -673,6 +673,9 @@ public class Application implements CommandLineRunner {
         						if (value == null) {
         							value = Optional.ofNullable(data.getVariationPercentages())
     	        						.map(supAndRes -> supAndRes.get(label)).orElseGet(() -> null);
+        							if (value != null ) {
+        								isVariation = true;
+        							}
         						}
         						String htmlCellValue;
         						if (value != null) {
