@@ -34,7 +34,7 @@ public class RSIDetector extends CriticalIndicatorValueDetectorAbst  {
 		List<Num> values = rSIIndicator.stream().collect(Collectors.toList());
 		Double latestRSIValue = values.get(barSeries.getEndIndex()).doubleValue();
 		Asset data = null;
-		if ((latestRSIValue > 70 || latestRSIValue < 30) && latestRSIValue != 0) {
+		if (checkIfIsBitcoin(mainAsset) || ((latestRSIValue > 70 || latestRSIValue < 30) && latestRSIValue != 0)) {
 			data = new Asset(
 				mainAsset,
 				collateralAsset,

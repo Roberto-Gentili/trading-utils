@@ -42,4 +42,8 @@ public abstract class CriticalIndicatorValueDetectorAbst implements CriticalIndi
 		return collateralAsset;
 	}
 
+	public static boolean checkIfIsBitcoin(String coin) {
+		return coin.equals("BTC");
+	}
+
 }

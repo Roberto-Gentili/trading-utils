@@ -273,7 +273,7 @@ public class Application implements CommandLineRunner {
 										detected
 									);
 							List<Supplier<Map<String, Double>>> supportAndResistanceSuppliers = new ArrayList<>();
-							if (candlesticks.get(Interval.ONE_DAYS).getBarCount() >= oneDayCandleStickQuantity) {
+							if (CriticalIndicatorValueDetectorAbst.checkIfIsBitcoin(coin) || candlesticks.get(Interval.ONE_DAYS).getBarCount() >= oneDayCandleStickQuantity) {
 								supportAndResistanceSuppliers.add(
 									() -> checkSupportAndResistanceCrossing(
 											candlesticks.get(Interval.ONE_DAYS),
@@ -281,7 +281,8 @@ public class Application implements CommandLineRunner {
 											Interval.ONE_DAYS
 										)
 								);
-							} else 	if (candlesticks.get(Interval.FOUR_HOURS).getBarCount() >= fourHoursCandleStickSize) {
+							}
+							if (CriticalIndicatorValueDetectorAbst.checkIfIsBitcoin(coin) || candlesticks.get(Interval.FOUR_HOURS).getBarCount() >= fourHoursCandleStickSize) {
 								supportAndResistanceSuppliers.add(
 									() -> checkSupportAndResistanceCrossing(
 										candlesticks.get(Interval.FOUR_HOURS),
@@ -289,7 +290,8 @@ public class Application implements CommandLineRunner {
 										Interval.FOUR_HOURS
 									)
 								);
-							} else if (candlesticks.get(Interval.ONE_HOURS).getBarCount() >= oneHoursCandleStickSize) {
+							}
+							if (CriticalIndicatorValueDetectorAbst.checkIfIsBitcoin(coin) || candlesticks.get(Interval.ONE_HOURS).getBarCount() >= oneHoursCandleStickSize) {
 								supportAndResistanceSuppliers.add(
 									() -> checkSupportAndResistanceCrossing(
 										candlesticks.get(
@@ -313,7 +315,7 @@ public class Application implements CommandLineRunner {
 						}
 					});
 					StringBuffer presentation = new StringBuffer("<p style=\"font-size:" + mailFontSizeInPixel + ";\">Ciao!</br>Sono stati rilevati i seguenti asset con variazioni rilevanti</p>");
-					if (!dataCollection.isEmpty()) {
+					if (dataCollection.size() > 1) {
 						sendMail(
 							"roberto.gentili.1980@gmail.com"
 							+ ",fercoletti@gmail.com"
@@ -574,7 +576,11 @@ public class Application implements CommandLineRunner {
     			dynamicLabelsGroupTwo = new LinkedHashSet<>();
     		}
 
-    		public void addSupportAndResistanceFor(
+    		public int size() {
+				return datas.size();
+			}
+
+			public void addSupportAndResistanceFor(
 				Asset asset,
 				List<Supplier<Map<String, Double>>> supportAndResistanceSuppliers
 			) {
@@ -667,7 +673,7 @@ public class Application implements CommandLineRunner {
 	        						if (label.equals(LABELS.get(ASSET_NAME_LABEL_INDEX))) {
 	        							htmlCellValue = "<a href=\"" + "https://www.binance.com/it/trade/" + value + "_" + data.values.get(LABELS.get(COLLATERAL_LABEL_INDEX)) + "?type=isolated" + "\">" + data.values.get(label) + "</a>";
 	        						} else if (label.equals(LABELS.get(RSI_LABEL_INDEX))) {
-	        							htmlCellValue = "<p style=\"color: " + ((Double)value <= 50 ? "green" : "red") +"\">" + format((Double)value) + "</p>";
+	        							htmlCellValue = "<p " + ((Double)value < 30 || ((Double)value > 70) ? (("style=\"color: " + ((Double)value < 30 ? "green" : "red")) + "\"") : "") +">" + format((Double)value) + "</p>";
 	        						} else if (label.equals(LABELS.get(PRICE_VARIATION_PERCENTAGE_LABEL_INDEX))) {
 	        							htmlCellValue = "<p style=\"color: " + ((Double)value <= 0 ? "green" : "red") +"\">" + format((Double) value) + "</p>";
 	        						} else if (value instanceof Double) {
