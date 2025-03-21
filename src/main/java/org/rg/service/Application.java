@@ -316,7 +316,7 @@ public class Application implements CommandLineRunner {
 					if (!dataCollection.isEmpty()) {
 						sendMail(
 							"roberto.gentili.1980@gmail.com"
-							//+ ",fercoletti@gmail.com"
+							+ ",fercoletti@gmail.com"
 							,
 							"Segnalazione asset",
 							presentation.append(dataCollection.toHTML()).toString(),
