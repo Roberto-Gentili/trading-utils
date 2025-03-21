@@ -198,7 +198,7 @@ public class Application implements CommandLineRunner {
 						.stream().filter(asset -> asset.get("quote").equals(defaultCollateral)).map(asset -> asset.get("base")).
 						map(String.class::cast).collect(Collectors.toList());
 
-					marginUSDCCoins.stream().forEach(coin -> {
+					marginUSDCCoins.parallelStream().forEach(coin -> {
 						try {
 							org.burningwave.core.assembler.StaticComponentContainer.ManagedLoggerRepository.logInfo(
 								getClass()::getName,
@@ -243,6 +243,20 @@ public class Application implements CommandLineRunner {
 									dataCollection,
 									detected
 								);
+								detected =
+									process(
+										new BigCandleDetector(
+											coin,
+											defaultCollateral,
+											candlesticks,
+											false, //Enable Bollinger bands check,
+											5d
+										),
+										Interval.ONE_HOURS,
+										suddenMovementForCoinAlreadyNotified,
+										dataCollection,
+										detected
+									);
 							List<Supplier<Map<String, Double>>> supportAndResistanceSuppliers = new ArrayList<>();
 							if (candlesticks.get(Interval.ONE_DAYS).getBarCount() >= oneDayCandleStickQuantity) {
 								supportAndResistanceSuppliers.add(
@@ -465,7 +479,8 @@ public class Application implements CommandLineRunner {
 			Map<Interval, BarSeries> candleSticks,
 			Double rSILevel,
 			Double variationPercentage,
-			Map<String, Double> supportAndResistance
+			Map<String, Double> supportAndResistance,
+			Map<String, Double> variations
 		) {
 			values = new LinkedHashMap<>();
 			values.put(Collection.LABELS.get(Collection.ASSET_NAME_LABEL_INDEX), assetName);
@@ -475,8 +490,11 @@ public class Application implements CommandLineRunner {
 			values.put(Collection.LABELS.get(Collection.RSI_LABEL_INDEX), rSILevel);
 			values.put(Collection.LABELS.get(Collection.PRICE_VARIATION_PERCENTAGE_LABEL_INDEX), variationPercentage);
 			values.put(Collection.LABELS.get(Collection.SUPPORT_AND_RESISTANCE_LABEL_INDEX), supportAndResistance);
+			values.put(Collection.LABELS.get(Collection.VARIATION_PERCENTAGES_LABEL_INDEX), variations);
 		}
-		public void addSupportAndResistance(Map<String, Double> values) {
+
+
+		public Asset addSupportAndResistance(Map<String, Double> values) {
 			Map<String, Double> supportAndResistance =
 				(Map<String, Double>)this.values.get(Collection.LABELS.get(Collection.SUPPORT_AND_RESISTANCE_LABEL_INDEX));
 			if (supportAndResistance != null) {
@@ -484,7 +502,17 @@ public class Application implements CommandLineRunner {
 			} else {
 				this.values.put(Collection.LABELS.get(Collection.SUPPORT_AND_RESISTANCE_LABEL_INDEX), values);
 			}
-
+			return this;
+		}
+		public Asset addVariationPercenages(Map<String, Double> values) {
+			Map<String, Double> variationPercentages =
+				(Map<String, Double>)this.values.get(Collection.LABELS.get(Collection.VARIATION_PERCENTAGES_LABEL_INDEX));
+			if (variationPercentages != null) {
+				variationPercentages.putAll(values);
+			} else {
+				this.values.put(Collection.LABELS.get(Collection.VARIATION_PERCENTAGES_LABEL_INDEX), values);
+			}
+			return this;
 		}
 		public String getAssetName() {
 			return (String)values.get(Collection.LABELS.get(Collection.ASSET_NAME_LABEL_INDEX));
@@ -504,17 +532,23 @@ public class Application implements CommandLineRunner {
 		public Map<String, Double> getSupportAndResistance() {
 			return (Map<String, Double>)values.get(Collection.LABELS.get(Collection.SUPPORT_AND_RESISTANCE_LABEL_INDEX));
 		}
+		public Map<String, Double> getVariationPercentages() {
+			return (Map<String, Double>)values.get(Collection.LABELS.get(Collection.VARIATION_PERCENTAGES_LABEL_INDEX));
+		}
+
+
 
 
     	private static class Collection {
-    		private static List<String> LABELS = Arrays.asList("Asset name", "collateral", "Latest price from " + Interval.ONE_DAYS, "Latest price", "RSI on " + Interval.ONE_DAYS , "Spike size in % on " + Interval.FOUR_HOURS, "Support and resistance levels");
+    		private static List<String> LABELS = Arrays.asList("Asset name", "collateral", "Latest price from " + Interval.ONE_DAYS, "Latest price", "RSI on " + Interval.ONE_DAYS, "Spike size in % on " + Interval.FOUR_HOURS, "Price variation %", "Support and resistance levels");
     		private static int ASSET_NAME_LABEL_INDEX = 0;
     		private static int COLLATERAL_LABEL_INDEX = 1;
     		private static int LATEST_1D_BAR_LABEL_INDEX = 2;
     		private static int LATEST_4H_BAR_LABEL_INDEX = 3;
     		private static int RSI_LABEL_INDEX = 4;
     		private static int PRICE_VARIATION_PERCENTAGE_LABEL_INDEX = 5;
-    		private static int SUPPORT_AND_RESISTANCE_LABEL_INDEX = 6;
+    		private static int VARIATION_PERCENTAGES_LABEL_INDEX = 6;
+    		private static int SUPPORT_AND_RESISTANCE_LABEL_INDEX = 7;
     		private List<Asset> datas;
     		private Set<String> dynamicLabels;
 
@@ -536,7 +570,7 @@ public class Application implements CommandLineRunner {
     			}
 			}
 
-			public void clear() {
+    		public void clear() {
     			datas.clear();
 			}
 
@@ -544,9 +578,13 @@ public class Application implements CommandLineRunner {
     			if (data == null) {
     				return this;
     			}
-    			Map<String, Double> supportAndResistance = data.getSupportAndResistance();
-    			if (supportAndResistance != null) {
-    				dynamicLabels.addAll(supportAndResistance.keySet());
+    			Map<String, Double> map = data.getVariationPercentages();
+    			if (map != null) {
+    				dynamicLabels.addAll(map.keySet());
+    			}
+    			map = data.getSupportAndResistance();
+    			if (map != null) {
+    				dynamicLabels.addAll(map.keySet());
     			}
     			Iterator<Asset> oldDataIterator = datas.iterator();
     			while (oldDataIterator.hasNext()) {
@@ -594,7 +632,8 @@ public class Application implements CommandLineRunner {
 
     		private Predicate<String> hideColumnFilter() {
     			return label -> {
-    				return !label.equals(LABELS.get(SUPPORT_AND_RESISTANCE_LABEL_INDEX)) &&
+    				return !label.equals(LABELS.get(VARIATION_PERCENTAGES_LABEL_INDEX)) &&
+    					!label.equals(LABELS.get(SUPPORT_AND_RESISTANCE_LABEL_INDEX)) &&
 						!label.equals(LABELS.get(COLLATERAL_LABEL_INDEX)) &&
 						!label.equals(LABELS.get(LATEST_1D_BAR_LABEL_INDEX));
     			};
@@ -628,10 +667,20 @@ public class Application implements CommandLineRunner {
         				) +
     					String.join(
         					"",dynamicLabels.stream().filter(hideColumnFilter()).map(label -> {
-        						Double value = Optional.ofNullable(data.getSupportAndResistance()).map(supAndRes -> supAndRes.get(label)).orElseGet(() -> null);
+        						Double value = Optional.ofNullable(data.getSupportAndResistance())
+        						.map(supAndRes -> supAndRes.get(label)).orElseGet(() -> null);
+        						boolean isVariation = false;
+        						if (value == null) {
+        							value = Optional.ofNullable(data.getVariationPercentages())
+    	        						.map(supAndRes -> supAndRes.get(label)).orElseGet(() -> null);
+        						}
         						String htmlCellValue;
         						if (value != null) {
-        							htmlCellValue = format((Double)value);
+        							if (isVariation) {
+        								htmlCellValue = "<p style=\"color: " + ((Double)value <= 0 ? "green" : "red") +"\">" + format((Double)value) + "</p>";
+        							} else {
+        								htmlCellValue = format((Double)value);
+        							}
         						} else {
         							htmlCellValue = "NA";
         						}

@@ -41,6 +41,7 @@ public class RSIDetector extends CriticalIndicatorValueDetectorAbst  {
 				candlesticks,
 				latestRSIValue,
 				null,
+				null,
 				null
 			);
 		}

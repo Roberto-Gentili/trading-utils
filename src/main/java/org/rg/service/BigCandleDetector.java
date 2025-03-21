@@ -1,6 +1,7 @@
 package org.rg.service;
 
 import java.math.BigDecimal;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 import org.rg.finance.Interval;
@@ -15,16 +16,18 @@ import org.ta4j.core.indicators.helpers.ClosePriceIndicator;
 import org.ta4j.core.indicators.statistics.StandardDeviationIndicator;
 import org.ta4j.core.num.DecimalNum;
 
-public class SpikeDetector extends CriticalIndicatorValueDetectorAbst {
+public class BigCandleDetector extends CriticalIndicatorValueDetectorAbst {
 	boolean considerOnlyBBContacts = true;
-	public SpikeDetector(
+	BigDecimal variationPercentage;
+	public BigCandleDetector(
 		String mainAsset,
-		String collateralAsset,
-		Map<Interval, BarSeries> candlesticks,
-		boolean considerOnlyBBContacts
+		String collateralAsset, Map<Interval, BarSeries> candlesticks,
+		boolean considerOnlyBBContacts,
+		double variationPercentage
 	) {
 		super(mainAsset, collateralAsset, candlesticks);
 		this.considerOnlyBBContacts = considerOnlyBBContacts;
+		this.variationPercentage = BigDecimal.valueOf(variationPercentage);
 	}
 
 	@Override
@@ -33,8 +36,6 @@ public class SpikeDetector extends CriticalIndicatorValueDetectorAbst {
 	) {
 		int lastCandleIndex = candlesticks.get(interval).getEndIndex();
 		Bar latestBar = candlesticks.get(interval).getBar(lastCandleIndex);
-		BigDecimal spikePercentage = toBigDecimal(40d);
-		BigDecimal comparingValue = toBigDecimal(3d);
 		int bBMaPeriod = 20;
 		DecimalNum bBDev = DecimalNum.valueOf(2);
 		ClosePriceIndicator closePrice = new ClosePriceIndicator(candlesticks.get(interval));
@@ -43,6 +44,7 @@ public class SpikeDetector extends CriticalIndicatorValueDetectorAbst {
         BollingerBandsMiddleIndicator middleBBand = new BollingerBandsMiddleIndicator(ma);
         BollingerBandsLowerIndicator lowBBand = new BollingerBandsLowerIndicator(middleBBand, deviation, bBDev);
         BollingerBandsUpperIndicator upBBand = new BollingerBandsUpperIndicator(middleBBand, deviation, bBDev);
+
 		//BollingerBandFacade bBFacade = new BollingerBandFacade(candlesticks, 20, 2);
 		BigDecimal bBLower =
 			//toBigDecimal(bBFacade.lower().getValue(lastCandleIndex).doubleValue());
@@ -50,32 +52,34 @@ public class SpikeDetector extends CriticalIndicatorValueDetectorAbst {
 		BigDecimal bBUpper =
 			//toBigDecimal(bBFacade.upper().getValue(lastCandleIndex).doubleValue());
 			toBigDecimal(upBBand.getValue(lastCandleIndex).doubleValue());
+
 		BigDecimal high = toBigDecimal(latestBar.getHighPrice().doubleValue());
 		BigDecimal low = toBigDecimal(latestBar.getLowPrice().doubleValue());
-		BigDecimal priceVariation = high.subtract(low);
 		BigDecimal open = toBigDecimal(latestBar.getOpenPrice().doubleValue());
 		BigDecimal close = toBigDecimal(latestBar.getClosePrice().doubleValue());
-		BigDecimal lowSpikeValue = close.compareTo(open) < 0 ? close.subtract(low) : open.subtract(low);
-		BigDecimal highSpikeValue = close.compareTo(open) > 0 ? high.subtract(close) : high.subtract(open);
-		BigDecimal lowSpikePercentage = divide(lowSpikeValue.multiply(toBigDecimal(100d)), priceVariation);
-		BigDecimal highSpikePercentage = divide(highSpikeValue.multiply(toBigDecimal(100d)), priceVariation);
-		BigDecimal totalCandleVariation = divide(high.subtract(low),high).multiply(toBigDecimal(100d));
-		//log.info('variation: {0}', totalCandleVariation)
+
+		BigDecimal priceVariation = close.subtract(open);
+		BigDecimal totalForComputation = priceVariation.compareTo(BigDecimal.ZERO) >=0 ? open : close;
+		BigDecimal variationPerc = divide(priceVariation.abs().multiply(BigDecimal.valueOf(100d)),totalForComputation);
+
 		boolean buyCondition =
-			lowSpikePercentage.compareTo(spikePercentage) >= 0 && totalCandleVariation.compareTo(comparingValue) >= 0 && lowSpikeValue.compareTo(highSpikeValue) >= 0 && (considerOnlyBBContacts ? (low.compareTo(bBLower) <= 0) : true);
+			variationPerc.compareTo(variationPercentage) >= 0 && priceVariation.compareTo(BigDecimal.ZERO) <0 && (considerOnlyBBContacts ? (low.compareTo(bBLower) <= 0) : true);
 		boolean sellCondition =
-			highSpikePercentage.compareTo(spikePercentage) >= 0 && totalCandleVariation.compareTo(comparingValue) >= 0 && highSpikeValue.compareTo(lowSpikeValue) >= 0 && (considerOnlyBBContacts ? (high.compareTo(bBUpper) >= 0) : true);
+			variationPerc.compareTo(variationPercentage) >= 0 && priceVariation.compareTo(BigDecimal.ZERO) >= 0 && (considerOnlyBBContacts ? (high.compareTo(bBUpper) >= 0) : true);
 		Asset data = null;
 		if (buyCondition || sellCondition) {
+			variationPerc = priceVariation.compareTo(BigDecimal.ZERO) >= 0 ? variationPerc : variationPerc.negate();
+			Map<String, Double> variations = new LinkedHashMap<>();
+			variations.put("Variation % on " + interval.toString(), variationPerc.doubleValue());
 			data = new Asset(
 				this.mainAsset,
 				this.collateralAsset,
 				candlesticks,
 				null,
-				buyCondition? (lowSpikePercentage.negate().doubleValue()) : highSpikePercentage.doubleValue(),
+				null,
 				null,
 				null
-			);
+			).addVariationPercenages(variations);
 
 		}
 		return data;
