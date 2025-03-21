@@ -69,6 +69,7 @@ import org.ta4j.core.indicators.pivotpoints.TimeLevel;
 @SpringBootApplication
 @SuppressWarnings({ "null" })
 public class Application implements CommandLineRunner {
+	static final String mailFontSizeInPixel = "15%";
 
 	@Autowired
 	private ApplicationContext appContext;
@@ -311,7 +312,7 @@ public class Application implements CommandLineRunner {
 							);
 						}
 					});
-					StringBuffer presentation = new StringBuffer("Ciao!</br>Sono stati rilevati i seguenti asset con variazioni rilevanti");
+					StringBuffer presentation = new StringBuffer("<p style=\"font-size:" + mailFontSizeInPixel + ";\">Ciao!</br>Sono stati rilevati i seguenti asset con variazioni rilevanti</p>");
 					if (!dataCollection.isEmpty()) {
 						sendMail(
 							"roberto.gentili.1980@gmail.com"
@@ -637,7 +638,7 @@ public class Application implements CommandLineRunner {
     			datas.sort((assetOne, assetTwo) -> {
     				return (assetOne.getAssetName() + assetOne.getCollateral()).compareTo(assetTwo.getAssetName() + assetTwo.getCollateral());
     			});
-    			return "<table style=\"border-spacing: 20px;font-size:25px;\">" +
+    			return "<table style=\"border-spacing: 20px;font-size:" + mailFontSizeInPixel + ";\">" +
 					"<tr>" +
 						String.join("", LABELS.stream().filter(hideColumnFilter()).map(label -> "<td><b>" + label + "</b></td>").collect(Collectors.toList())) +
 						String.join("", dynamicLabelsGroupOne.stream().map(label -> "<td><b>" + label + "</b></td>").collect(Collectors.toList())) +
