@@ -12,9 +12,6 @@ import org.ta4j.core.indicators.helpers.ClosePriceIndicator;
 import org.ta4j.core.num.Num;
 
 public class RSIDetector extends CriticalIndicatorValueDetectorAbst  {
-	private Map<Interval, BarSeries> candlesticks;
-	private String mainAsset;
-	private String collateralAsset;
 	private int period;
 
 	public RSIDetector(
