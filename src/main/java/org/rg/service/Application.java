@@ -550,11 +550,13 @@ public class Application implements CommandLineRunner {
     		private static int VARIATION_PERCENTAGES_LABEL_INDEX = 6;
     		private static int SUPPORT_AND_RESISTANCE_LABEL_INDEX = 7;
     		private List<Asset> datas;
-    		private Set<String> dynamicLabels;
+    		private Set<String> dynamicLabelsGroupOne;
+    		private Set<String> dynamicLabelsGroupTwo;
 
     		public Collection() {
     			datas = new ArrayList<>();
-    			dynamicLabels = new LinkedHashSet<>();
+    			dynamicLabelsGroupOne = new LinkedHashSet<>();
+    			dynamicLabelsGroupTwo = new LinkedHashSet<>();
     		}
 
     		public void addSupportAndResistanceFor(
@@ -580,11 +582,11 @@ public class Application implements CommandLineRunner {
     			}
     			Map<String, Double> map = data.getVariationPercentages();
     			if (map != null) {
-    				dynamicLabels.addAll(map.keySet());
+    				dynamicLabelsGroupOne.addAll(map.keySet());
     			}
     			map = data.getSupportAndResistance();
     			if (map != null) {
-    				dynamicLabels.addAll(map.keySet());
+    				dynamicLabelsGroupTwo.addAll(map.keySet());
     			}
     			Iterator<Asset> oldDataIterator = datas.iterator();
     			while (oldDataIterator.hasNext()) {
@@ -624,7 +626,8 @@ public class Application implements CommandLineRunner {
     			return "<table style=\"border-spacing: 20px;\">" +
 					"<tr>" +
 						String.join("", LABELS.stream().filter(hideColumnFilter()).map(label -> "<td><b>" + label + "</b></td>").collect(Collectors.toList())) +
-						String.join("", dynamicLabels.stream().map(label -> "<td><b>" + label + "</b></td>").collect(Collectors.toList())) +
+						String.join("", dynamicLabelsGroupOne.stream().map(label -> "<td><b>" + label + "</b></td>").collect(Collectors.toList())) +
+						String.join("", dynamicLabelsGroupTwo.stream().map(label -> "<td><b>" + label + "</b></td>").collect(Collectors.toList())) +
 					"</tr>" +
 					String.join("", datas.stream().map(this::toHTML).collect(Collectors.toList())) +
 				"</table>";
@@ -666,24 +669,25 @@ public class Application implements CommandLineRunner {
         					}).collect(Collectors.toList())
         				) +
     					String.join(
-        					"",dynamicLabels.stream().filter(hideColumnFilter()).map(label -> {
-        						Double value = Optional.ofNullable(data.getSupportAndResistance())
+        					"",dynamicLabelsGroupOne.stream().filter(hideColumnFilter()).map(label -> {
+        						Double value = Optional.ofNullable(data.getVariationPercentages())
         						.map(supAndRes -> supAndRes.get(label)).orElseGet(() -> null);
-        						boolean isVariation = false;
-        						if (value == null) {
-        							value = Optional.ofNullable(data.getVariationPercentages())
-    	        						.map(supAndRes -> supAndRes.get(label)).orElseGet(() -> null);
-        							if (value != null ) {
-        								isVariation = true;
-        							}
-        						}
         						String htmlCellValue;
         						if (value != null) {
-        							if (isVariation) {
-        								htmlCellValue = "<p style=\"color: " + ((Double)value <= 0 ? "green" : "red") +"\">" + format((Double)value) + "</p>";
-        							} else {
-        								htmlCellValue = format((Double)value);
-        							}
+        							htmlCellValue = "<p style=\"color: " + ((Double)value <= 0 ? "green" : "red") +"\">" + format((Double)value) + "</p>";
+        						} else {
+        							htmlCellValue = "NA";
+        						}
+        						return "<td>" + htmlCellValue + "</td>";
+        					}).collect(Collectors.toList())
+        				) +
+    					String.join(
+        					"",dynamicLabelsGroupTwo.stream().filter(hideColumnFilter()).map(label -> {
+        						Double value = Optional.ofNullable(data.getSupportAndResistance())
+        						.map(supAndRes -> supAndRes.get(label)).orElseGet(() -> null);
+        						String htmlCellValue;
+        						if (value != null) {
+        							htmlCellValue = format((Double)value);
         						} else {
         							htmlCellValue = "NA";
         						}
