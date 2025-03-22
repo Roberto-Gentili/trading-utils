@@ -171,8 +171,11 @@ public class Application implements CommandLineRunner {
 				}).submit()
 			);
 		}
-		Map<String, Bar> rSIForCoinAlreadyNotified = new ConcurrentHashMap<>();
-		Map<String, Bar> spikeForCoinAlreadyNotified = new ConcurrentHashMap<>();
+		Map<String, Bar> rSIOn1DForCoinAlreadyNotified = new ConcurrentHashMap<>();
+		Map<String, Bar> rSIOn4HForCoinAlreadyNotified = new ConcurrentHashMap<>();
+		Map<String, Bar> stochRSIOn1DForCoinAlreadyNotified = new ConcurrentHashMap<>();
+		Map<String, Bar> stochRSIOn4HForCoinAlreadyNotified = new ConcurrentHashMap<>();
+		Map<String, Bar> spikeForCoinOn4HAlreadyNotified = new ConcurrentHashMap<>();
 		Map<String, Bar> suddenMovementOn1HForCoinAlreadyNotified = new ConcurrentHashMap<>();
 		Map<String, Bar> suddenMovementOn4HForCoinAlreadyNotified = new ConcurrentHashMap<>();
 		Map<Interval,Integer> candlestickQuantityForInterval = new LinkedHashMap<>();
@@ -213,35 +216,35 @@ public class Application implements CommandLineRunner {
 								process(
 									new RSIDetector(coin,defaultCollateral,candlesticks,14),
 									Interval.ONE_DAYS,
-									rSIForCoinAlreadyNotified,
+									rSIOn1DForCoinAlreadyNotified,
 									dataCollection
 								);
 							detected =
 								process(
 									new RSIDetector(coin,defaultCollateral,candlesticks,14),
 									Interval.FOUR_HOURS,
-									rSIForCoinAlreadyNotified,
+									rSIOn4HForCoinAlreadyNotified,
+									dataCollection
+								);
+							detected =
+								process(
+									new StochasticRSIDetector(coin,defaultCollateral,candlesticks,14),
+									Interval.ONE_DAYS,
+									stochRSIOn1DForCoinAlreadyNotified,
 									dataCollection
 								);
 							detected =
 								process(
 									new StochasticRSIDetector(coin,defaultCollateral,candlesticks,14),
 									Interval.FOUR_HOURS,
-									rSIForCoinAlreadyNotified,
-									dataCollection
-								);
-							detected =
-								process(
-									new StochasticRSIDetector(coin,defaultCollateral,candlesticks,14),
-									Interval.FOUR_HOURS,
-									rSIForCoinAlreadyNotified,
+									stochRSIOn4HForCoinAlreadyNotified,
 									dataCollection
 								);
 							detected =
 								process(
 									new SpikeDetector(coin,defaultCollateral,candlesticks,true),
 									Interval.FOUR_HOURS,
-									spikeForCoinAlreadyNotified,
+									spikeForCoinOn4HAlreadyNotified,
 									dataCollection,
 									detected
 								);

@@ -32,7 +32,7 @@ public class StochasticRSIDetector extends CriticalIndicatorValueDetectorAbst {
 		ClosePriceIndicator closePrice = new ClosePriceIndicator(barSeries);
 		StochasticRSIIndicator rSIIndicator = new StochasticRSIIndicator(closePrice, period);
 		List<Num> values = rSIIndicator.stream().collect(Collectors.toList());
-		Double latestRSIValue = values.get(barSeries.getEndIndex()).doubleValue();
+		Double latestRSIValue = values.get(barSeries.getEndIndex()).doubleValue() * 100d;
 		Asset data = null;
 		if (checkIfIsBitcoin(mainAsset) || ((latestRSIValue > 80 || latestRSIValue < 20) && latestRSIValue != 0)) {
 			Map<String, Double> variations = new LinkedHashMap<>();
