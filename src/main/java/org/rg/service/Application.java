@@ -288,7 +288,7 @@ public class Application implements CommandLineRunner {
 							);
 						}
 					});
-					StringBuffer presentation = new StringBuffer("<p style=\"font-size:" + mailFontSizeInPixel + ";\">Ciao!</br>Sono stati rilevati i seguenti " + (dataCollection.size() -1) + "asset con variazioni rilevanti</p>");
+					StringBuffer presentation = new StringBuffer("<p style=\"font-size:" + mailFontSizeInPixel + ";\">Ciao!</br>Sono stati rilevati i seguenti " + (dataCollection.size() -1) + " asset (BTC escluso) con variazioni rilevanti</p>");
 					if (dataCollection.size() > 1) {
 						sendMail(
 							RECIPIENTS,
