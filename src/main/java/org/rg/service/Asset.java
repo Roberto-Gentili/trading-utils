@@ -18,7 +18,11 @@ import org.ta4j.core.Bar;
 import org.ta4j.core.BarSeries;
 
 public class Asset {
-	private static String NOT_AVAILABLE = "<center><i style=\"color: #C8C8C8;\">na</i></center>";
+	private static String TABLE_STYLE =
+		"border-spacing: 0px;"+
+		"color: #606060;"+
+		"font-size:" + Application.mailFontSizeInPixel + ";";
+	private static String NOT_AVAILABLE = "<center><i style=\"color: #C0C0C0;\">na</i></center>";
 	private static String EVEN_ROW_BACKGROUND_COLOR = "#D6EEEE";
 	private static String ODD_ROW_BACKGROUND_COLOR = "#F8F8F8";
 	private static String HEADER_ROW_STYLE = "background-color: #7393B3; color: white;";
@@ -190,7 +194,7 @@ public class Asset {
 					labels.remove(label);
 				}
 			}
-			return "<table style=\"border-spacing: 0px;font-size:" + Application.mailFontSizeInPixel + ";\">" +
+			return "<table style=\"" + TABLE_STYLE + "\">" +
 				"<tr style=\"" + HEADER_ROW_STYLE + "\">" +
 					String.join("", labels.stream().filter(hideColumnFilter()).map(label -> "<td style=\"padding: " + CELL_PADDING + "\"><b>" + label + "</b></td>").collect(Collectors.toList())) +
 					String.join("", dynamicLabelsGroupOne.stream().map(label -> "<td style=\"padding: " + CELL_PADDING + "\"><b>" + label + "</b></td>").collect(Collectors.toList())) +
