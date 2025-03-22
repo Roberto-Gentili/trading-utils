@@ -76,7 +76,6 @@ public class Asset {
 	public Bar getLatest4HBar() {
 		return (Bar)values.get(Collection.LABELS.get(Collection.LabelIndex.LATEST_4H_BAR_LABEL_INDEX.ordinal()));
 	}
-
 	public Map<String, Double> getSpikeSizePercentage() {
 		return (Map<String, Double>)values.get(Collection.LABELS.get(Collection.LabelIndex.SPIKE_SIZE_PERCENTAGE.ordinal()));
 	}
@@ -251,57 +250,31 @@ public class Asset {
     					}).collect(Collectors.toList())
     				) +
 					String.join(
-    					"",dynamicLabelsGroup[0].stream().filter(showColumnFilter()).map(label -> {
-    						Double value = Optional.ofNullable(data.getRSI())
-    						.map(keyAndVal -> keyAndVal.get(label)).orElseGet(() -> null);
-    						String htmlCellValue;
-    						if (value != null) {
-    							htmlCellValue = "<p " + ((Double)value < 30 || ((Double)value > 70) ? (("style=\"color: " + ((Double)value < 30 ? "green" : "red")) + "\"") : "") +">" + Application.format((Double)value) + "</p>";
-    						} else {
-    							htmlCellValue = NOT_AVAILABLE;
-    						}
-    						return "<td style=\"padding: " + CELL_PADDING + "\">" + htmlCellValue + "</td>";
-    					}).collect(Collectors.toList())
-    				) +
-					String.join(
-    					"",dynamicLabelsGroup[1].stream().filter(showColumnFilter()).map(label -> {
-    						Double value = Optional.ofNullable(data.getSpikeSizePercentage())
-    						.map(keyAndVal -> keyAndVal.get(label)).orElseGet(() -> null);
-    						String htmlCellValue;
-    						if (value != null) {
-    							htmlCellValue = "<p style=\"color: " + ((Double)value <= 0 ? "green" : "red") +"\">" + Application.format((Double) value) + "</p>";
-    						} else {
-    							htmlCellValue = NOT_AVAILABLE;
-    						}
-    						return "<td style=\"padding: " + CELL_PADDING + "\">" + htmlCellValue + "</td>";
-    					}).collect(Collectors.toList())
-    				) +
-					String.join(
-    					"",dynamicLabelsGroup[2].stream().filter(showColumnFilter()).map(label -> {
-    						Double value = Optional.ofNullable(data.getVariationPercentages())
-    						.map(keyAndVal -> keyAndVal.get(label)).orElseGet(() -> null);
-    						String htmlCellValue;
-    						if (value != null) {
-    							htmlCellValue = "<p style=\"color: " + ((Double)value <= 0 ? "green" : "red") +"\">" + Application.format((Double)value) + "</p>";
-    						} else {
-    							htmlCellValue = NOT_AVAILABLE;
-    						}
-    						return "<td style=\"padding: " + CELL_PADDING + "\">" + htmlCellValue + "</td>";
-    					}).collect(Collectors.toList())
-    				) +
-					String.join(
-    					"",dynamicLabelsGroup[3].stream().filter(showColumnFilter()).map(label -> {
-    						Double value = Optional.ofNullable(data.getSupportAndResistance())
-    						.map(keyAndVal -> keyAndVal.get(label)).orElseGet(() -> null);
-    						String htmlCellValue;
-    						if (value != null) {
-    							htmlCellValue = Application.format((Double)value);
-    						} else {
-    							htmlCellValue = NOT_AVAILABLE;
-    						}
-    						return "<td style=\"padding: " + CELL_PADDING + "\">" + htmlCellValue + "</td>";
-    					}).collect(Collectors.toList())
-    				) +
+						"",
+						dynamicLabelsGroupToLabelIndex.stream().map(dynamicLabelGroup -> {
+							return String.join(
+		    					"",dynamicLabelGroup.getKey().stream().map(label -> {
+		    						Object value = Optional.ofNullable((Map<String, Object>)data.values.get(Collection.LABELS.get(dynamicLabelGroup.getValue())))
+		    						.map(keyAndVal -> keyAndVal.get(label)).orElseGet(() -> null);
+		    						String htmlCellValue;
+		    						if (value != null) {
+		    							if (dynamicLabelGroup.getValue().compareTo(LabelIndex.RSI_LABEL_INDEX.ordinal()) == 0) {
+		    								htmlCellValue = "<p " + ((Double)value < 30 || ((Double)value > 70) ? (("style=\"color: " + ((Double)value < 30 ? "green" : "red")) + "\"") : "") +">" + Application.format((Double)value) + "</p>";
+		    							} else if (dynamicLabelGroup.getValue().compareTo(LabelIndex.SPIKE_SIZE_PERCENTAGE.ordinal()) == 0) {
+		    								htmlCellValue = "<p style=\"color: " + ((Double)value <= 0 ? "green" : "red") +"\">" + Application.format((Double)value) + "</p>";
+		    							} else if (dynamicLabelGroup.getValue().compareTo(LabelIndex.VARIATION_PERCENTAGE_LABEL_INDEX.ordinal()) == 0) {
+		    								htmlCellValue = "<p style=\"color: " + ((Double)value <= 0 ? "green" : "red") +"\">" + Application.format((Double)value) + "</p>";
+		    							} else {
+		    								htmlCellValue = Application.format((Double)value);
+		    							}
+		    						} else {
+		    							htmlCellValue = NOT_AVAILABLE;
+		    						}
+		    						return "<td style=\"padding: " + CELL_PADDING + "\">" + htmlCellValue + "</td>";
+		    					}).collect(Collectors.toList())
+		    				);
+						}).collect(Collectors.toList())
+					) +
 			"</tr>";
 		}
 	}

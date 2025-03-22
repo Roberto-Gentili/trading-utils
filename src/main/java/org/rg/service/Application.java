@@ -54,7 +54,7 @@ import org.ta4j.core.BarSeries;
 public class Application implements CommandLineRunner {
 	private static final String RECIPIENTS =
 		"roberto.gentili.1980@gmail.com"
-//		+ ",fercoletti@gmail.com"
+		+ ",fercoletti@gmail.com"
 	;
 
 	static final String mailFontSizeInPixel = "35px";
