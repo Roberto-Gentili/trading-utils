@@ -315,34 +315,48 @@ public class Application implements CommandLineRunner {
 					if (filterEnabled) {
 						dataCollection.filter(asset -> {
 							int counter = 0;
+							Collection<Runnable> removers = new ArrayList<>();
 							if (asset.getRSI() != null && !asset.getRSI().isEmpty()) {
 								counter += asset.getRSI().size();
 							} else {
-								rSIOn1DForCoinAlreadyNotified.remove(asset.getName());
-								rSIOn4HForCoinAlreadyNotified.remove(asset.getName());
+								removers.add(() -> {
+									rSIOn1DForCoinAlreadyNotified.remove(asset.getName());
+									rSIOn4HForCoinAlreadyNotified.remove(asset.getName());
+								});
 							}
 							if (asset.getStochasticRSI() != null && !asset.getStochasticRSI().isEmpty()) {
 								counter += asset.getStochasticRSI().size();
 							} else {
-								stochRSIOn1DForCoinAlreadyNotified.remove(asset.getName());
-								stochRSIOn4HForCoinAlreadyNotified.remove(asset.getName());
+								removers.add(() -> {
+									stochRSIOn1DForCoinAlreadyNotified.remove(asset.getName());
+									stochRSIOn4HForCoinAlreadyNotified.remove(asset.getName());
+								});
 							}
 							if (asset.getBollingerBands() != null && !asset.getBollingerBands().isEmpty()) {
 								counter += asset.getBollingerBands().size();
 							} else {
-								bBOn1DForCoinAlreadyNotified.remove(asset.getName());
-								bBOn4HForCoinAlreadyNotified.remove(asset.getName());
+								removers.add(() -> {
+									bBOn1DForCoinAlreadyNotified.remove(asset.getName());
+									bBOn4HForCoinAlreadyNotified.remove(asset.getName());
+								});
 							}
 							if (asset.getSpikeSizePercentage() != null && !asset.getSpikeSizePercentage().isEmpty()) {
 								counter += asset.getSpikeSizePercentage().size();
 							} else {
-								spikeForCoinOn4HAlreadyNotified.remove(asset.getName());
+								removers.add(() -> {
+									spikeForCoinOn4HAlreadyNotified.remove(asset.getName());
+								});
 							}
 							if (asset.getVariationPercentages() != null && !asset.getVariationPercentages().isEmpty()) {
 								counter += asset.getVariationPercentages().size();
 							} else {
-								suddenMovementOn1HForCoinAlreadyNotified.remove(asset.getName());
-								suddenMovementOn4HForCoinAlreadyNotified.remove(asset.getName());
+								removers.add(() -> {
+									suddenMovementOn1HForCoinAlreadyNotified.remove(asset.getName());
+									suddenMovementOn4HForCoinAlreadyNotified.remove(asset.getName());
+								});
+							}
+							if (counter < 2) {
+								removers.stream().forEach(Runnable::run);
 							}
 							return CriticalIndicatorValueDetectorAbst.checkIfIsBitcoin(asset.getName()) || counter >=2;
 						});
