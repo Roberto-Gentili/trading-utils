@@ -338,7 +338,7 @@ public class Application implements CommandLineRunner {
 	}
 
 	static String format(double value) {
-		return String.format("%1$,.6f", value);
+		return String.format("%1$,.8f", value);
 	}
 
 	public void sendMail(String to, String subject, String body, String... attachmentAbsolutePaths) throws MessagingException, IOException {
