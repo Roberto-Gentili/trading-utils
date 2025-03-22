@@ -341,22 +341,25 @@ public class Application implements CommandLineRunner {
 		if (alreadyNotified == null) {
 			return asset;
 		}
-		Bar latestNotified = alreadyNotified.get(asset.getAssetName());
+		if (CriticalIndicatorValueDetectorAbst.checkIfIsBitcoin(asset.getName())) {
+
+		}
+		Bar latestNotified = alreadyNotified.get(asset.getName());
 		boolean alreadyNotifiedFlag = false;
 		Bar latestBar = candlesticks.get(interval).getLastBar();
 		if (latestNotified != null) {
 			if (latestNotified.getBeginTime().compareTo(latestBar.getBeginTime()) != 0) {
-				alreadyNotified.put(asset.getAssetName(), latestBar);
+				alreadyNotified.put(asset.getName(), latestBar);
 			} else {
 				alreadyNotifiedFlag = true;
 				org.burningwave.core.assembler.StaticComponentContainer.ManagedLoggerRepository.logInfo(
 					getClass()::getName,
 					"Variation already notified for coin {}",
-					asset.getAssetName()
+					asset.getName()
 				);
 			}
 		} else {
-			alreadyNotified.put(asset.getAssetName(), latestBar);
+			alreadyNotified.put(asset.getName(), latestBar);
 		}
 		if (!alreadyNotifiedFlag) {
 			return asset;

@@ -29,9 +29,11 @@ public class Asset {
 	private static String NOT_AVAILABLE =
 		"<center><i style=\"color: #C0C0C0;\">na</i></center>";
 
-	private static String EVEN_ROW_BACKGROUND_COLOR = "#D6EEEE";
+	private static String EVEN_ROW_STYLE =
+		"background-color: #D6EEEE;";
 
-	private static String ODD_ROW_BACKGROUND_COLOR = "#F8F8F8";
+	private static String ODD_ROW_STYLE =
+		"background-color: #F8F8F8;";
 
 	private static String HEADER_ROW_STYLE =
 		"background-color: #7393B3;" +
@@ -77,7 +79,7 @@ public class Asset {
 		return this;
 	}
 
-	public String getAssetName() {
+	public String getName() {
 		return (String)values.get(Collection.LABELS.get(Collection.LabelIndex.ASSET_NAME_LABEL_INDEX.ordinal()));
 	}
 	public String getCollateral() {
@@ -168,7 +170,7 @@ public class Asset {
 			Iterator<Asset> oldDataIterator = datas.iterator();
 			while (oldDataIterator.hasNext()) {
 				Asset dataAlreadyAdded = oldDataIterator.next();
-				if (dataAlreadyAdded.getAssetName().equals(data.getAssetName()) && dataAlreadyAdded.getCollateral().equals(data.getCollateral())) {
+				if (dataAlreadyAdded.getName().equals(data.getName()) && dataAlreadyAdded.getCollateral().equals(data.getCollateral())) {
 					data = mergeInNewData(dataAlreadyAdded, data);
 					oldDataIterator.remove();
 					break;
@@ -208,7 +210,7 @@ public class Asset {
 
 		public String toHTML() {
 			datas.sort((assetOne, assetTwo) -> {
-				return (assetOne.getAssetName() + assetOne.getCollateral()).compareTo(assetTwo.getAssetName() + assetTwo.getCollateral());
+				return (assetOne.getName() + assetOne.getCollateral()).compareTo(assetTwo.getName() + assetTwo.getCollateral());
 			});
 			AtomicInteger rowCounter = new AtomicInteger(0);
 			List<String> labels = new ArrayList<>(LABELS);
@@ -238,7 +240,7 @@ public class Asset {
 		}
 
 		private String toHTML(Asset data, int rowCounter) {
-			return "<tr style=\"background-color:" + (rowCounter % 2 == 0 ? EVEN_ROW_BACKGROUND_COLOR : ODD_ROW_BACKGROUND_COLOR) + "\">" +
+			return "<tr style=\"" + (rowCounter % 2 == 0 ? EVEN_ROW_STYLE : ODD_ROW_STYLE) + "\">" +
 					String.join(
     					"",LABELS.stream().filter(showColumnFilter()).map(label -> {
     						Object value = data.values.get(label);
