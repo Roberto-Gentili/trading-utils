@@ -225,6 +225,20 @@ public class Application implements CommandLineRunner {
 								);
 							detected =
 								process(
+									new StochasticRSIDetector(coin,defaultCollateral,candlesticks,14),
+									Interval.FOUR_HOURS,
+									rSIForCoinAlreadyNotified,
+									dataCollection
+								);
+							detected =
+								process(
+									new StochasticRSIDetector(coin,defaultCollateral,candlesticks,14),
+									Interval.FOUR_HOURS,
+									rSIForCoinAlreadyNotified,
+									dataCollection
+								);
+							detected =
+								process(
 									new SpikeDetector(coin,defaultCollateral,candlesticks,true),
 									Interval.FOUR_HOURS,
 									spikeForCoinAlreadyNotified,
