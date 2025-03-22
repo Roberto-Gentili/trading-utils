@@ -57,8 +57,8 @@ public class BigCandleDetector extends CriticalIndicatorValueDetectorAbst {
 		BigDecimal open = toBigDecimal(latestBar.getOpenPrice().doubleValue());
 		BigDecimal close = toBigDecimal(latestBar.getClosePrice().doubleValue());
 
-		BigDecimal priceVariation = close.subtract(open);
-		BigDecimal totalForComputation = priceVariation.compareTo(BigDecimal.ZERO) >=0 ? open : close;
+		BigDecimal priceVariation = high.subtract(low);
+		BigDecimal totalForComputation = priceVariation.compareTo(BigDecimal.ZERO) >=0 ? low : high;
 		BigDecimal variationPerc = divide(priceVariation.abs().multiply(BigDecimal.valueOf(100d)),totalForComputation);
 
 		boolean buyCondition =
