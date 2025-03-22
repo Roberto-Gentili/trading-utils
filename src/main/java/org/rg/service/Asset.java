@@ -9,6 +9,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
@@ -17,6 +18,11 @@ import org.ta4j.core.Bar;
 import org.ta4j.core.BarSeries;
 
 public class Asset {
+	private static String NOT_AVAILABLE = "<center><i style=\"color: #D3D3D3;\">na</i></center>";
+	private static String EVEN_ROW_BACKGROUND_COLOR = "#D6EEEE";
+	private static String ODD_ROW_BACKGROUND_COLOR = "#F8F8F8";
+	private static String HEADER_ROW_COLOR = "#7393B3";
+	private static String CELL_PADDING ="15px";
 	private Map<String, Object> values;
 
 	public Asset(
@@ -82,7 +88,16 @@ public class Asset {
 
 
 	static class Collection {
-		private static List<String> LABELS = Arrays.asList("Asset name", "collateral", "Latest price from " + Interval.ONE_DAYS, "Latest price", "RSI on " + Interval.ONE_DAYS, "Spike size in % on " + Interval.FOUR_HOURS, "Price variation %", "Support and resistance levels");
+		private static List<String> LABELS = Arrays.asList(
+			"Asset name",
+			"collateral",
+			"Latest price from " + Interval.ONE_DAYS,
+			"Latest price",
+			"RSI on " + Interval.ONE_DAYS,
+			"Spike size in % on " + Interval.FOUR_HOURS,
+			"Price variation %",
+			"Support and resistance levels"
+		);
 		private static int ASSET_NAME_LABEL_INDEX = 0;
 		private static int COLLATERAL_LABEL_INDEX = 1;
 		private static int LATEST_1D_BAR_LABEL_INDEX = 2;
@@ -156,13 +171,32 @@ public class Asset {
 			datas.sort((assetOne, assetTwo) -> {
 				return (assetOne.getAssetName() + assetOne.getCollateral()).compareTo(assetTwo.getAssetName() + assetTwo.getCollateral());
 			});
-			return "<table style=\"border-spacing: 20px;font-size:" + Application.mailFontSizeInPixel + ";\">" +
-				"<tr>" +
-					String.join("", LABELS.stream().filter(hideColumnFilter()).map(label -> "<td><b>" + label + "</b></td>").collect(Collectors.toList())) +
-					String.join("", dynamicLabelsGroupOne.stream().map(label -> "<td><b>" + label + "</b></td>").collect(Collectors.toList())) +
-					String.join("", dynamicLabelsGroupTwo.stream().map(label -> "<td><b>" + label + "</b></td>").collect(Collectors.toList())) +
+			AtomicInteger rowCounter = new AtomicInteger(0);
+			List<String> labels = new ArrayList<>(LABELS);
+			for (String label : Arrays.asList(
+				LABELS.get(LATEST_1D_BAR_LABEL_INDEX),
+				LABELS.get(LATEST_4H_BAR_LABEL_INDEX),
+				LABELS.get(RSI_LABEL_INDEX),
+				LABELS.get(SPIKE_SIZE_PERCENTAGE_LABEL_INDEX)
+			)) {
+				boolean foundStaticValue = false;
+				for (Asset asset : datas) {
+					if (asset.values.get(label) != null) {
+						foundStaticValue = true;
+						break;
+					}
+				}
+				if (!foundStaticValue) {
+					labels.remove(label);
+				}
+			}
+			return "<table style=\"border-spacing: 0px;font-size:" + Application.mailFontSizeInPixel + ";\">" +
+				"<tr style=\"background-color:" + HEADER_ROW_COLOR + "\">" +
+					String.join("", labels.stream().filter(hideColumnFilter()).map(label -> "<td style=\"padding: " + CELL_PADDING + "\"><b>" + label + "</b></td>").collect(Collectors.toList())) +
+					String.join("", dynamicLabelsGroupOne.stream().map(label -> "<td style=\"padding: " + CELL_PADDING + "\"><b>" + label + "</b></td>").collect(Collectors.toList())) +
+					String.join("", dynamicLabelsGroupTwo.stream().map(label -> "<td style=\"padding: " + CELL_PADDING + "\"><b>" + label + "</b></td>").collect(Collectors.toList())) +
 				"</tr>" +
-				String.join("", datas.stream().map(this::toHTML).collect(Collectors.toList())) +
+				String.join("", datas.stream().map(dt -> toHTML(dt, rowCounter.incrementAndGet())).collect(Collectors.toList())) +
 			"</table>";
 		}
 
@@ -175,8 +209,8 @@ public class Asset {
 			};
 		}
 
-		private String toHTML(Asset data) {
-			return "<tr>" +
+		private String toHTML(Asset data, int rowCounter) {
+			return "<tr style=\"background-color:" + (rowCounter % 2 == 0 ? EVEN_ROW_BACKGROUND_COLOR : ODD_ROW_BACKGROUND_COLOR) + "\">" +
 					String.join(
     					"",LABELS.stream().filter(hideColumnFilter()).map(label -> {
     						Object value = data.values.get(label);
@@ -196,9 +230,9 @@ public class Asset {
         							htmlCellValue = value.toString();
         						}
     						} else {
-    							htmlCellValue = "NA";
+    							htmlCellValue = NOT_AVAILABLE;
     						}
-    						return "<td>" + htmlCellValue + "</td>";
+    						return "<td style=\"padding: " + CELL_PADDING + "\">" + htmlCellValue + "</td>";
     					}).collect(Collectors.toList())
     				) +
 					String.join(
@@ -209,9 +243,9 @@ public class Asset {
     						if (value != null) {
     							htmlCellValue = "<p style=\"color: " + ((Double)value <= 0 ? "green" : "red") +"\">" + Application.format((Double)value) + "</p>";
     						} else {
-    							htmlCellValue = "NA";
+    							htmlCellValue = NOT_AVAILABLE;
     						}
-    						return "<td>" + htmlCellValue + "</td>";
+    						return "<td style=\"padding: " + CELL_PADDING + "\">" + htmlCellValue + "</td>";
     					}).collect(Collectors.toList())
     				) +
 					String.join(
@@ -222,9 +256,9 @@ public class Asset {
     						if (value != null) {
     							htmlCellValue = Application.format((Double)value);
     						} else {
-    							htmlCellValue = "NA";
+    							htmlCellValue = NOT_AVAILABLE;
     						}
-    						return "<td>" + htmlCellValue + "</td>";
+    						return "<td style=\"padding: " + CELL_PADDING + "\">" + htmlCellValue + "</td>";
     					}).collect(Collectors.toList())
     				) +
 			"</tr>";
