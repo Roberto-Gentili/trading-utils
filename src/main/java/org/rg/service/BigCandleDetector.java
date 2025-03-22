@@ -69,13 +69,11 @@ public class BigCandleDetector extends CriticalIndicatorValueDetectorAbst {
 		if (buyCondition || sellCondition) {
 			variationPerc = priceVariation.compareTo(BigDecimal.ZERO) >= 0 ? variationPerc : variationPerc.negate();
 			Map<String, Double> variations = new LinkedHashMap<>();
-			variations.put("Variation % on " + interval.toString(), variationPerc.doubleValue());
+			variations.put("Price variation % on " + interval.toString(), variationPerc.doubleValue());
 			data = new Asset(
 				this.mainAsset,
 				this.collateralAsset,
-				candlesticks,
-				null,
-				null
+				candlesticks
 			).addVariationPercenages(variations);
 
 		}

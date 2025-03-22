@@ -52,6 +52,11 @@ import org.ta4j.core.BarSeries;
 @SpringBootApplication
 @SuppressWarnings({ "null" })
 public class Application implements CommandLineRunner {
+	private static final String RECIPIENTS =
+		"roberto.gentili.1980@gmail.com"
+//		+ ",fercoletti@gmail.com"
+	;
+
 	static final String mailFontSizeInPixel = "35px";
 
 	@Autowired
@@ -213,6 +218,13 @@ public class Application implements CommandLineRunner {
 								);
 							detected =
 								process(
+									new RSIDetector(coin,defaultCollateral,candlesticks,14),
+									Interval.FOUR_HOURS,
+									rSIForCoinAlreadyNotified,
+									dataCollection
+								);
+							detected =
+								process(
 									new SpikeDetector(coin,defaultCollateral,candlesticks,true),
 									Interval.FOUR_HOURS,
 									spikeForCoinAlreadyNotified,
@@ -262,9 +274,7 @@ public class Application implements CommandLineRunner {
 					StringBuffer presentation = new StringBuffer("<p style=\"font-size:" + mailFontSizeInPixel + ";\">Ciao!</br>Sono stati rilevati i seguenti asset con variazioni rilevanti</p>");
 					if (dataCollection.size() > 1) {
 						sendMail(
-							"roberto.gentili.1980@gmail.com"
-							+ ",fercoletti@gmail.com"
-							,
+							RECIPIENTS,
 							"Segnalazione asset",
 							presentation.append(dataCollection.toHTML()).toString(),
 							(String[])null

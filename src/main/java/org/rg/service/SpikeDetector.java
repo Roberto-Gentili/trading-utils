@@ -1,6 +1,7 @@
 package org.rg.service;
 
 import java.math.BigDecimal;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 import org.rg.finance.Interval;
@@ -66,13 +67,14 @@ public class SpikeDetector extends CriticalIndicatorValueDetectorAbst {
 			highSpikePercentage.compareTo(spikePercentage) >= 0 && totalCandleVariation.compareTo(comparingValue) >= 0 && highSpikeValue.compareTo(lowSpikeValue) >= 0 && (considerOnlyBBContacts ? (high.compareTo(bBUpper) >= 0) : true);
 		Asset data = null;
 		if (buyCondition || sellCondition) {
+			Map<String, Double> variations = new LinkedHashMap<>();
+			variations.put("Spike size % on " + interval.toString(),
+				buyCondition? (lowSpikePercentage.negate().doubleValue()) : highSpikePercentage.doubleValue());
 			data = new Asset(
 				this.mainAsset,
 				this.collateralAsset,
-				candlesticks,
-				null,
-				buyCondition? (lowSpikePercentage.negate().doubleValue()) : highSpikePercentage.doubleValue()
-			);
+				candlesticks
+			).addSpikeSizePercentage(variations);
 
 		}
 		return data;

@@ -60,9 +60,7 @@ public class ResistanceAndSupportDetector extends CriticalIndicatorValueDetector
 		return new Asset(
 			this.mainAsset,
 			this.collateralAsset,
-			candlesticks,
-			null,
-			null
+			candlesticks
 		).addSupportAndResistance(resistanceAndSupportLevels);
 	}
 

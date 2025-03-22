@@ -7,14 +7,14 @@ import java.util.stream.Collectors;
 
 import org.rg.finance.Interval;
 import org.ta4j.core.BarSeries;
-import org.ta4j.core.indicators.RSIIndicator;
+import org.ta4j.core.indicators.StochasticRSIIndicator;
 import org.ta4j.core.indicators.helpers.ClosePriceIndicator;
 import org.ta4j.core.num.Num;
 
-public class RSIDetector extends CriticalIndicatorValueDetectorAbst {
+public class StochasticRSIDetector extends CriticalIndicatorValueDetectorAbst {
 	private int period;
 
-	public RSIDetector(
+	public StochasticRSIDetector(
 		String mainAsset,
 		String collateralAsset,
 		Map<Interval, BarSeries> candlesticks,
@@ -30,13 +30,13 @@ public class RSIDetector extends CriticalIndicatorValueDetectorAbst {
 	) {
 		BarSeries barSeries = candlesticks.get(interval);
 		ClosePriceIndicator closePrice = new ClosePriceIndicator(barSeries);
-		RSIIndicator rSIIndicator = new RSIIndicator(closePrice, period);
+		StochasticRSIIndicator rSIIndicator = new StochasticRSIIndicator(closePrice, period);
 		List<Num> values = rSIIndicator.stream().collect(Collectors.toList());
 		Double latestRSIValue = values.get(barSeries.getEndIndex()).doubleValue();
 		Asset data = null;
 		if (checkIfIsBitcoin(mainAsset) || ((latestRSIValue > 70 || latestRSIValue < 30) && latestRSIValue != 0)) {
 			Map<String, Double> variations = new LinkedHashMap<>();
-			variations.put("RSI value on " + interval.toString(), latestRSIValue.doubleValue());
+			variations.put("Critical Stoch. RSI value on " + interval.toString(), latestRSIValue.doubleValue());
 			data = new Asset(
 				mainAsset,
 				collateralAsset,
