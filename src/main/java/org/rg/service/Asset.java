@@ -215,15 +215,17 @@ public class Asset {
 			AtomicInteger rowCounter = new AtomicInteger(0);
 			List<String> labels = new ArrayList<>(LABELS);
 			return "<table style=\"" + TABLE_STYLE + "\">" +
-				"<tr style=\"" + HEADER_ROW_STYLE + "\">" +
-					String.join("", labels.stream().filter(showColumnFilter()).map(label -> "<td style=\"" + CELL_STYLE + "\"><b>" + label + "</b></td>").collect(Collectors.toList())) +
-					String.join("", Stream.of(dynamicLabelsGroup).map(dynamicLabelGroup -> {
-						return
-							String.join("", dynamicLabelGroup.stream().map(label ->
-								"<td style=\"" + CELL_STYLE + "\"><b>" + label + "</b></td>"
-							).collect(Collectors.toList()));
-					}).collect(Collectors.toList())) +
-				"</tr>" +
+				"<thead>" +
+					"<tr style=\"" + HEADER_ROW_STYLE + "\">" +
+						String.join("", labels.stream().filter(showColumnFilter()).map(label -> "<th style=\"" + CELL_STYLE + "\"><b>" + label + "</b></th>").collect(Collectors.toList())) +
+						String.join("", Stream.of(dynamicLabelsGroup).map(dynamicLabelGroup -> {
+							return
+								String.join("", dynamicLabelGroup.stream().map(label ->
+									"<th style=\"" + CELL_STYLE + "\"><b>" + label + "</b></th>"
+								).collect(Collectors.toList()));
+						}).collect(Collectors.toList())) +
+					"</tr>" +
+				"</thead>" +
 				String.join("", datas.stream().map(dt -> toHTML(dt, rowCounter.incrementAndGet())).collect(Collectors.toList())) +
 			"</table>";
 		}
