@@ -4,7 +4,6 @@ import java.math.BigDecimal;
 import java.util.Map;
 
 import org.rg.finance.Interval;
-import org.rg.service.Application.Asset;
 import org.ta4j.core.Bar;
 import org.ta4j.core.BarSeries;
 import org.ta4j.core.indicators.SMAIndicator;
@@ -72,9 +71,7 @@ public class SpikeDetector extends CriticalIndicatorValueDetectorAbst {
 				this.collateralAsset,
 				candlesticks,
 				null,
-				buyCondition? (lowSpikePercentage.negate().doubleValue()) : highSpikePercentage.doubleValue(),
-				null,
-				null
+				buyCondition? (lowSpikePercentage.negate().doubleValue()) : highSpikePercentage.doubleValue()
 			);
 
 		}

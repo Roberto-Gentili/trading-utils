@@ -3,7 +3,6 @@ package org.rg.service;
 import java.util.Map;
 
 import org.rg.finance.Interval;
-import org.rg.service.Application.Asset;
 import org.ta4j.core.BarSeries;
 
 public interface CriticalIndicatorValueDetector {

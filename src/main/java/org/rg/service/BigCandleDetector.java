@@ -5,7 +5,6 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 import org.rg.finance.Interval;
-import org.rg.service.Application.Asset;
 import org.ta4j.core.Bar;
 import org.ta4j.core.BarSeries;
 import org.ta4j.core.indicators.SMAIndicator;
@@ -75,8 +74,6 @@ public class BigCandleDetector extends CriticalIndicatorValueDetectorAbst {
 				this.mainAsset,
 				this.collateralAsset,
 				candlesticks,
-				null,
-				null,
 				null,
 				null
 			).addVariationPercenages(variations);

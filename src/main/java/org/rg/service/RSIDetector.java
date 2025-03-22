@@ -5,13 +5,12 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 import org.rg.finance.Interval;
-import org.rg.service.Application.Asset;
 import org.ta4j.core.BarSeries;
 import org.ta4j.core.indicators.RSIIndicator;
 import org.ta4j.core.indicators.helpers.ClosePriceIndicator;
 import org.ta4j.core.num.Num;
 
-public class RSIDetector extends CriticalIndicatorValueDetectorAbst  {
+public class RSIDetector extends CriticalIndicatorValueDetectorAbst {
 	private int period;
 
 	public RSIDetector(
@@ -40,8 +39,6 @@ public class RSIDetector extends CriticalIndicatorValueDetectorAbst  {
 				collateralAsset,
 				candlesticks,
 				latestRSIValue,
-				null,
-				null,
 				null
 			);
 		}
