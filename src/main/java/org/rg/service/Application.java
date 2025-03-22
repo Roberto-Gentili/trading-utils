@@ -57,7 +57,7 @@ public class Application implements CommandLineRunner {
 		+ ",fercoletti@gmail.com"
 	;
 
-	static final String mailFontSizeInPixel = "35px";
+	static final String mailFontSizeInPixel = "15px";
 
 	@Autowired
 	private ApplicationContext appContext;

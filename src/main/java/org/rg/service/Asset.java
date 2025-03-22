@@ -25,11 +25,21 @@ public class Asset {
 		"border-spacing: 0px;"+
 		"color: #606060;"+
 		"font-size:" + Application.mailFontSizeInPixel + ";";
-	private static String NOT_AVAILABLE = "<center><i style=\"color: #C0C0C0;\">na</i></center>";
+
+	private static String NOT_AVAILABLE =
+		"<center><i style=\"color: #C0C0C0;\">na</i></center>";
+
 	private static String EVEN_ROW_BACKGROUND_COLOR = "#D6EEEE";
+
 	private static String ODD_ROW_BACKGROUND_COLOR = "#F8F8F8";
-	private static String HEADER_ROW_STYLE = "background-color: #7393B3; color: white;";
-	private static String CELL_PADDING ="15px";
+
+	private static String HEADER_ROW_STYLE =
+		"background-color: #7393B3;" +
+		"color: white;";
+
+	private static String CELL_STYLE =
+		"padding: 15px;";
+
 	private Map<String, Object> values;
 
 	public Asset(
@@ -204,11 +214,11 @@ public class Asset {
 			List<String> labels = new ArrayList<>(LABELS);
 			return "<table style=\"" + TABLE_STYLE + "\">" +
 				"<tr style=\"" + HEADER_ROW_STYLE + "\">" +
-					String.join("", labels.stream().filter(showColumnFilter()).map(label -> "<td style=\"padding: " + CELL_PADDING + "\"><b>" + label + "</b></td>").collect(Collectors.toList())) +
+					String.join("", labels.stream().filter(showColumnFilter()).map(label -> "<td style=\"" + CELL_STYLE + "\"><b>" + label + "</b></td>").collect(Collectors.toList())) +
 					String.join("", Stream.of(dynamicLabelsGroup).map(dynamicLabelGroup -> {
 						return
 							String.join("", dynamicLabelGroup.stream().map(label ->
-								"<td style=\"padding: " + CELL_PADDING + "\"><b>" + label + "</b></td>"
+								"<td style=\"" + CELL_STYLE + "\"><b>" + label + "</b></td>"
 							).collect(Collectors.toList()));
 					}).collect(Collectors.toList())) +
 				"</tr>" +
@@ -246,7 +256,7 @@ public class Asset {
     						} else {
     							htmlCellValue = NOT_AVAILABLE;
     						}
-    						return "<td style=\"padding: " + CELL_PADDING + "\">" + htmlCellValue + "</td>";
+    						return "<td style=\"" + CELL_STYLE + "\">" + htmlCellValue + "</td>";
     					}).collect(Collectors.toList())
     				) +
 					String.join(
@@ -270,7 +280,7 @@ public class Asset {
 		    						} else {
 		    							htmlCellValue = NOT_AVAILABLE;
 		    						}
-		    						return "<td style=\"padding: " + CELL_PADDING + "\">" + htmlCellValue + "</td>";
+		    						return "<td style=\"" + CELL_STYLE + "\">" + htmlCellValue + "</td>";
 		    					}).collect(Collectors.toList())
 		    				);
 						}).collect(Collectors.toList())
