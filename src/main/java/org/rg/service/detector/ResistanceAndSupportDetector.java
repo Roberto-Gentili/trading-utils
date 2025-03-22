@@ -1,4 +1,4 @@
-package org.rg.service;
+package org.rg.service.detector;
 
 import static org.ta4j.core.indicators.pivotpoints.PivotLevel.RESISTANCE_1;
 import static org.ta4j.core.indicators.pivotpoints.PivotLevel.RESISTANCE_2;
@@ -11,6 +11,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 import org.rg.finance.Interval;
+import org.rg.service.Asset;
 import org.ta4j.core.BarSeries;
 import org.ta4j.core.indicators.pivotpoints.PivotPointIndicator;
 import org.ta4j.core.indicators.pivotpoints.StandardReversalIndicator;

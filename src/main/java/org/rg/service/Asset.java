@@ -59,6 +59,12 @@ public class Asset {
 	public Asset addRSI(Map<String, Double> values) {
 		return addDynamicValues(Collection.LabelIndex.RSI_LABEL_INDEX.ordinal(), values);
 	}
+	public Asset addStochasticRSI(Map<String, Double> values) {
+		return addDynamicValues(Collection.LabelIndex.STOCHASTIC_RSI_LABEL_INDEX.ordinal(), values);
+	}
+	public Asset addBollingerBands(Map<String, Double> values) {
+		return addDynamicValues(Collection.LabelIndex.BOLLINGER_BANDS_INDEX.ordinal(), values);
+	}
 	public Asset addSpikeSizePercentage(Map<String, Double> values) {
 		return addDynamicValues(Collection.LabelIndex.SPIKE_SIZE_PERCENTAGE.ordinal(), values);
 	}
@@ -94,6 +100,12 @@ public class Asset {
 	public Map<String, Double> getRSI() {
 		return (Map<String, Double>)values.get(Collection.LABELS.get(Collection.LabelIndex.RSI_LABEL_INDEX.ordinal()));
 	}
+	public Map<String, Double> getStochasticRSI() {
+		return (Map<String, Double>)values.get(Collection.LABELS.get(Collection.LabelIndex.STOCHASTIC_RSI_LABEL_INDEX.ordinal()));
+	}
+	public Map<String, Double> getBollingerBands() {
+		return (Map<String, Double>)values.get(Collection.LABELS.get(Collection.LabelIndex.BOLLINGER_BANDS_INDEX.ordinal()));
+	}
 	public Map<String, Double> getVariationPercentages() {
 		return (Map<String, Double>)values.get(Collection.LABELS.get(Collection.LabelIndex.VARIATION_PERCENTAGE_LABEL_INDEX.ordinal()));
 	}
@@ -102,16 +114,16 @@ public class Asset {
 	}
 
 
-
-
 	static class Collection {
 		private static List<String> LABELS = Arrays.asList(
 			"Asset name",
 			"collateral",
 			"Latest price from " + Interval.ONE_DAYS,
 			"Latest price",
+			"RSI",
+			"Stochastic RSI",
+			"Bollinger Bands",
 			"Spike size %",
-			"Critical RSI",
 			"Price variation %",
 			"Support and resistance levels"
 		);
@@ -122,13 +134,15 @@ public class Asset {
 			LATEST_4H_BAR_LABEL_INDEX,
 			//Dynamic values
 			RSI_LABEL_INDEX,
+			STOCHASTIC_RSI_LABEL_INDEX,
+			BOLLINGER_BANDS_INDEX,
 			SPIKE_SIZE_PERCENTAGE,
 			VARIATION_PERCENTAGE_LABEL_INDEX,
 			SUPPORT_AND_RESISTANCE_LABEL_INDEX
 		}
 
 		private List<Asset> datas;
-		private Set<String>[] dynamicLabelsGroup = new Set[4];
+		private Set<String>[] dynamicLabelsGroup = new Set[6];
 		private List<Map.Entry<Set<String>, Integer>> dynamicLabelsGroupToLabelIndex;
 
 		public Collection() {
@@ -138,9 +152,13 @@ public class Asset {
 			}
 			dynamicLabelsGroupToLabelIndex = new ArrayList<>();
 			for (
-				int i = LabelIndex.values().length - 1, k = dynamicLabelsGroup.length - 1;
-				i >  dynamicLabelsGroup.length - 1;
-				i--, k--
+				int i = LabelIndex.values().length - 1,
+				k = dynamicLabelsGroup.length - 1,
+				iterationIndex = 0;
+				iterationIndex < dynamicLabelsGroup.length;
+				i--,
+				k--,
+				iterationIndex++
 			) {
 				LabelIndex labelIndex = LabelIndex.values()[i];
 				dynamicLabelsGroupToLabelIndex.add(new AbstractMap.SimpleEntry<>(dynamicLabelsGroup[k], labelIndex.ordinal()));
@@ -208,6 +226,16 @@ public class Asset {
 			return datas.isEmpty();
 		}
 
+		public void filter(Predicate<Asset> assetPredicate) {
+			Iterator<Asset> assetIterator = datas.iterator();
+			while (assetIterator.hasNext()) {
+				Asset asset = assetIterator.next();
+				if (!assetPredicate.test(asset)) {
+					assetIterator.remove();
+				}
+			}
+		}
+
 		public String toHTML() {
 			datas.sort((assetOne, assetTwo) -> {
 				return (assetOne.getName() + assetOne.getCollateral()).compareTo(assetTwo.getName() + assetTwo.getCollateral());
@@ -272,11 +300,17 @@ public class Asset {
 		    						.map(keyAndVal -> keyAndVal.get(label)).orElseGet(() -> null);
 		    						String htmlCellValue;
 		    						if (value != null) {
-		    							if (dynamicLabelGroup.getValue().compareTo(LabelIndex.RSI_LABEL_INDEX.ordinal()) == 0) {
+		    							if (
+	    									dynamicLabelGroup.getValue().compareTo(LabelIndex.RSI_LABEL_INDEX.ordinal()) == 0 ||
+	    									dynamicLabelGroup.getValue().compareTo(LabelIndex.STOCHASTIC_RSI_LABEL_INDEX.ordinal()) == 0
+	    								) {
 		    								htmlCellValue = "<p " + ((Double)value < 30 || ((Double)value > 70) ? (("style=\"color: " + ((Double)value < 30 ? "green" : "red")) + "\"") : "") +">" + Application.format((Double)value) + "</p>";
-		    							} else if (dynamicLabelGroup.getValue().compareTo(LabelIndex.SPIKE_SIZE_PERCENTAGE.ordinal()) == 0) {
-		    								htmlCellValue = "<p style=\"color: " + ((Double)value <= 0 ? "green" : "red") +"\">" + Application.format((Double)value) + "</p>";
-		    							} else if (dynamicLabelGroup.getValue().compareTo(LabelIndex.VARIATION_PERCENTAGE_LABEL_INDEX.ordinal()) == 0) {
+		    							} else if (dynamicLabelGroup.getValue().compareTo(LabelIndex.BOLLINGER_BANDS_INDEX.ordinal()) == 0) {
+		    								htmlCellValue = "<p " + (label.contains("low") || label.contains("up") ? (("style=\"color: " + (label.contains("low") ? "green" : "red")) + "\"") : "") +">" + Application.format((Double)value) + "</p>";
+		    							} else if (
+	    									dynamicLabelGroup.getValue().compareTo(LabelIndex.SPIKE_SIZE_PERCENTAGE.ordinal()) == 0 ||
+	    									dynamicLabelGroup.getValue().compareTo(LabelIndex.VARIATION_PERCENTAGE_LABEL_INDEX.ordinal()) == 0
+    									) {
 		    								htmlCellValue = "<p style=\"color: " + ((Double)value <= 0 ? "green" : "red") +"\">" + Application.format((Double)value) + "</p>";
 		    							} else {
 		    								htmlCellValue = Application.format((Double)value);
@@ -291,6 +325,7 @@ public class Asset {
 					) +
 			"</tr>";
 		}
+
 	}
 
 }

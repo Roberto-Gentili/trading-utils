@@ -10,6 +10,7 @@ import java.time.temporal.TemporalAdjusters;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Properties;
@@ -29,6 +30,13 @@ import org.rg.finance.BinanceWallet;
 import org.rg.finance.CryptoComWallet;
 import org.rg.finance.Interval;
 import org.rg.finance.Wallet;
+import org.rg.service.detector.BigCandleDetector;
+import org.rg.service.detector.BollingerBandDetector;
+import org.rg.service.detector.CriticalIndicatorValueDetectorAbst;
+import org.rg.service.detector.RSIDetector;
+import org.rg.service.detector.ResistanceAndSupportDetector;
+import org.rg.service.detector.SpikeDetector;
+import org.rg.service.detector.StochasticRSIDetector;
 import org.rg.util.RestTemplateSupplier;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -58,6 +66,7 @@ public class Application implements CommandLineRunner {
 	;
 
 	static final String mailFontSizeInPixel = "15px";
+	static final boolean filterEnabled = true;
 
 	@Autowired
 	private ApplicationContext appContext;
@@ -171,8 +180,11 @@ public class Application implements CommandLineRunner {
 				}).submit()
 			);
 		}
+		List<Map<String, Bar>> alreadyNotified = new ArrayList<>();
 		Map<String, Bar> rSIOn1DForCoinAlreadyNotified = new ConcurrentHashMap<>();
 		Map<String, Bar> rSIOn4HForCoinAlreadyNotified = new ConcurrentHashMap<>();
+		Map<String, Bar> bBOn1DForCoinAlreadyNotified = new ConcurrentHashMap<>();
+		Map<String, Bar> bBOn4HForCoinAlreadyNotified = new ConcurrentHashMap<>();
 		Map<String, Bar> stochRSIOn1DForCoinAlreadyNotified = new ConcurrentHashMap<>();
 		Map<String, Bar> stochRSIOn4HForCoinAlreadyNotified = new ConcurrentHashMap<>();
 		Map<String, Bar> spikeForCoinOn4HAlreadyNotified = new ConcurrentHashMap<>();
@@ -242,7 +254,21 @@ public class Application implements CommandLineRunner {
 								);
 							detected =
 								process(
-									new SpikeDetector(coin,defaultCollateral,candlesticks,true),
+									new BollingerBandDetector(coin,defaultCollateral,candlesticks, 20, 2d),
+									Interval.ONE_DAYS,
+									bBOn1DForCoinAlreadyNotified,
+									dataCollection
+								);
+							detected =
+								process(
+									new BollingerBandDetector(coin,defaultCollateral,candlesticks, 20, 2d),
+									Interval.FOUR_HOURS,
+									bBOn4HForCoinAlreadyNotified,
+									dataCollection
+								);
+							detected =
+								process(
+									new SpikeDetector(coin,defaultCollateral,candlesticks),
 									Interval.FOUR_HOURS,
 									spikeForCoinOn4HAlreadyNotified,
 									dataCollection,
@@ -250,7 +276,7 @@ public class Application implements CommandLineRunner {
 								);
 							detected =
 								process(
-									new BigCandleDetector(coin,defaultCollateral,candlesticks,false, 10d),
+									new BigCandleDetector(coin,defaultCollateral,candlesticks, 10d),
 									Interval.FOUR_HOURS,
 									suddenMovementOn4HForCoinAlreadyNotified,
 									dataCollection,
@@ -258,7 +284,7 @@ public class Application implements CommandLineRunner {
 								);
 							detected =
 								process(
-									new BigCandleDetector(coin,defaultCollateral,candlesticks,false, 3d),
+									new BigCandleDetector(coin,defaultCollateral,candlesticks, 3d),
 									Interval.ONE_HOURS,
 									suddenMovementOn1HForCoinAlreadyNotified,
 									dataCollection,
@@ -288,6 +314,41 @@ public class Application implements CommandLineRunner {
 							);
 						}
 					});
+					if (filterEnabled) {
+						dataCollection.filter(asset -> {
+							int counter = 0;
+							if (asset.getRSI() != null && !asset.getRSI().isEmpty()) {
+								counter += asset.getRSI().size();
+							} else {
+								rSIOn1DForCoinAlreadyNotified.remove(asset.getName());
+								rSIOn4HForCoinAlreadyNotified.remove(asset.getName());
+							}
+							if (asset.getStochasticRSI() != null && !asset.getStochasticRSI().isEmpty()) {
+								counter += asset.getStochasticRSI().size();
+							} else {
+								stochRSIOn1DForCoinAlreadyNotified.remove(asset.getName());
+								stochRSIOn4HForCoinAlreadyNotified.remove(asset.getName());
+							}
+							if (asset.getBollingerBands() != null && !asset.getBollingerBands().isEmpty()) {
+								counter += asset.getBollingerBands().size();
+							} else {
+								bBOn1DForCoinAlreadyNotified.remove(asset.getName());
+								bBOn4HForCoinAlreadyNotified.remove(asset.getName());
+							}
+							if (asset.getSpikeSizePercentage() != null && !asset.getSpikeSizePercentage().isEmpty()) {
+								counter += asset.getSpikeSizePercentage().size();
+							} else {
+								spikeForCoinOn4HAlreadyNotified.remove(asset.getName());
+							}
+							if (asset.getVariationPercentages() != null && !asset.getVariationPercentages().isEmpty()) {
+								counter += asset.getVariationPercentages().size();
+							} else {
+								suddenMovementOn1HForCoinAlreadyNotified.remove(asset.getName());
+								suddenMovementOn4HForCoinAlreadyNotified.remove(asset.getName());
+							}
+							return CriticalIndicatorValueDetectorAbst.checkIfIsBitcoin(asset.getName()) || counter >=2;
+						});
+					}
 					StringBuffer presentation = new StringBuffer("<p style=\"font-size:" + mailFontSizeInPixel + ";\">Ciao!</br>Sono stati rilevati i seguenti " + (dataCollection.size() -1) + " asset (BTC escluso) con variazioni rilevanti</p>");
 					if (dataCollection.size() > 1) {
 						sendMail(

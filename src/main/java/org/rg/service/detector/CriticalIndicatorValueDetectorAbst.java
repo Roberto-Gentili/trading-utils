@@ -1,10 +1,11 @@
-package org.rg.service;
+package org.rg.service.detector;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.Map;
 
 import org.rg.finance.Interval;
+import org.rg.service.CriticalIndicatorValueDetector;
 import org.ta4j.core.BarSeries;
 
 public abstract class CriticalIndicatorValueDetectorAbst implements CriticalIndicatorValueDetector  {
