@@ -342,7 +342,7 @@ public class Application implements CommandLineRunner {
 			return asset;
 		}
 		if (CriticalIndicatorValueDetectorAbst.checkIfIsBitcoin(asset.getName())) {
-
+			return asset;
 		}
 		Bar latestNotified = alreadyNotified.get(asset.getName());
 		boolean alreadyNotifiedFlag = false;
