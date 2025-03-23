@@ -30,31 +30,31 @@ public class Asset {
 		DEFAULT_FONT_SIZE;
 
 	private static final String TABLE_DIV_STYLE =
-		"overflow: auto;"
-		+ "height: 450px;"
-		+ "width=1024px;";
+		"overflow: auto;" +
+		"height: 450px;" +
+		"width: 1024px;";
 
-	private static String NOT_AVAILABLE =
+	private static final String NOT_AVAILABLE =
 		"<center><i style=\"color: #C0C0C0;\">na</i></center>";
 
-	private static String EVEN_ROW_STYLE =
+	private static final String EVEN_ROW_STYLE =
 		"background-color: #D6EEEE;";
 
-	private static String ODD_ROW_STYLE =
+	private static final String ODD_ROW_STYLE =
 		"background-color: #F8F8F8;";
 
-	private static String HEADER_ROW_STYLE =
+	private static final String HEADER_ROW_STYLE =
 		"";
 
-	private static String CELL_STYLE =
+	private static final String CELL_STYLE =
 		"padding: 15px;";
 
-	private static String BLOCKED_HEADER_STYLE =
+	private static final String BLOCKED_HEADER_STYLE =
 		"position: sticky;" +
 		"top: 0;" +
 		"z-index: 1;";
 
-	private static String HEADER_CELL_STYLE =
+	private static final String HEADER_CELL_STYLE =
 		CELL_STYLE +
 		BLOCKED_HEADER_STYLE +
 		"background: #7393B3;" +
