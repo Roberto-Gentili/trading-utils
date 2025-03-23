@@ -66,7 +66,7 @@ public class Application implements CommandLineRunner {
 	;
 
 	//static final String mailFontSizeInPixel = "15px";
-	static final Integer MINIMAL_INDICATOR_ALERT_FOR_NOTIFICATION = 4;
+	static final Integer MINIMAL_INDICATOR_ALERT_FOR_NOTIFICATION = 5;
 
 	@Autowired
 	private ApplicationContext appContext;
@@ -180,7 +180,7 @@ public class Application implements CommandLineRunner {
 				}).submit()
 			);
 		}
-		List<Interval> intervals = Arrays.asList(Interval.ONE_DAYS, Interval.FOUR_HOURS, Interval.ONE_HOURS);
+		List<Interval> intervals = Arrays.asList(Interval.WEEK, Interval.ONE_DAYS, Interval.FOUR_HOURS, Interval.ONE_HOURS);
 		Map<Class<? extends CriticalIndicatorValueDetector>, Map<Interval, Map<String, Bar>>> alreadyNotified = new ConcurrentHashMap<>();
 		for (Class<? extends CriticalIndicatorValueDetector> indicatorType : Arrays.asList(
 			RSIDetector.class,
@@ -197,9 +197,10 @@ public class Application implements CommandLineRunner {
 		}
 
 		Map<Interval, Integer> candlestickQuantityForInterval = new LinkedHashMap<>();
-		candlestickQuantityForInterval.put(intervals.get(0), 370);
-		candlestickQuantityForInterval.put(intervals.get(1), 200);
-		candlestickQuantityForInterval.put(intervals.get(2), 370);
+		candlestickQuantityForInterval.put(intervals.get(0), 104);
+		candlestickQuantityForInterval.put(intervals.get(1), 370);
+		candlestickQuantityForInterval.put(intervals.get(2), 200);
+		candlestickQuantityForInterval.put(intervals.get(3), 370);
 		Map<String, Map<Interval, BarSeries>> candlesticksForCoin = new ConcurrentHashMap<>();
 		while (true) {
 			Asset.Collection dataCollection = new Asset.Collection();
