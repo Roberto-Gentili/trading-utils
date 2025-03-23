@@ -6,6 +6,7 @@ import java.util.Map;
 
 import org.rg.finance.Interval;
 import org.rg.service.Asset;
+import org.rg.service.Asset.ValueName;
 import org.ta4j.core.Bar;
 import org.ta4j.core.BarSeries;
 import org.ta4j.core.indicators.SMAIndicator;
@@ -72,7 +73,7 @@ public class BollingerBandDetector extends CriticalIndicatorValueDetectorAbst {
 				this.mainAsset,
 				this.collateralAsset,
 				candlesticks
-			).addBollingerBands(values);
+			).addDynamicValues(ValueName.BOLLINGER_BANDS, values);
 		}
 		return data;
 	}

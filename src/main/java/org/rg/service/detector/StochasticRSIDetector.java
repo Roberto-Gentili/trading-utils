@@ -5,6 +5,7 @@ import java.util.Map;
 
 import org.rg.finance.Interval;
 import org.rg.service.Asset;
+import org.rg.service.Asset.ValueName;
 import org.ta4j.core.BarSeries;
 import org.ta4j.core.indicators.StochasticOscillatorKIndicator;
 
@@ -51,13 +52,13 @@ public class StochasticRSIDetector extends CriticalIndicatorValueDetectorAbst {
         Double latestRSIValue = sRSI.getValue(barSeries.getEndIndex()).doubleValue();
         Asset data = null;
         if (checkIfIsBitcoin(mainAsset) || ((latestRSIValue > 85 || latestRSIValue < 15) && latestRSIValue != 0)) {
-			Map<String, Double> vals = new LinkedHashMap<>();
-			vals.put(interval.toString(), latestRSIValue.doubleValue());
+			Map<String, Double> values = new LinkedHashMap<>();
+			values.put(interval.toString(), latestRSIValue.doubleValue());
 			data = new Asset(
 				mainAsset,
 				collateralAsset,
 				candlesticks
-			).addStochasticRSI(vals);
+			).addDynamicValues(ValueName.STOCHASTIC_RSI, values);
 		}
 		return data;
 	}

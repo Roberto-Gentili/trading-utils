@@ -6,6 +6,7 @@ import java.util.Map;
 
 import org.rg.finance.Interval;
 import org.rg.service.Asset;
+import org.rg.service.Asset.ValueName;
 import org.ta4j.core.Bar;
 import org.ta4j.core.BarSeries;
 
@@ -43,13 +44,13 @@ public class BigCandleDetector extends CriticalIndicatorValueDetectorAbst {
 		Asset data = null;
 		if (buyCondition || sellCondition) {
 			variationPerc = priceVariation.compareTo(BigDecimal.ZERO) >= 0 ? variationPerc : variationPerc.negate();
-			Map<String, Double> variations = new LinkedHashMap<>();
-			variations.put(interval.toString(), variationPerc.doubleValue());
+			Map<String, Double> values = new LinkedHashMap<>();
+			values.put(interval.toString(), variationPerc.doubleValue());
 			data = new Asset(
 				this.mainAsset,
 				this.collateralAsset,
 				candlesticks
-			).addVariationPercenages(variations);
+			).addDynamicValues(ValueName.VARIATION_PERCENTAGE, values);
 
 		}
 		return data;

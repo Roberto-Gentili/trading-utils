@@ -7,6 +7,7 @@ import java.util.stream.Collectors;
 
 import org.rg.finance.Interval;
 import org.rg.service.Asset;
+import org.rg.service.Asset.ValueName;
 import org.ta4j.core.BarSeries;
 import org.ta4j.core.indicators.RSIIndicator;
 import org.ta4j.core.indicators.helpers.ClosePriceIndicator;
@@ -32,17 +33,17 @@ public class RSIDetector extends CriticalIndicatorValueDetectorAbst {
 		BarSeries barSeries = candlesticks.get(interval);
 		ClosePriceIndicator closePrice = new ClosePriceIndicator(barSeries);
 		RSIIndicator rSIIndicator = new RSIIndicator(closePrice, period);
-		List<Num> values = rSIIndicator.stream().collect(Collectors.toList());
-		Double latestRSIValue = values.get(barSeries.getEndIndex()).doubleValue();
+		List<Num> rsiOutput = rSIIndicator.stream().collect(Collectors.toList());
+		Double latestRSIValue = rsiOutput.get(barSeries.getEndIndex()).doubleValue();
 		Asset data = null;
 		if (checkIfIsBitcoin(mainAsset) || ((latestRSIValue > 70 || latestRSIValue < 30) && latestRSIValue != 0)) {
-			Map<String, Double> variations = new LinkedHashMap<>();
-			variations.put(interval.toString(), latestRSIValue.doubleValue());
+			Map<String, Double> values = new LinkedHashMap<>();
+			values.put(interval.toString(), latestRSIValue.doubleValue());
 			data = new Asset(
 				mainAsset,
 				collateralAsset,
 				candlesticks
-			).addRSI(variations);
+			).addDynamicValues(ValueName.RSI, values);
 		}
 		return data;
 	}

@@ -12,6 +12,7 @@ import java.util.Map;
 
 import org.rg.finance.Interval;
 import org.rg.service.Asset;
+import org.rg.service.Asset.ValueName;
 import org.ta4j.core.BarSeries;
 import org.ta4j.core.indicators.pivotpoints.PivotPointIndicator;
 import org.ta4j.core.indicators.pivotpoints.StandardReversalIndicator;
@@ -27,7 +28,7 @@ public class ResistanceAndSupportDetector extends CriticalIndicatorValueDetector
 
 	@Override
 	public Asset compute(Interval interval) {
-		Map<String, Double> resistanceAndSupportLevels = new LinkedHashMap<>();
+		Map<String, Double> values = new LinkedHashMap<>();
 		BarSeries candlestick = candlesticks.get(interval);
 		PivotPointIndicator pivotPoint = new PivotPointIndicator(
 			candlestick,
@@ -52,17 +53,17 @@ public class ResistanceAndSupportDetector extends CriticalIndicatorValueDetector
 //			s3.getValue(dailyCandleSticks.getEndIndex()).doubleValue(),
 //			r3.getValue(dailyCandleSticks.getEndIndex()).doubleValue()
 //		);                                                    -
-		resistanceAndSupportLevels.put(interval.toString() + "-S1", s1.getValue(candlestick.getEndIndex()).doubleValue());
-		resistanceAndSupportLevels.put(interval.toString() + "-R1", r1.getValue(candlestick.getEndIndex()).doubleValue());
-		resistanceAndSupportLevels.put(interval.toString() + "-S2", s2.getValue(candlestick.getEndIndex()).doubleValue());
-		resistanceAndSupportLevels.put(interval.toString() + "-R2", r2.getValue(candlestick.getEndIndex()).doubleValue());
-		resistanceAndSupportLevels.put(interval.toString() + "-S3", s3.getValue(candlestick.getEndIndex()).doubleValue());
-		resistanceAndSupportLevels.put(interval.toString() + "-R3", r3.getValue(candlestick.getEndIndex()).doubleValue());
+		values.put(interval.toString() + "-S1", s1.getValue(candlestick.getEndIndex()).doubleValue());
+		values.put(interval.toString() + "-R1", r1.getValue(candlestick.getEndIndex()).doubleValue());
+		values.put(interval.toString() + "-S2", s2.getValue(candlestick.getEndIndex()).doubleValue());
+		values.put(interval.toString() + "-R2", r2.getValue(candlestick.getEndIndex()).doubleValue());
+		values.put(interval.toString() + "-S3", s3.getValue(candlestick.getEndIndex()).doubleValue());
+		values.put(interval.toString() + "-R3", r3.getValue(candlestick.getEndIndex()).doubleValue());
 		return new Asset(
 			this.mainAsset,
 			this.collateralAsset,
 			candlesticks
-		).addSupportAndResistance(resistanceAndSupportLevels);
+		).addDynamicValues(ValueName.SUPPORT_AND_RESISTANCE, values);
 	}
 
 

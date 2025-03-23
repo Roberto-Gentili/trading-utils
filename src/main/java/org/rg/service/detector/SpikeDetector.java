@@ -6,6 +6,7 @@ import java.util.Map;
 
 import org.rg.finance.Interval;
 import org.rg.service.Asset;
+import org.rg.service.Asset.ValueName;
 import org.ta4j.core.Bar;
 import org.ta4j.core.BarSeries;
 
@@ -47,14 +48,14 @@ public class SpikeDetector extends CriticalIndicatorValueDetectorAbst {
 			highSpikePercentage.compareTo(spikePercentage) >= 0 && totalCandleVariation.compareTo(comparingValue) >= 0 && highSpikeValue.compareTo(lowSpikeValue) >= 0;
 		Asset data = null;
 		if (buyCondition || sellCondition) {
-			Map<String, Double> variations = new LinkedHashMap<>();
-			variations.put(interval.toString(),
+			Map<String, Double> values = new LinkedHashMap<>();
+			values.put(interval.toString(),
 				buyCondition? (lowSpikePercentage.negate().doubleValue()) : highSpikePercentage.doubleValue());
 			data = new Asset(
 				this.mainAsset,
 				this.collateralAsset,
 				candlesticks
-			).addSpikeSizePercentage(variations);
+			).addDynamicValues(ValueName.SPIKE_SIZE, values);
 
 		}
 		return data;

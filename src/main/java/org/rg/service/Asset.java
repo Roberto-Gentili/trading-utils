@@ -15,6 +15,39 @@ import org.ta4j.core.Bar;
 import org.ta4j.core.BarSeries;
 
 public class Asset {
+
+	public static enum ValueName {
+		ASSET_NAME("Asset name"),
+		COLLATERAL("collateral"),
+		LATEST_1D_BAR("Latest price from " + Interval.ONE_DAYS),
+		LATEST_4H_BAR("Latest price"),
+		//Dynamic values
+		RSI("RSI"),
+		STOCHASTIC_RSI("Stochastic RSI"),
+		BOLLINGER_BANDS("Bollinger Bands"),
+		SPIKE_SIZE("Spike size %"),
+		VARIATION_PERCENTAGE("Price variation %"),
+		SUPPORT_AND_RESISTANCE("Support and resistance levels");
+
+		private String label;
+		private ValueName(String label) {
+			this.label = label;
+		}
+
+		@Override
+		public String toString() {
+			return label;
+		}
+
+		public static ValueName find(String lb) {
+			return Stream.of(ValueName.values()).filter(lI -> lI.label.equals(lb)).findAny().orElseGet(() -> null);
+		}
+
+		public static ValueName find(int index) {
+			return Stream.of(ValueName.values()).filter(lI -> lI.ordinal() == index).findAny().orElseGet(() -> null);
+		}
+	}
+
 	public static String DEFAULT_FONT_SIZE = "font-size:15px;";
 
 	private static String TABLE_STYLE =
@@ -25,8 +58,8 @@ public class Asset {
 
 	private static final String TABLE_DIV_STYLE =
 		"overflow: auto;" +
-		"height: 80%;" +
-		"width: 100%;";
+		"height: 475px;" +
+		"width: 1024px;";
 
 	private static final String NOT_AVAILABLE =
 		"<center><i style=\"color: #C0C0C0;\">na</i></center>";
@@ -58,36 +91,17 @@ public class Asset {
 	private Map<String, Object> values;
 
 	public Asset(
-		String assetName,
-		String collateral,
+		String assetName, String collateral,
 		Map<Interval, BarSeries> candleSticks
 	) {
 		values = new LinkedHashMap<>();
-		values.put(Collection.Label.ASSET_NAME.toString(), assetName);
-		values.put(Collection.Label.COLLATERAL_LABEL_INDEX.toString(), collateral);
-		values.put(Collection.Label.LATEST_1D_BAR.toString(), candleSticks.get(Interval.ONE_DAYS).getBar(candleSticks.get(Interval.ONE_DAYS).getEndIndex()));
-		values.put(Collection.Label.LATEST_4H_BAR.toString(), candleSticks.get(Interval.FOUR_HOURS).getBar(candleSticks.get(Interval.FOUR_HOURS).getEndIndex()));
+		values.put(ValueName.ASSET_NAME.toString(), assetName);
+		values.put(ValueName.COLLATERAL.toString(), collateral);
+		values.put(ValueName.LATEST_1D_BAR.toString(), candleSticks.get(Interval.ONE_DAYS).getBar(candleSticks.get(Interval.ONE_DAYS).getEndIndex()));
+		values.put(ValueName.LATEST_4H_BAR.toString(), candleSticks.get(Interval.FOUR_HOURS).getBar(candleSticks.get(Interval.FOUR_HOURS).getEndIndex()));
 	}
 
-	public Asset addRSI(Map<String, Double> values) {
-		return addDynamicValues(Collection.Label.RSI, values);
-	}
-	public Asset addStochasticRSI(Map<String, Double> values) {
-		return addDynamicValues(Collection.Label.STOCHASTIC_RSI, values);
-	}
-	public Asset addBollingerBands(Map<String, Double> values) {
-		return addDynamicValues(Collection.Label.BOLLINGER_BANDS, values);
-	}
-	public Asset addSpikeSizePercentage(Map<String, Double> values) {
-		return addDynamicValues(Collection.Label.SPIKE_SIZE, values);
-	}
-	public Asset addSupportAndResistance(Map<String, Double> values) {
-		return addDynamicValues(Collection.Label.SUPPORT_AND_RESISTANCE, values);
-	}
-	public Asset addVariationPercenages(Map<String, Double> values) {
-		return addDynamicValues(Collection.Label.VARIATION_PERCENTAGE, values);
-	}
-	private Asset addDynamicValues(Collection.Label label, Map<String, Double> values) {
+	public Asset addDynamicValues(ValueName label, Map<String, Double> values) {
 		Map<String, Double> vals =
 			(Map<String, Double>)this.values.get(label.toString());
 		if (vals != null) {
@@ -98,68 +112,39 @@ public class Asset {
 		return this;
 	}
 
+	public <O> O get(ValueName key) {
+		return (O)values.get(key.toString());
+	}
+
 	public String getName() {
-		return (String)values.get(Collection.Label.ASSET_NAME.toString());
+		return get(ValueName.ASSET_NAME);
 	}
 	public String getCollateral() {
-		return (String)values.get(Collection.Label.COLLATERAL_LABEL_INDEX.toString());
+		return get(ValueName.COLLATERAL);
 	}
 	public Bar getLatest4HBar() {
-		return (Bar)values.get(Collection.Label.LATEST_4H_BAR.toString());
+		return get(ValueName.LATEST_4H_BAR);
 	}
 	public Map<String, Double> getSpikeSizePercentage() {
-		return (Map<String, Double>)values.get(Collection.Label.SPIKE_SIZE.toString());
+		return get(ValueName.SPIKE_SIZE);
 	}
 	public Map<String, Double> getRSI() {
-		return (Map<String, Double>)values.get(Collection.Label.RSI.toString());
+		return get(ValueName.RSI);
 	}
 	public Map<String, Double> getStochasticRSI() {
-		return (Map<String, Double>)values.get(Collection.Label.STOCHASTIC_RSI.toString());
+		return get(ValueName.STOCHASTIC_RSI);
 	}
 	public Map<String, Double> getBollingerBands() {
-		return (Map<String, Double>)values.get(Collection.Label.BOLLINGER_BANDS.toString());
+		return get(ValueName.BOLLINGER_BANDS);
 	}
 	public Map<String, Double> getVariationPercentages() {
-		return (Map<String, Double>)values.get(Collection.Label.VARIATION_PERCENTAGE.toString());
+		return get(ValueName.VARIATION_PERCENTAGE);
 	}
 	public Map<String, Double> getSupportAndResistance() {
-		return (Map<String, Double>)values.get(Collection.Label.SUPPORT_AND_RESISTANCE.toString());
+		return get(ValueName.SUPPORT_AND_RESISTANCE);
 	}
 
-
 	static class Collection {
-
-		private static enum Label {
-			ASSET_NAME("Asset name"),
-			COLLATERAL_LABEL_INDEX("collateral"),
-			LATEST_1D_BAR("Latest price from " + Interval.ONE_DAYS),
-			LATEST_4H_BAR("Latest price"),
-			//Dynamic values
-			RSI("RSI"),
-			STOCHASTIC_RSI("Stochastic RSI"),
-			BOLLINGER_BANDS("Bollinger Bands"),
-			SPIKE_SIZE("Spike size %"),
-			VARIATION_PERCENTAGE("Price variation %"),
-			SUPPORT_AND_RESISTANCE("Support and resistance levels");
-
-			private String label;
-			private Label(String label) {
-				this.label = label;
-			}
-
-			@Override
-			public String toString() {
-				return label;
-			}
-
-			public static Label find(String lb) {
-				return Stream.of(Label.values()).filter(lI -> lI.label.equals(lb)).findAny().orElseGet(() -> null);
-			}
-
-			public static Label find(int index) {
-				return Stream.of(Label.values()).filter(lI -> lI.ordinal() == index).findAny().orElseGet(() -> null);
-			}
-		}
 
 		private List<Asset> datas;
 
@@ -182,7 +167,8 @@ public class Asset {
 			Iterator<Asset> oldDataIterator = datas.iterator();
 			while (oldDataIterator.hasNext()) {
 				Asset dataAlreadyAdded = oldDataIterator.next();
-				if (dataAlreadyAdded.getName().equals(data.getName()) && dataAlreadyAdded.getCollateral().equals(data.getCollateral())) {
+				if (dataAlreadyAdded.get(ValueName.ASSET_NAME).equals(data.get(ValueName.ASSET_NAME)) &&
+						dataAlreadyAdded.get(ValueName.COLLATERAL).equals(data.get(ValueName.COLLATERAL))) {
 					data = mergeInNewData(dataAlreadyAdded, data);
 					oldDataIterator.remove();
 					break;
@@ -193,7 +179,7 @@ public class Asset {
 		}
 
 		private Asset mergeInNewData(Asset oldD, Asset newD) {
-			for (Label label : Label.values()) {
+			for (ValueName label : ValueName.values()) {
 				Object oldValue = oldD.values.get(label.toString());
 				newD.values.putIfAbsent(label.toString(), oldValue);
 				Object newValue = newD.values.get(label.toString());
@@ -234,10 +220,11 @@ public class Asset {
 
 		public String toHTML() {
 			datas.sort((assetOne, assetTwo) -> {
-				return (assetOne.getName() + assetOne.getCollateral()).compareTo(assetTwo.getName() + assetTwo.getCollateral());
+				return ((String)assetOne.get(ValueName.ASSET_NAME) + assetOne.get(ValueName.COLLATERAL))
+					.compareTo((String)assetTwo.get(ValueName.ASSET_NAME) + assetTwo.get(ValueName.COLLATERAL));
 			});
 			AtomicInteger rowCounter = new AtomicInteger(0);
-			List<String> labels = Stream.of(Label.values()).map(Label::toString).collect(Collectors.toList());
+			List<String> labels = Stream.of(ValueName.values()).map(ValueName::toString).collect(Collectors.toList());
 			return
 				"<div style=\"" + TABLE_DIV_STYLE + "\">" +
 					"<table style=\"" + TABLE_STYLE + "\">" +
@@ -253,34 +240,34 @@ public class Asset {
 
 		private Predicate<String> showColumnFilter() {
 			return label -> {
-				return !label.equals((Label.LATEST_1D_BAR.toString()));
+				return !label.equals((ValueName.LATEST_1D_BAR.toString()));
 			};
 		}
 
 		private String toHTML(Asset data, int rowCounter) {
 			return "<tr style=\"" + (rowCounter % 2 == 0 ? EVEN_ROW_STYLE : ODD_ROW_STYLE) + "\">" +
 					String.join(
-    					"",Stream.of(Label.values()).map(Label::toString).filter(showColumnFilter()).map(label -> {
+    					"",Stream.of(ValueName.values()).map(ValueName::toString).filter(showColumnFilter()).map(label -> {
     						Object value = data.values.get(label);
     						String htmlCellValue = "";
     						if (value != null) {
-        						if (label.equals(Label.ASSET_NAME.toString())) {
-        							htmlCellValue = "<a href=\"" + "https://www.binance.com/it/trade/" + value + "_" + data.values.get(Label.COLLATERAL_LABEL_INDEX.toString()) + "?type=isolated" + "\">" + data.values.get(label) + "</a>";
+        						if (label.equals(ValueName.ASSET_NAME.toString())) {
+        							htmlCellValue = "<a href=\"" + "https://www.binance.com/it/trade/" + value + "_" + data.values.get(ValueName.COLLATERAL.toString()) + "?type=isolated" + "\">" + data.values.get(label) + "</a>";
         						} else if (value instanceof Double) {
         							htmlCellValue = Application.format((Double)value);
         						} else if (value instanceof Bar) {
         							htmlCellValue = "" + Application.format(((Bar)value).getClosePrice().doubleValue());
         						} else if (value instanceof Map) {
         							htmlCellValue = (((Map<String, Object>)value).entrySet()).stream().map(rec -> {
-        								if (label.equals(Label.RSI.toString())||
-    										label.equals(Label.STOCHASTIC_RSI.toString())) {
+        								if (label.equals(ValueName.RSI.toString())||
+    										label.equals(ValueName.STOCHASTIC_RSI.toString())) {
         									return "<b>" + rec.getKey() + "</b>=" +
         										"<span " + ((Double)rec.getValue() < 30 || ((Double)rec.getValue() > 70) ? (("style=\"color: " + ((Double)rec.getValue() < 30 ? "green" : "red")) + "\"") : "") +">" + Application.format((Double)rec.getValue()) + "</span>";
-        								} else if (label.equals(Label.BOLLINGER_BANDS.toString())) {
+        								} else if (label.equals(ValueName.BOLLINGER_BANDS.toString())) {
         									return "<b>" + rec.getKey() + "</b>=" +
         										"<span " + (rec.getKey().contains("l") || rec.getKey().contains("u") ? (("style=\"color: " + (rec.getKey().contains("l") ? "green" : "red")) + "\"") : "") +">" + Application.format((Double)rec.getValue()) + "</span>";
-        								} else if (label.equals(Label.SPIKE_SIZE.toString()) ||
-        									label.equals(Label.VARIATION_PERCENTAGE.toString())) {
+        								} else if (label.equals(ValueName.SPIKE_SIZE.toString()) ||
+        									label.equals(ValueName.VARIATION_PERCENTAGE.toString())) {
         									return "<b>" + rec.getKey() + "</b>=" +
         										"<span style=\"color: " + ((Double)rec.getValue() <= 0 ? "green" : "red") +"\">" + Application.format((Double)rec.getValue()) + "</span>";
         								} else {
