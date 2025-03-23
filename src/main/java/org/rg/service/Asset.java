@@ -38,8 +38,7 @@ public class Asset {
 		"background-color: #F8F8F8;";
 
 	private static String HEADER_ROW_STYLE =
-		"background-color: #7393B3;" +
-		"color: white;";
+		"";
 
 	private static String CELL_STYLE =
 		"padding: 15px;";
@@ -48,7 +47,9 @@ public class Asset {
 		CELL_STYLE +
 		"position: sticky;" +
 		"top: 0;" +
-		"z-index: 1;";
+		"z-index: 1;" +
+		"background: #7393B3" +
+		"color: white;";
 
 	private Map<String, Object> values;
 
