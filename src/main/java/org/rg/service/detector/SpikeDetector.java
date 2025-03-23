@@ -10,12 +10,18 @@ import org.ta4j.core.Bar;
 import org.ta4j.core.BarSeries;
 
 public class SpikeDetector extends CriticalIndicatorValueDetectorAbst {
+	BigDecimal spikePercentage = null;
+	BigDecimal comparingValue = null;
 	public SpikeDetector(
 		String mainAsset,
 		String collateralAsset,
-		Map<Interval, BarSeries> candlesticks
+		Map<Interval, BarSeries> candlesticks,
+		double spikePercentage,
+		double comparingValue
 	) {
 		super(mainAsset, collateralAsset, candlesticks);
+		this.spikePercentage = toBigDecimal(40d);
+		this.comparingValue = toBigDecimal(3d);
 	}
 
 	@Override
@@ -24,8 +30,6 @@ public class SpikeDetector extends CriticalIndicatorValueDetectorAbst {
 	) {
 		int lastCandleIndex = candlesticks.get(interval).getEndIndex();
 		Bar latestBar = candlesticks.get(interval).getBar(lastCandleIndex);
-		BigDecimal spikePercentage = toBigDecimal(40d);
-		BigDecimal comparingValue = toBigDecimal(3d);
 		BigDecimal high = toBigDecimal(latestBar.getHighPrice().doubleValue());
 		BigDecimal low = toBigDecimal(latestBar.getLowPrice().doubleValue());
 		BigDecimal priceVariation = high.subtract(low);

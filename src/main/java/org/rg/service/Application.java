@@ -2,16 +2,17 @@ package org.rg.service;
 
 import java.io.File;
 import java.io.IOException;
-import java.text.ParseException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.temporal.TemporalAdjusters;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
+import java.util.Optional;
 import java.util.Properties;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
@@ -61,7 +62,7 @@ import org.ta4j.core.BarSeries;
 public class Application implements CommandLineRunner {
 	private static final String RECIPIENTS =
 		"roberto.gentili.1980@gmail.com"
-		+ ",fercoletti@gmail.com"
+//		+ ",fercoletti@gmail.com"
 	;
 
 	static final String mailFontSizeInPixel = "15px";
@@ -179,19 +180,27 @@ public class Application implements CommandLineRunner {
 				}).submit()
 			);
 		}
-		Map<String, Bar> rSIOn1DForCoinAlreadyNotified = new ConcurrentHashMap<>();
-		Map<String, Bar> rSIOn4HForCoinAlreadyNotified = new ConcurrentHashMap<>();
-		Map<String, Bar> bBOn1DForCoinAlreadyNotified = new ConcurrentHashMap<>();
-		Map<String, Bar> bBOn4HForCoinAlreadyNotified = new ConcurrentHashMap<>();
-		Map<String, Bar> stochRSIOn1DForCoinAlreadyNotified = new ConcurrentHashMap<>();
-		Map<String, Bar> stochRSIOn4HForCoinAlreadyNotified = new ConcurrentHashMap<>();
-		Map<String, Bar> spikeForCoinOn4HAlreadyNotified = new ConcurrentHashMap<>();
-		Map<String, Bar> suddenMovementOn1HForCoinAlreadyNotified = new ConcurrentHashMap<>();
-		Map<String, Bar> suddenMovementOn4HForCoinAlreadyNotified = new ConcurrentHashMap<>();
-		Map<Interval,Integer> candlestickQuantityForInterval = new LinkedHashMap<>();
-		candlestickQuantityForInterval.put(Interval.ONE_DAYS, 370);
-		candlestickQuantityForInterval.put(Interval.FOUR_HOURS, 200);
-		candlestickQuantityForInterval.put(Interval.ONE_HOURS, 370);
+		List<Interval> intervals = Arrays.asList(Interval.ONE_DAYS, Interval.FOUR_HOURS, Interval.ONE_HOURS);
+		Map<Class<? extends CriticalIndicatorValueDetector>, Map<Interval, Map<String, Bar>>> alreadyNotified = new ConcurrentHashMap<>();
+		for (Class<? extends CriticalIndicatorValueDetector> indicatorType : Arrays.asList(
+			RSIDetector.class,
+			StochasticRSIDetector.class,
+			BollingerBandDetector.class,
+			SpikeDetector.class,
+			BigCandleDetector.class
+		)) {
+			for (Interval interval : intervals) {
+				Map<Interval, Map<String, Bar>> temp = new ConcurrentHashMap<Interval, Map<String,Bar>>();
+				temp.put(interval, new ConcurrentHashMap<String, Bar>());
+				alreadyNotified.put(indicatorType, temp);
+			}
+		}
+
+		Map<Interval, Integer> candlestickQuantityForInterval = new LinkedHashMap<>();
+		candlestickQuantityForInterval.put(intervals.get(0), 370);
+		candlestickQuantityForInterval.put(intervals.get(1), 200);
+		candlestickQuantityForInterval.put(intervals.get(2), 370);
+		Map<String, Map<Interval, BarSeries>> candlesticksForCoin = new ConcurrentHashMap<>();
 		while (true) {
 			Asset.Collection dataCollection = new Asset.Collection();
 			for (Map.Entry<Wallet, ProducerTask<Collection<String>>> walletForAvailableCoins : walletsForAvailableCoins.entrySet()) {
@@ -213,90 +222,79 @@ public class Application implements CommandLineRunner {
 								coin,
 								defaultCollateral
 							);
-							for (Entry<Interval, Integer> cFI : candlestickQuantityForInterval.entrySet()) {
+							for (Map.Entry<Interval, Integer> cFI : candlestickQuantityForInterval.entrySet()) {
 								assetDataLoader = assetDataLoader.loadInParallel(cFI.getKey(), cFI.getValue());
 							}
-							Map<Interval, BarSeries> candlesticks =  assetDataLoader.retrieve();
+							Map<Interval, BarSeries> candlesticks = assetDataLoader.retrieve();
+							candlesticksForCoin.put(coin + defaultCollateral, candlesticks);
 							org.burningwave.core.assembler.StaticComponentContainer.ManagedLoggerRepository.logInfo(
 								getClass()::getName,
 								"... All data loaded from remote for asset {}",
 								coin
 							);
-							Asset detected =
-								process(
-									new RSIDetector(coin,defaultCollateral,candlesticks,14),
-									Interval.ONE_DAYS,
-									rSIOn1DForCoinAlreadyNotified,
-									dataCollection
-								);
-							detected =
-								process(
-									new RSIDetector(coin,defaultCollateral,candlesticks,14),
-									Interval.FOUR_HOURS,
-									rSIOn4HForCoinAlreadyNotified,
-									dataCollection
-								);
-							detected =
-								process(
-									new StochasticRSIDetector(coin,defaultCollateral,candlesticks,14),
-									Interval.ONE_DAYS,
-									stochRSIOn1DForCoinAlreadyNotified,
-									dataCollection
-								);
-							detected =
-								process(
-									new StochasticRSIDetector(coin,defaultCollateral,candlesticks,14),
-									Interval.FOUR_HOURS,
-									stochRSIOn4HForCoinAlreadyNotified,
-									dataCollection
-								);
-							detected =
-								process(
-									new BollingerBandDetector(coin,defaultCollateral,candlesticks, 20, 2d),
-									Interval.ONE_DAYS,
-									bBOn1DForCoinAlreadyNotified,
-									dataCollection
-								);
-							detected =
-								process(
-									new BollingerBandDetector(coin,defaultCollateral,candlesticks, 20, 2d),
-									Interval.FOUR_HOURS,
-									bBOn4HForCoinAlreadyNotified,
-									dataCollection
-								);
-							detected =
-								process(
-									new SpikeDetector(coin,defaultCollateral,candlesticks),
-									Interval.FOUR_HOURS,
-									spikeForCoinOn4HAlreadyNotified,
-									dataCollection,
-									detected
-								);
-							detected =
-								process(
-									new BigCandleDetector(coin,defaultCollateral,candlesticks, 10d),
-									Interval.FOUR_HOURS,
-									suddenMovementOn4HForCoinAlreadyNotified,
-									dataCollection,
-									detected
-								);
-							detected =
-								process(
-									new BigCandleDetector(coin,defaultCollateral,candlesticks, 3d),
-									Interval.ONE_HOURS,
-									suddenMovementOn1HForCoinAlreadyNotified,
-									dataCollection,
-									detected
-								);
+							Asset detected = null;
+							for (Interval interval : intervals) {
+								detected =
+									process(
+										new RSIDetector(coin,defaultCollateral,candlesticks,14),
+										interval,
+										dataCollection,
+										detected
+									);
+							}
+							for (Interval interval : intervals) {
+								detected =
+									process(
+										new StochasticRSIDetector(coin,defaultCollateral,candlesticks,14),
+										interval,
+										dataCollection,
+										detected
+									);
+							}
+							for (Interval interval : intervals) {
+								detected =
+									process(
+										new BollingerBandDetector(coin,defaultCollateral,candlesticks, 20, 2d),
+										interval,
+										dataCollection,
+										detected
+									);
+							}
+							for (Interval interval : intervals) {
+								detected =
+									process(
+										new BollingerBandDetector(coin,defaultCollateral,candlesticks, 20, 2d),
+										interval,
+										dataCollection,
+										detected
+									);
+							}
+							for (Interval interval : intervals) {
+								detected =
+									process(
+										new SpikeDetector(coin,defaultCollateral,candlesticks, 40, 3),
+										interval,
+										dataCollection,
+										detected
+									);
+							}
+							for (Interval interval : intervals) {
+								detected =
+									process(
+										new BigCandleDetector(coin,defaultCollateral,candlesticks, 10d),
+										interval,
+										dataCollection,
+										detected
+									);
+							}
 							if (detected != null) {
 								CriticalIndicatorValueDetector resistanceAndSupportDetector =
 									new ResistanceAndSupportDetector(coin, defaultCollateral, candlesticks);
-								for (Entry<Interval, Integer> cFI : candlestickQuantityForInterval.entrySet()) {
+								for (Map.Entry<Interval, Integer> cFI : candlestickQuantityForInterval.entrySet()) {
 									if (CriticalIndicatorValueDetectorAbst.checkIfIsBitcoin(coin) || candlesticks.get(cFI.getKey()).getBarCount() >= cFI.getValue()) {
 										detected = process(
 											resistanceAndSupportDetector,
 											cFI.getKey(),
-											null,
 											dataCollection,
 											detected
 										);
@@ -314,51 +312,23 @@ public class Application implements CommandLineRunner {
 					});
 					if (filterEnabled) {
 						dataCollection.filter(asset -> {
-							int counter = 0;
-							Collection<Runnable> removers = new ArrayList<>();
-							if (asset.getRSI() != null && !asset.getRSI().isEmpty()) {
-								counter += asset.getRSI().size();
-							} else {
-								removers.add(() -> {
-									rSIOn1DForCoinAlreadyNotified.remove(asset.getName());
-									rSIOn4HForCoinAlreadyNotified.remove(asset.getName());
-								});
+							Collection<Runnable> alreadyNotifiedUpdaters = new ArrayList<>();
+							int counter =
+								computeIfMustBeNotified(intervals, alreadyNotified, candlesticksForCoin, asset,
+										RSIDetector.class, asset.getRSI(), alreadyNotifiedUpdaters)
+								+ computeIfMustBeNotified(intervals, alreadyNotified, candlesticksForCoin, asset,
+										StochasticRSIDetector.class, asset.getStochasticRSI(), alreadyNotifiedUpdaters)
+								+ computeIfMustBeNotified(intervals, alreadyNotified, candlesticksForCoin, asset,
+										BollingerBandDetector.class, asset.getBollingerBands(), alreadyNotifiedUpdaters)
+								+ computeIfMustBeNotified(intervals, alreadyNotified, candlesticksForCoin, asset,
+										SpikeDetector.class, asset.getSpikeSizePercentage(), alreadyNotifiedUpdaters)
+								+ computeIfMustBeNotified(intervals, alreadyNotified, candlesticksForCoin, asset,
+										BigCandleDetector.class, asset.getVariationPercentages(), alreadyNotifiedUpdaters);
+
+							if (counter >= 3) {
+								alreadyNotifiedUpdaters.stream().forEach(Runnable::run);
 							}
-							if (asset.getStochasticRSI() != null && !asset.getStochasticRSI().isEmpty()) {
-								counter += asset.getStochasticRSI().size();
-							} else {
-								removers.add(() -> {
-									stochRSIOn1DForCoinAlreadyNotified.remove(asset.getName());
-									stochRSIOn4HForCoinAlreadyNotified.remove(asset.getName());
-								});
-							}
-							if (asset.getBollingerBands() != null && !asset.getBollingerBands().isEmpty()) {
-								counter += asset.getBollingerBands().size();
-							} else {
-								removers.add(() -> {
-									bBOn1DForCoinAlreadyNotified.remove(asset.getName());
-									bBOn4HForCoinAlreadyNotified.remove(asset.getName());
-								});
-							}
-							if (asset.getSpikeSizePercentage() != null && !asset.getSpikeSizePercentage().isEmpty()) {
-								counter += asset.getSpikeSizePercentage().size();
-							} else {
-								removers.add(() -> {
-									spikeForCoinOn4HAlreadyNotified.remove(asset.getName());
-								});
-							}
-							if (asset.getVariationPercentages() != null && !asset.getVariationPercentages().isEmpty()) {
-								counter += asset.getVariationPercentages().size();
-							} else {
-								removers.add(() -> {
-									suddenMovementOn1HForCoinAlreadyNotified.remove(asset.getName());
-									suddenMovementOn4HForCoinAlreadyNotified.remove(asset.getName());
-								});
-							}
-							if (counter < 2) {
-								removers.stream().forEach(Runnable::run);
-							}
-							return CriticalIndicatorValueDetectorAbst.checkIfIsBitcoin(asset.getName()) || counter >=2;
+							return CriticalIndicatorValueDetectorAbst.checkIfIsBitcoin(asset.getName()) || counter >= 3;
 						});
 					}
 					StringBuffer presentation = new StringBuffer("<p style=\"font-size:" + mailFontSizeInPixel + ";\">Ciao!</br>Sono stati rilevati i seguenti " + (dataCollection.size() -1) + " asset (BTC escluso) con variazioni rilevanti</p>");
@@ -371,6 +341,7 @@ public class Application implements CommandLineRunner {
 						);
 					}
 					dataCollection.clear();
+					candlesticksForCoin.clear();
 //					org.burningwave.core.assembler.StaticComponentContainer.ManagedLoggerRepository.logInfo(
 //						getClass()::getName,
 //						"Waiting 10 seconds"
@@ -381,19 +352,63 @@ public class Application implements CommandLineRunner {
 		}
 	}
 
+	protected int computeIfMustBeNotified(
+		List<Interval> intervals,
+		Map<Class<? extends CriticalIndicatorValueDetector>,
+		Map<Interval, Map<String, Bar>>> alreadyNotified,
+		Map<String, Map<Interval, BarSeries>> candlesticksForCoin,
+		Asset asset,
+		Class<? extends CriticalIndicatorValueDetector> indicatorType,
+		Map<String, Double> indicatorValues,
+		Collection<Runnable> alreadyNotifiedUpdaters
+	) {
+		int counter = 0;
+		if (indicatorValues != null && !indicatorValues.isEmpty()) {
+			for (Map.Entry<String, Double> indicator : indicatorValues.entrySet()) {
+				for (Interval interval : intervals) {
+					if (indicator.getKey().contains(interval.toString())) {
+						Map<Interval, BarSeries> candlesticks =
+							candlesticksForCoin.get(asset.getName()+ asset.getCollateral());
+						candlesticks.get(interval);
+						if (
+							Optional.ofNullable(
+								checkIfAlreadyNotified(
+									asset,
+									interval,
+									candlesticksForCoin.get(asset.getName() + asset.getCollateral()),
+									getAlreadyNotified(alreadyNotified.get(indicatorType), interval)
+								)
+							).map(alreadyNotifiedUpdaters::add).orElseGet(() -> null) != null
+						) {
+							counter++;
+						}
+					}
+				}
+			}
+		}
+		return counter;
+	}
+
+	private Map<String, Bar> getAlreadyNotified(Map<Interval, Map<String, Bar>> map, Interval interval) {
+		Map<String, Bar> output = map.get(interval);
+		if (output == null) {
+			synchronized(map) {
+				output = map.get(interval);
+				if (output == null) {
+					map.put(interval, output = new ConcurrentHashMap<>());
+				}
+			}
+		}
+		return output;
+	}
+
 	private Asset process(
 		CriticalIndicatorValueDetector dataSupplier,
 		Interval interval,
-		Map<String, Bar> alreadyNotified,
 		Asset.Collection dataCollection,
 		Asset... previousProcessedData
 	) throws Throwable {
-		Asset newData = checkIfAlreadyNotified(
-			dataSupplier.compute(interval),
-			interval,
-			dataSupplier.getCandlesticks(),
-			alreadyNotified
-		);
+		Asset newData = dataSupplier.compute(interval);
 		dataCollection.addOrMergeAndReplace(newData);
 		return newData != null?
 			newData :
@@ -402,27 +417,31 @@ public class Application implements CommandLineRunner {
 				null;
 	}
 
-	protected Asset checkIfAlreadyNotified(
+	protected Runnable checkIfAlreadyNotified(
 		Asset asset,
 		Interval interval,
 		Map<Interval, BarSeries> candlesticks,
 		Map<String, Bar> alreadyNotified
-	) throws ParseException {
+	) {
 		if (asset == null) {
 			return null;
 		}
 		if (alreadyNotified == null) {
-			return asset;
-		}
-		if (CriticalIndicatorValueDetectorAbst.checkIfIsBitcoin(asset.getName())) {
-			return asset;
+			return new Runnable() {
+				@Override
+				public void run() {
+
+				}
+			};
 		}
 		Bar latestNotified = alreadyNotified.get(asset.getName());
 		boolean alreadyNotifiedFlag = false;
 		Bar latestBar = candlesticks.get(interval).getLastBar();
+		Runnable updater = null;
 		if (latestNotified != null) {
 			if (latestNotified.getBeginTime().compareTo(latestBar.getBeginTime()) != 0) {
-				alreadyNotified.put(asset.getName(), latestBar);
+				updater = () ->
+					alreadyNotified.put(asset.getName(), latestBar);
 			} else {
 				alreadyNotifiedFlag = true;
 				org.burningwave.core.assembler.StaticComponentContainer.ManagedLoggerRepository.logInfo(
@@ -432,10 +451,11 @@ public class Application implements CommandLineRunner {
 				);
 			}
 		} else {
-			alreadyNotified.put(asset.getName(), latestBar);
+			updater = () ->
+				alreadyNotified.put(asset.getName(), latestBar);
 		}
 		if (!alreadyNotifiedFlag) {
-			return asset;
+			return updater;
 		}
 		return null;
 	}
