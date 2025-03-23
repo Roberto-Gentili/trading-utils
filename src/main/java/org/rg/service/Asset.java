@@ -67,31 +67,31 @@ public class Asset {
 		Map<Interval, BarSeries> candleSticks
 	) {
 		values = new LinkedHashMap<>();
-		values.put(Collection.LabelIndex.ASSET_NAME_LABEL_INDEX.toString(), assetName);
-		values.put(Collection.LabelIndex.COLLATERAL_LABEL_INDEX.toString(), collateral);
-		values.put(Collection.LabelIndex.LATEST_1D_BAR_LABEL_INDEX.toString(), candleSticks.get(Interval.ONE_DAYS).getBar(candleSticks.get(Interval.ONE_DAYS).getEndIndex()));
-		values.put(Collection.LabelIndex.LATEST_4H_BAR_LABEL_INDEX.toString(), candleSticks.get(Interval.FOUR_HOURS).getBar(candleSticks.get(Interval.FOUR_HOURS).getEndIndex()));
+		values.put(Collection.Label.ASSET_NAME.toString(), assetName);
+		values.put(Collection.Label.COLLATERAL_LABEL_INDEX.toString(), collateral);
+		values.put(Collection.Label.LATEST_1D_BAR.toString(), candleSticks.get(Interval.ONE_DAYS).getBar(candleSticks.get(Interval.ONE_DAYS).getEndIndex()));
+		values.put(Collection.Label.LATEST_4H_BAR.toString(), candleSticks.get(Interval.FOUR_HOURS).getBar(candleSticks.get(Interval.FOUR_HOURS).getEndIndex()));
 	}
 
 	public Asset addRSI(Map<String, Double> values) {
-		return addDynamicValues(Collection.LabelIndex.RSI_LABEL_INDEX, values);
+		return addDynamicValues(Collection.Label.RSI, values);
 	}
 	public Asset addStochasticRSI(Map<String, Double> values) {
-		return addDynamicValues(Collection.LabelIndex.STOCHASTIC_RSI_LABEL_INDEX, values);
+		return addDynamicValues(Collection.Label.STOCHASTIC_RSI, values);
 	}
 	public Asset addBollingerBands(Map<String, Double> values) {
-		return addDynamicValues(Collection.LabelIndex.BOLLINGER_BANDS_INDEX, values);
+		return addDynamicValues(Collection.Label.BOLLINGER_BANDS, values);
 	}
 	public Asset addSpikeSizePercentage(Map<String, Double> values) {
-		return addDynamicValues(Collection.LabelIndex.SPIKE_SIZE_PERCENTAGE, values);
+		return addDynamicValues(Collection.Label.SPIKE_SIZE, values);
 	}
 	public Asset addSupportAndResistance(Map<String, Double> values) {
-		return addDynamicValues(Collection.LabelIndex.SUPPORT_AND_RESISTANCE_LABEL_INDEX, values);
+		return addDynamicValues(Collection.Label.SUPPORT_AND_RESISTANCE, values);
 	}
 	public Asset addVariationPercenages(Map<String, Double> values) {
-		return addDynamicValues(Collection.LabelIndex.VARIATION_PERCENTAGE_LABEL_INDEX, values);
+		return addDynamicValues(Collection.Label.VARIATION_PERCENTAGE, values);
 	}
-	private Asset addDynamicValues(Collection.LabelIndex label, Map<String, Double> values) {
+	private Asset addDynamicValues(Collection.Label label, Map<String, Double> values) {
 		Map<String, Double> vals =
 			(Map<String, Double>)this.values.get(label.toString());
 		if (vals != null) {
@@ -103,51 +103,51 @@ public class Asset {
 	}
 
 	public String getName() {
-		return (String)values.get(Collection.LabelIndex.ASSET_NAME_LABEL_INDEX.toString());
+		return (String)values.get(Collection.Label.ASSET_NAME.toString());
 	}
 	public String getCollateral() {
-		return (String)values.get(Collection.LabelIndex.COLLATERAL_LABEL_INDEX.toString());
+		return (String)values.get(Collection.Label.COLLATERAL_LABEL_INDEX.toString());
 	}
 	public Bar getLatest4HBar() {
-		return (Bar)values.get(Collection.LabelIndex.LATEST_4H_BAR_LABEL_INDEX.toString());
+		return (Bar)values.get(Collection.Label.LATEST_4H_BAR.toString());
 	}
 	public Map<String, Double> getSpikeSizePercentage() {
-		return (Map<String, Double>)values.get(Collection.LabelIndex.SPIKE_SIZE_PERCENTAGE.toString());
+		return (Map<String, Double>)values.get(Collection.Label.SPIKE_SIZE.toString());
 	}
 	public Map<String, Double> getRSI() {
-		return (Map<String, Double>)values.get(Collection.LabelIndex.RSI_LABEL_INDEX.toString());
+		return (Map<String, Double>)values.get(Collection.Label.RSI.toString());
 	}
 	public Map<String, Double> getStochasticRSI() {
-		return (Map<String, Double>)values.get(Collection.LabelIndex.STOCHASTIC_RSI_LABEL_INDEX.toString());
+		return (Map<String, Double>)values.get(Collection.Label.STOCHASTIC_RSI.toString());
 	}
 	public Map<String, Double> getBollingerBands() {
-		return (Map<String, Double>)values.get(Collection.LabelIndex.BOLLINGER_BANDS_INDEX.toString());
+		return (Map<String, Double>)values.get(Collection.Label.BOLLINGER_BANDS.toString());
 	}
 	public Map<String, Double> getVariationPercentages() {
-		return (Map<String, Double>)values.get(Collection.LabelIndex.VARIATION_PERCENTAGE_LABEL_INDEX.toString());
+		return (Map<String, Double>)values.get(Collection.Label.VARIATION_PERCENTAGE.toString());
 	}
 	public Map<String, Double> getSupportAndResistance() {
-		return (Map<String, Double>)values.get(Collection.LabelIndex.SUPPORT_AND_RESISTANCE_LABEL_INDEX.toString());
+		return (Map<String, Double>)values.get(Collection.Label.SUPPORT_AND_RESISTANCE.toString());
 	}
 
 
 	static class Collection {
 
-		private static enum LabelIndex {
-			ASSET_NAME_LABEL_INDEX("Asset name"),
+		private static enum Label {
+			ASSET_NAME("Asset name"),
 			COLLATERAL_LABEL_INDEX("collateral"),
-			LATEST_1D_BAR_LABEL_INDEX("Latest price from " + Interval.ONE_DAYS),
-			LATEST_4H_BAR_LABEL_INDEX("Latest price"),
+			LATEST_1D_BAR("Latest price from " + Interval.ONE_DAYS),
+			LATEST_4H_BAR("Latest price"),
 			//Dynamic values
-			RSI_LABEL_INDEX("RSI"),
-			STOCHASTIC_RSI_LABEL_INDEX("Stochastic RSI"),
-			BOLLINGER_BANDS_INDEX("Bollinger Bands"),
-			SPIKE_SIZE_PERCENTAGE("Spike size %"),
-			VARIATION_PERCENTAGE_LABEL_INDEX("Price variation %"),
-			SUPPORT_AND_RESISTANCE_LABEL_INDEX("Support and resistance levels");
+			RSI("RSI"),
+			STOCHASTIC_RSI("Stochastic RSI"),
+			BOLLINGER_BANDS("Bollinger Bands"),
+			SPIKE_SIZE("Spike size %"),
+			VARIATION_PERCENTAGE("Price variation %"),
+			SUPPORT_AND_RESISTANCE("Support and resistance levels");
 
 			private String label;
-			private LabelIndex(String label) {
+			private Label(String label) {
 				this.label = label;
 			}
 
@@ -156,12 +156,12 @@ public class Asset {
 				return label;
 			}
 
-			public static LabelIndex find(String lb) {
-				return Stream.of(LabelIndex.values()).filter(lI -> lI.label.equals(lb)).findAny().orElseGet(() -> null);
+			public static Label find(String lb) {
+				return Stream.of(Label.values()).filter(lI -> lI.label.equals(lb)).findAny().orElseGet(() -> null);
 			}
 
-			public static LabelIndex find(int index) {
-				return Stream.of(LabelIndex.values()).filter(lI -> lI.ordinal() == index).findAny().orElseGet(() -> null);
+			public static Label find(int index) {
+				return Stream.of(Label.values()).filter(lI -> lI.ordinal() == index).findAny().orElseGet(() -> null);
 			}
 		}
 
@@ -176,7 +176,7 @@ public class Asset {
 			}
 			dynamicLabelsGroupToLabelIndex = new ArrayList<>();
 			for (
-				int i = LabelIndex.values().length - 1,
+				int i = Label.values().length - 1,
 				k = dynamicLabelsGroup.length - 1,
 				iterationIndex = 0;
 				iterationIndex < dynamicLabelsGroup.length;
@@ -184,7 +184,7 @@ public class Asset {
 				k--,
 				iterationIndex++
 			) {
-				LabelIndex labelIndex = LabelIndex.values()[i];
+				Label labelIndex = Label.values()[i];
 				dynamicLabelsGroupToLabelIndex.add(new AbstractMap.SimpleEntry<>(dynamicLabelsGroup[k], labelIndex.ordinal()));
 			}
 			Collections.reverse(dynamicLabelsGroupToLabelIndex);
@@ -204,7 +204,7 @@ public class Asset {
 			}
 			for (Map.Entry<Set<String>, Integer> dynamicLabelGroupToLabelIndex : dynamicLabelsGroupToLabelIndex) {
 				Map<String, Object> map =
-					(Map<String, Object>)data.values.get(LabelIndex.find(dynamicLabelGroupToLabelIndex.getValue()).toString());
+					(Map<String, Object>)data.values.get(Label.find(dynamicLabelGroupToLabelIndex.getValue()).toString());
 				if (map != null) {
 					dynamicLabelGroupToLabelIndex.getKey().addAll(map.keySet());
 				}
@@ -223,13 +223,13 @@ public class Asset {
 		}
 
 		private Asset mergeInNewData(Asset oldD, Asset newD) {
-			for (LabelIndex label : LabelIndex.values()) {
+			for (Label label : Label.values()) {
 				newD.values.putIfAbsent(label.toString(), oldD.values.get(label.toString()));
 			}
 			for (Map.Entry<Set<String>, Integer> dynamicLabelGroupToLabelIndex : dynamicLabelsGroupToLabelIndex) {
 				mergeDynamicValues(
-					(Map<String, Object>)oldD.values.get(LabelIndex.find(dynamicLabelGroupToLabelIndex.getValue()).toString()),
-					(Map<String, Object>)newD.values.get(LabelIndex.find(dynamicLabelGroupToLabelIndex.getValue()).toString())
+					(Map<String, Object>)oldD.values.get(Label.find(dynamicLabelGroupToLabelIndex.getValue()).toString()),
+					(Map<String, Object>)newD.values.get(Label.find(dynamicLabelGroupToLabelIndex.getValue()).toString())
 				);
 			}
 			return newD;
@@ -265,7 +265,7 @@ public class Asset {
 				return (assetOne.getName() + assetOne.getCollateral()).compareTo(assetTwo.getName() + assetTwo.getCollateral());
 			});
 			AtomicInteger rowCounter = new AtomicInteger(0);
-			List<String> labels = Stream.of(LabelIndex.values()).map(LabelIndex::toString).collect(Collectors.toList());
+			List<String> labels = Stream.of(Label.values()).map(Label::toString).collect(Collectors.toList());
 			return
 				"<div style=\"" + TABLE_DIV_STYLE + "\">" +
 					"<table style=\"" + TABLE_STYLE + "\">" +
@@ -281,34 +281,34 @@ public class Asset {
 
 		private Predicate<String> showColumnFilter() {
 			return label -> {
-				return !label.equals((LabelIndex.LATEST_1D_BAR_LABEL_INDEX.toString()));
+				return !label.equals((Label.LATEST_1D_BAR.toString()));
 			};
 		}
 
 		private String toHTML(Asset data, int rowCounter) {
 			return "<tr style=\"" + (rowCounter % 2 == 0 ? EVEN_ROW_STYLE : ODD_ROW_STYLE) + "\">" +
 					String.join(
-    					"",Stream.of(LabelIndex.values()).map(LabelIndex::toString).filter(showColumnFilter()).map(label -> {
+    					"",Stream.of(Label.values()).map(Label::toString).filter(showColumnFilter()).map(label -> {
     						Object value = data.values.get(label);
     						String htmlCellValue = "";
     						if (value != null) {
-        						if (label.equals(LabelIndex.ASSET_NAME_LABEL_INDEX.toString())) {
-        							htmlCellValue = "<a href=\"" + "https://www.binance.com/it/trade/" + value + "_" + data.values.get(LabelIndex.COLLATERAL_LABEL_INDEX.toString()) + "?type=isolated" + "\">" + data.values.get(label) + "</a>";
+        						if (label.equals(Label.ASSET_NAME.toString())) {
+        							htmlCellValue = "<a href=\"" + "https://www.binance.com/it/trade/" + value + "_" + data.values.get(Label.COLLATERAL_LABEL_INDEX.toString()) + "?type=isolated" + "\">" + data.values.get(label) + "</a>";
         						} else if (value instanceof Double) {
         							htmlCellValue = Application.format((Double)value);
         						} else if (value instanceof Bar) {
         							htmlCellValue = "" + Application.format(((Bar)value).getClosePrice().doubleValue());
         						} else if (value instanceof Map) {
         							htmlCellValue = (((Map<String, Object>)value).entrySet()).stream().map(rec -> {
-        								if (label.equals(LabelIndex.RSI_LABEL_INDEX.toString())||
-    										label.equals(LabelIndex.STOCHASTIC_RSI_LABEL_INDEX.toString())) {
+        								if (label.equals(Label.RSI.toString())||
+    										label.equals(Label.STOCHASTIC_RSI.toString())) {
         									return "<b>" + rec.getKey() + "</b>=" +
         										"<span " + ((Double)rec.getValue() < 30 || ((Double)rec.getValue() > 70) ? (("style=\"color: " + ((Double)rec.getValue() < 30 ? "green" : "red")) + "\"") : "") +">" + Application.format((Double)rec.getValue()) + "</span>";
-        								} else if (label.equals(LabelIndex.BOLLINGER_BANDS_INDEX.toString())) {
+        								} else if (label.equals(Label.BOLLINGER_BANDS.toString())) {
         									return "<b>" + rec.getKey() + "</b>=" +
-        										"<span " + (rec.getKey().contains("low") || label.contains("up") ? (("style=\"color: " + (rec.getKey().contains("low") ? "green" : "red")) + "\"") : "") +">" + Application.format((Double)rec.getValue()) + "</span>";
-        								} else if (label.equals(LabelIndex.SPIKE_SIZE_PERCENTAGE.toString()) ||
-        									label.equals(LabelIndex.VARIATION_PERCENTAGE_LABEL_INDEX.toString())) {
+        										"<span " + (rec.getKey().contains("l") || label.contains("u") ? (("style=\"color: " + (rec.getKey().contains("low") ? "green" : "red")) + "\"") : "") +">" + Application.format((Double)rec.getValue()) + "</span>";
+        								} else if (label.equals(Label.SPIKE_SIZE.toString()) ||
+        									label.equals(Label.VARIATION_PERCENTAGE.toString())) {
         									return "<b>" + rec.getKey() + "</b>=" +
         										"<span style=\"color: " + ((Double)rec.getValue() <= 0 ? "green" : "red") +"\">" + Application.format((Double)rec.getValue()) + "</span>";
         								} else {
