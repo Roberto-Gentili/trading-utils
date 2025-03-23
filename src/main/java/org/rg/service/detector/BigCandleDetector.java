@@ -1,4 +1,5 @@
 package org.rg.service.detector;
+import static org.rg.service.CriticalIndicatorValueDetector.divide;
 
 import java.math.BigDecimal;
 import java.util.LinkedHashMap;

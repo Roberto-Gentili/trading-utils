@@ -1,5 +1,7 @@
 package org.rg.service;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.Map;
 
 import org.rg.finance.Interval;
@@ -12,4 +14,11 @@ public interface CriticalIndicatorValueDetector {
 	public Map<Interval, BarSeries> getCandlesticks();
 	public String getMainAsset();
 	public String getCollateralAsset();
+
+	public static BigDecimal divide(BigDecimal a, BigDecimal b) {
+		if (b.compareTo(BigDecimal.ZERO) == 0) {
+			return BigDecimal.ZERO;
+		}
+		return a.divide(b, 50, RoundingMode.HALF_DOWN);
+	}
 }

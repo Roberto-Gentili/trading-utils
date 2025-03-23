@@ -308,13 +308,13 @@ public class Asset {
 
 		private String computeResistanceAndSupportTextColor(String key, Double sOrR, Double cP) {
 			BigDecimal currentPrice = BigDecimal.valueOf(cP);
-			BigDecimal sOrRUpper = CriticalIndicatorValueDetector.divide(
+			BigDecimal sOrRUpper = divide(
 				BigDecimal.valueOf(sOrR).multiply(BigDecimal.valueOf(100.75)),
-				currentPrice
+				BigDecimal.valueOf(100d)
 			);
 			BigDecimal sOrRlower = divide(
 				BigDecimal.valueOf(sOrR).multiply(BigDecimal.valueOf(99.25)),
-				currentPrice
+				BigDecimal.valueOf(100d)
 			);
 			if (key.contains("S")) {
 				return

@@ -1,5 +1,7 @@
 package org.rg.service.detector;
 
+import static org.rg.service.CriticalIndicatorValueDetector.divide;
+
 import java.math.BigDecimal;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -7,6 +9,7 @@ import java.util.Map;
 import org.rg.finance.Interval;
 import org.rg.service.Asset;
 import org.rg.service.Asset.ValueName;
+import org.rg.service.CriticalIndicatorValueDetector;
 import org.ta4j.core.Bar;
 import org.ta4j.core.BarSeries;
 
@@ -38,7 +41,7 @@ public class SpikeDetector extends CriticalIndicatorValueDetectorAbst {
 		BigDecimal close = toBigDecimal(latestBar.getClosePrice().doubleValue());
 		BigDecimal lowSpikeValue = close.compareTo(open) < 0 ? close.subtract(low) : open.subtract(low);
 		BigDecimal highSpikeValue = close.compareTo(open) > 0 ? high.subtract(close) : high.subtract(open);
-		BigDecimal lowSpikePercentage = divide(lowSpikeValue.multiply(toBigDecimal(100d)), priceVariation);
+		BigDecimal lowSpikePercentage = CriticalIndicatorValueDetector.divide(lowSpikeValue.multiply(toBigDecimal(100d)), priceVariation);
 		BigDecimal highSpikePercentage = divide(highSpikeValue.multiply(toBigDecimal(100d)), priceVariation);
 		BigDecimal totalCandleVariation = divide(high.subtract(low),high).multiply(toBigDecimal(100d));
 		//log.info('variation: {0}', totalCandleVariation)

@@ -23,13 +23,6 @@ public abstract class CriticalIndicatorValueDetectorAbst implements CriticalIndi
 		return new BigDecimal(value).setScale(50, RoundingMode.HALF_DOWN);
 	}
 
-	protected BigDecimal divide(BigDecimal a, BigDecimal b) {
-		if (b.compareTo(BigDecimal.ZERO) == 0) {
-			return BigDecimal.ZERO;
-		}
-		return a.divide(b, 50, RoundingMode.HALF_DOWN);
-	}
-
 	@Override
 	public Map<Interval, BarSeries> getCandlesticks() {
 		return candlesticks;

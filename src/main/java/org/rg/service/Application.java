@@ -62,7 +62,7 @@ import org.ta4j.core.BarSeries;
 public class Application implements CommandLineRunner {
 	private static final String RECIPIENTS =
 		"roberto.gentili.1980@gmail.com"
-		+ ",fercoletti@gmail.com"
+//		+ ",fercoletti@gmail.com"
 	;
 
 	//static final String mailFontSizeInPixel = "15px";
@@ -209,7 +209,7 @@ public class Application implements CommandLineRunner {
 					Collection<String> marginUSDCCoins = ((BinanceWallet)walletForAvailableCoins.getKey()).getAllMarginAssetPairs()
 						.stream().filter(asset -> asset.get("quote").equals(defaultCollateral)).map(asset -> asset.get("base")).
 						map(String.class::cast).collect(Collectors.toList());
-
+					marginUSDCCoins = Arrays.asList("1000SATS", "BTC");
 					marginUSDCCoins.parallelStream().forEach(coin -> {
 						try {
 							org.burningwave.core.assembler.StaticComponentContainer.ManagedLoggerRepository.logInfo(
