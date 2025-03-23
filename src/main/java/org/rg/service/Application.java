@@ -460,10 +460,6 @@ public class Application implements CommandLineRunner {
 		return null;
 	}
 
-	static String format(double value) {
-		return String.format("%1$,.8f", value);
-	}
-
 	public void sendMail(String to, String subject, String body, String... attachmentAbsolutePaths) throws MessagingException, IOException {
 		JavaMailSenderImpl mailSender = new JavaMailSenderImpl();
 		mailSender.setHost("mail.burningwave.org");

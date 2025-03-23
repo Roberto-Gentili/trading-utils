@@ -144,6 +144,10 @@ public class Asset {
 		return get(ValueName.SUPPORT_AND_RESISTANCE);
 	}
 
+	public static String format(double value) {
+		return String.format("%1$,.8f", value);
+	}
+
 	static class Collection {
 
 		private List<Asset> datas;
@@ -254,24 +258,24 @@ public class Asset {
         						if (label.equals(ValueName.ASSET_NAME.toString())) {
         							htmlCellValue = "<a href=\"" + "https://www.binance.com/it/trade/" + value + "_" + data.values.get(ValueName.COLLATERAL.toString()) + "?type=isolated" + "\">" + data.values.get(label) + "</a>";
         						} else if (value instanceof Double) {
-        							htmlCellValue = Application.format((Double)value);
+        							htmlCellValue = Asset.format((Double)value);
         						} else if (value instanceof Bar) {
-        							htmlCellValue = "" + Application.format(((Bar)value).getClosePrice().doubleValue());
+        							htmlCellValue = "" + Asset.format(((Bar)value).getClosePrice().doubleValue());
         						} else if (value instanceof Map) {
         							htmlCellValue = (((Map<String, Object>)value).entrySet()).stream().map(rec -> {
         								if (label.equals(ValueName.RSI.toString())||
     										label.equals(ValueName.STOCHASTIC_RSI.toString())) {
         									return "<b>" + rec.getKey() + "</b>=" +
-        										"<span " + ((Double)rec.getValue() < 30 || ((Double)rec.getValue() > 70) ? (("style=\"color: " + ((Double)rec.getValue() < 30 ? "green" : "red")) + "\"") : "") +">" + Application.format((Double)rec.getValue()) + "</span>";
+        										"<span " + ((Double)rec.getValue() < 30 || ((Double)rec.getValue() > 70) ? (("style=\"color: " + ((Double)rec.getValue() < 30 ? "green" : "red")) + "\"") : "") +">" + Asset.format((Double)rec.getValue()) + "</span>";
         								} else if (label.equals(ValueName.BOLLINGER_BANDS.toString())) {
         									return "<b>" + rec.getKey() + "</b>=" +
-        										"<span " + (rec.getKey().contains("l") || rec.getKey().contains("u") ? (("style=\"color: " + (rec.getKey().contains("l") ? "green" : "red")) + "\"") : "") +">" + Application.format((Double)rec.getValue()) + "</span>";
+        										"<span " + (rec.getKey().contains("l") || rec.getKey().contains("u") ? (("style=\"color: " + (rec.getKey().contains("l") ? "green" : "red")) + "\"") : "") +">" + Asset.format((Double)rec.getValue()) + "</span>";
         								} else if (label.equals(ValueName.SPIKE_SIZE.toString()) ||
         									label.equals(ValueName.VARIATION_PERCENTAGE.toString())) {
         									return "<b>" + rec.getKey() + "</b>=" +
-        										"<span style=\"color: " + ((Double)rec.getValue() <= 0 ? "green" : "red") +"\">" + Application.format((Double)rec.getValue()) + "</span>";
+        										"<span style=\"color: " + ((Double)rec.getValue() <= 0 ? "green" : "red") +"\">" + Asset.format((Double)rec.getValue()) + "</span>";
         								} else {
-        									return "<b>" + rec.getKey() + "</b>=" + Application.format((Double)rec.getValue());
+        									return "<b>" + rec.getKey() + "</b>=" + Asset.format((Double)rec.getValue());
         								}
         							}).collect(Collectors.joining("<br/>"));
         						} else {
