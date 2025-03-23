@@ -278,7 +278,7 @@ public class Asset {
         										"<span " + ((Double)rec.getValue() < 30 || ((Double)rec.getValue() > 70) ? (("style=\"color: " + ((Double)rec.getValue() < 30 ? "green" : "red")) + "\"") : "") +">" + Application.format((Double)rec.getValue()) + "</span>";
         								} else if (label.equals(Label.BOLLINGER_BANDS.toString())) {
         									return "<b>" + rec.getKey() + "</b>=" +
-        										"<span " + (rec.getKey().contains("l") || label.contains("u") ? (("style=\"color: " + (rec.getKey().contains("l") ? "green" : "red")) + "\"") : "") +">" + Application.format((Double)rec.getValue()) + "</span>";
+        										"<span " + (rec.getKey().contains("l") || rec.getKey().contains("u") ? (("style=\"color: " + (rec.getKey().contains("l") ? "green" : "red")) + "\"") : "") +">" + Application.format((Double)rec.getValue()) + "</span>";
         								} else if (label.equals(Label.SPIKE_SIZE.toString()) ||
         									label.equals(Label.VARIATION_PERCENTAGE.toString())) {
         									return "<b>" + rec.getKey() + "</b>=" +
