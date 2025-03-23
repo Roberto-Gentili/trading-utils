@@ -59,12 +59,12 @@ public class BollingerBandDetector extends CriticalIndicatorValueDetectorAbst {
 			Map<String, Double> values = new LinkedHashMap<>();
 			if (low.compareTo(bBLower) <= 0) {
 				values.put(
-					"Bollinger band lower " + interval.toString(),
+					interval.toString() + "-l",
 					bBLower.doubleValue()
 				);
 			} else if (high.compareTo(bBUpper) >= 0) {
 				values.put(
-					"Bollinger band upper " + interval.toString(),
+					interval.toString() + "-u",
 					bBUpper.doubleValue()
 				);
 			}

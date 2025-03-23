@@ -48,7 +48,7 @@ public class SpikeDetector extends CriticalIndicatorValueDetectorAbst {
 		Asset data = null;
 		if (buyCondition || sellCondition) {
 			Map<String, Double> variations = new LinkedHashMap<>();
-			variations.put("Spike size % on " + interval.toString(),
+			variations.put(interval.toString(),
 				buyCondition? (lowSpikePercentage.negate().doubleValue()) : highSpikePercentage.doubleValue());
 			data = new Asset(
 				this.mainAsset,

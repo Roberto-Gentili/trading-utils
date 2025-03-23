@@ -37,7 +37,7 @@ public class RSIDetector extends CriticalIndicatorValueDetectorAbst {
 		Asset data = null;
 		if (checkIfIsBitcoin(mainAsset) || ((latestRSIValue > 70 || latestRSIValue < 30) && latestRSIValue != 0)) {
 			Map<String, Double> variations = new LinkedHashMap<>();
-			variations.put("RSI value on " + interval.toString(), latestRSIValue.doubleValue());
+			variations.put(interval.toString(), latestRSIValue.doubleValue());
 			data = new Asset(
 				mainAsset,
 				collateralAsset,

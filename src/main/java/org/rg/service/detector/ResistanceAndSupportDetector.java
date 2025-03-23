@@ -51,13 +51,13 @@ public class ResistanceAndSupportDetector extends CriticalIndicatorValueDetector
 //			r2.getValue(dailyCandleSticks.getEndIndex()).doubleValue(),
 //			s3.getValue(dailyCandleSticks.getEndIndex()).doubleValue(),
 //			r3.getValue(dailyCandleSticks.getEndIndex()).doubleValue()
-//		);
-		resistanceAndSupportLevels.put("S1-" + interval.toString(), s1.getValue(candlestick.getEndIndex()).doubleValue());
-		resistanceAndSupportLevels.put("R1-" + interval.toString(), r1.getValue(candlestick.getEndIndex()).doubleValue());
-		resistanceAndSupportLevels.put("S2-" + interval.toString(), s2.getValue(candlestick.getEndIndex()).doubleValue());
-		resistanceAndSupportLevels.put("R2-" + interval.toString(), r2.getValue(candlestick.getEndIndex()).doubleValue());
-		resistanceAndSupportLevels.put("S3-" + interval.toString(), s3.getValue(candlestick.getEndIndex()).doubleValue());
-		resistanceAndSupportLevels.put("R3-" + interval.toString(), r3.getValue(candlestick.getEndIndex()).doubleValue());
+//		);                                                    -
+		resistanceAndSupportLevels.put(interval.toString() + "-S1", s1.getValue(candlestick.getEndIndex()).doubleValue());
+		resistanceAndSupportLevels.put(interval.toString() + "-R1", r1.getValue(candlestick.getEndIndex()).doubleValue());
+		resistanceAndSupportLevels.put(interval.toString() + "-S2", s2.getValue(candlestick.getEndIndex()).doubleValue());
+		resistanceAndSupportLevels.put(interval.toString() + "-R2", r2.getValue(candlestick.getEndIndex()).doubleValue());
+		resistanceAndSupportLevels.put(interval.toString() + "-S3", s3.getValue(candlestick.getEndIndex()).doubleValue());
+		resistanceAndSupportLevels.put(interval.toString() + "-R3", r3.getValue(candlestick.getEndIndex()).doubleValue());
 		return new Asset(
 			this.mainAsset,
 			this.collateralAsset,
