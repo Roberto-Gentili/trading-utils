@@ -331,7 +331,7 @@ public class Application implements CommandLineRunner {
 							return CriticalIndicatorValueDetectorAbst.checkIfIsBitcoin(asset.getName()) || counter >= MINIMAL_INDICATOR_ALERT_FOR_NOTIFICATION;
 						});
 					}
-					StringBuffer presentation = new StringBuffer("<p style=\"" + Asset.DEFAULT_FONT_SIZE + ";\">Ciao!</br>Sono stati rilevati i seguenti " + (dataCollection.size() -1) + " asset (BTC escluso) con variazioni rilevanti</p>");
+					StringBuffer presentation = new StringBuffer("<p style=\"" + Asset.DEFAULT_FONT_SIZE + ";\">Ciao!<br/>Sono stati rilevati i seguenti " + (dataCollection.size() -1) + " asset (BTC escluso) con variazioni rilevanti</p>");
 					if (dataCollection.size() > 1) {
 						sendMail(
 							RECIPIENTS,
