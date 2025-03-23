@@ -5,6 +5,7 @@ import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
@@ -15,7 +16,9 @@ import org.ta4j.core.Bar;
 import org.ta4j.core.BarSeries;
 
 public class Asset {
-
+	private final static String DECIMAL_SEPARATOR = Optional.of(Character.valueOf(
+			new java.text.DecimalFormatSymbols().getDecimalSeparator()
+		).toString()).map(sep -> sep.equals(".") ? "\\"+ sep : sep).get();
 	public static enum ValueName {
 		ASSET_NAME("Asset name"),
 		COLLATERAL("collateral"),
@@ -145,7 +148,12 @@ public class Asset {
 	}
 
 	public static String format(double value) {
-		return String.format("%1$,.8f", value);
+		String[] valueSplitted = Double.valueOf(value).toString().split(DECIMAL_SEPARATOR);
+		if (valueSplitted[0].length() >= 3) {
+			return String.format("%1$,.4f", value);
+		} else {
+			return String.format("%1$,.8f", value);
+		}
 	}
 
 	static class Collection {
