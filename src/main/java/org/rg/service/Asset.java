@@ -1,5 +1,7 @@
 package org.rg.service;
+import static org.rg.service.CriticalIndicatorValueDetector.divide;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
@@ -53,10 +55,12 @@ public class Asset {
 
 	public static String DEFAULT_FONT_SIZE = "font-size:15px;";
 
+	private static String DEFAULT_TABLE_TEXT_COLOR = "#606060";
+
 	private static String TABLE_STYLE =
 		"border-collapse: collapse;" +
 		"border-spacing: 0px;"+
-		"color: #606060;"+
+		"color: " + DEFAULT_TABLE_TEXT_COLOR +";"+
 		DEFAULT_FONT_SIZE;
 
 	private static final String TABLE_DIV_STYLE =
@@ -148,11 +152,12 @@ public class Asset {
 	}
 
 	public static String format(double value) {
-		String[] valueSplitted = Double.valueOf(value).toString().split(DECIMAL_SEPARATOR);
-		if (valueSplitted[0].length() >= 3) {
+		String output = String.format("%1$,.8f", value);
+		String[] outputValueSplitted = output.split(DECIMAL_SEPARATOR);
+		if (outputValueSplitted[0].length() >= 3) {
 			return String.format("%1$,.4f", value);
 		} else {
-			return String.format("%1$,.8f", value);
+			return output;
 		}
 	}
 
@@ -282,7 +287,10 @@ public class Asset {
         									label.equals(ValueName.VARIATION_PERCENTAGE.toString())) {
         									return "<b>" + rec.getKey() + "</b>=" +
         										"<span style=\"color: " + ((Double)rec.getValue() <= 0 ? "green" : "red") +"\">" + Asset.format((Double)rec.getValue()) + "</span>";
-        								} else {
+        								} else if (label.equals(ValueName.SUPPORT_AND_RESISTANCE.toString())) {
+        									return "<b>" + rec.getKey() + "</b>=" +
+        										"<span style=\"color: " + computeResistanceAndSupportTextColor(rec.getKey(), (Double)rec.getValue(), ((Bar)data.get(ValueName.LATEST_1D_BAR)).getClosePrice().doubleValue()) +"\">" + Asset.format((Double)rec.getValue()) + "</span>";
+        								}else {
         									return "<b>" + rec.getKey() + "</b>=" + Asset.format((Double)rec.getValue());
         								}
         							}).collect(Collectors.joining("<br/>"));
@@ -296,6 +304,28 @@ public class Asset {
     					}).collect(Collectors.toList())
     				) +
 			"</tr>";
+		}
+
+		private String computeResistanceAndSupportTextColor(String key, Double sOrR, Double cP) {
+			BigDecimal currentPrice = BigDecimal.valueOf(cP);
+			BigDecimal sOrRUpper = CriticalIndicatorValueDetector.divide(
+				BigDecimal.valueOf(sOrR).multiply(BigDecimal.valueOf(100.75)),
+				currentPrice
+			);
+			BigDecimal sOrRlower = divide(
+				BigDecimal.valueOf(sOrR).multiply(BigDecimal.valueOf(99.25)),
+				currentPrice
+			);
+			if (key.contains("S")) {
+				return
+					currentPrice.compareTo(sOrRlower) >= 0 && currentPrice.compareTo(sOrRUpper) <= 0 ?
+					"green" : DEFAULT_TABLE_TEXT_COLOR;
+			} else if (key.contains("R")) {
+				return
+					currentPrice.compareTo(sOrRlower) >= 0 && currentPrice.compareTo(sOrRUpper) <= 0 ?
+					"red" : DEFAULT_TABLE_TEXT_COLOR;
+			}
+			return DEFAULT_TABLE_TEXT_COLOR;
 		}
 
 	}
