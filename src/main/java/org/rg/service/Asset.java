@@ -23,7 +23,7 @@ import org.ta4j.core.BarSeries;
 public class Asset {
 	private static String TABLE_STYLE =
 		"border-collapse: collapse;" +
- 		"width: 100%;" +
+ 		"width:100%!important;" +
 		"border-spacing: 0px;"+
 		"color: #606060;"+
 		"font-size:" + Application.mailFontSizeInPixel + ";";
