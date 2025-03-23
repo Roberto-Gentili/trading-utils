@@ -1,14 +1,10 @@
 package org.rg.service;
 
-import java.util.AbstractMap;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
@@ -166,28 +162,9 @@ public class Asset {
 		}
 
 		private List<Asset> datas;
-		private Set<String>[] dynamicLabelsGroup = new Set[6];
-		private List<Map.Entry<Set<String>, Integer>> dynamicLabelsGroupToLabelIndex;
 
 		public Collection() {
 			datas = new ArrayList<>();
-			for (int i = 0; i < dynamicLabelsGroup.length; i++) {
-				dynamicLabelsGroup[i] = new LinkedHashSet<>();
-			}
-			dynamicLabelsGroupToLabelIndex = new ArrayList<>();
-			for (
-				int i = Label.values().length - 1,
-				k = dynamicLabelsGroup.length - 1,
-				iterationIndex = 0;
-				iterationIndex < dynamicLabelsGroup.length;
-				i--,
-				k--,
-				iterationIndex++
-			) {
-				Label labelIndex = Label.values()[i];
-				dynamicLabelsGroupToLabelIndex.add(new AbstractMap.SimpleEntry<>(dynamicLabelsGroup[k], labelIndex.ordinal()));
-			}
-			Collections.reverse(dynamicLabelsGroupToLabelIndex);
 		}
 
 		public int size() {
@@ -201,13 +178,6 @@ public class Asset {
 		public synchronized Asset.Collection addOrMergeAndReplace(Asset data) {
 			if (data == null) {
 				return this;
-			}
-			for (Map.Entry<Set<String>, Integer> dynamicLabelGroupToLabelIndex : dynamicLabelsGroupToLabelIndex) {
-				Map<String, Object> map =
-					(Map<String, Object>)data.values.get(Label.find(dynamicLabelGroupToLabelIndex.getValue()).toString());
-				if (map != null) {
-					dynamicLabelGroupToLabelIndex.getKey().addAll(map.keySet());
-				}
 			}
 			Iterator<Asset> oldDataIterator = datas.iterator();
 			while (oldDataIterator.hasNext()) {
@@ -224,13 +194,15 @@ public class Asset {
 
 		private Asset mergeInNewData(Asset oldD, Asset newD) {
 			for (Label label : Label.values()) {
-				newD.values.putIfAbsent(label.toString(), oldD.values.get(label.toString()));
-			}
-			for (Map.Entry<Set<String>, Integer> dynamicLabelGroupToLabelIndex : dynamicLabelsGroupToLabelIndex) {
-				mergeDynamicValues(
-					(Map<String, Object>)oldD.values.get(Label.find(dynamicLabelGroupToLabelIndex.getValue()).toString()),
-					(Map<String, Object>)newD.values.get(Label.find(dynamicLabelGroupToLabelIndex.getValue()).toString())
-				);
+				Object oldValue = oldD.values.get(label.toString());
+				newD.values.putIfAbsent(label.toString(), oldValue);
+				Object newValue = newD.values.get(label.toString());
+				if (oldValue instanceof Map) {
+					mergeDynamicValues(
+						(Map<String, Object>)oldValue,
+						(Map<String, Object>)newValue
+					);
+				}
 			}
 			return newD;
 		}
@@ -306,7 +278,7 @@ public class Asset {
         										"<span " + ((Double)rec.getValue() < 30 || ((Double)rec.getValue() > 70) ? (("style=\"color: " + ((Double)rec.getValue() < 30 ? "green" : "red")) + "\"") : "") +">" + Application.format((Double)rec.getValue()) + "</span>";
         								} else if (label.equals(Label.BOLLINGER_BANDS.toString())) {
         									return "<b>" + rec.getKey() + "</b>=" +
-        										"<span " + (rec.getKey().contains("l") || label.contains("u") ? (("style=\"color: " + (rec.getKey().contains("low") ? "green" : "red")) + "\"") : "") +">" + Application.format((Double)rec.getValue()) + "</span>";
+        										"<span " + (rec.getKey().contains("l") || label.contains("u") ? (("style=\"color: " + (rec.getKey().contains("l") ? "green" : "red")) + "\"") : "") +">" + Application.format((Double)rec.getValue()) + "</span>";
         								} else if (label.equals(Label.SPIKE_SIZE.toString()) ||
         									label.equals(Label.VARIATION_PERCENTAGE.toString())) {
         									return "<b>" + rec.getKey() + "</b>=" +
