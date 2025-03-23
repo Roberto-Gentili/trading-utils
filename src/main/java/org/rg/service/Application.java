@@ -66,7 +66,7 @@ public class Application implements CommandLineRunner {
 	;
 
 	//static final String mailFontSizeInPixel = "15px";
-	static final Integer MINIMAL_INDICATOR_ALERT_FOR_NOTIFICATION = 5;
+	static final Integer MINIMAL_INDICATOR_ALERT_FOR_NOTIFICATION = 6;
 
 	@Autowired
 	private ApplicationContext appContext;
