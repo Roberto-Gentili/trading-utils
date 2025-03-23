@@ -30,9 +30,9 @@ public class Asset {
 		DEFAULT_FONT_SIZE;
 
 	private static final String TABLE_DIV_STYLE =
-		"overflow: auto;" +
-		"height: 450px;" +
-		"width: 100%;";
+		"overflow: auto;" + 
+		"height: 450px;" + 
+		"width: 1024px;";
 
 	private static final String NOT_AVAILABLE =
 		"<center><i style=\"color: #C0C0C0;\">na</i></center>";
