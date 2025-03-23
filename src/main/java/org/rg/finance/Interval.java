@@ -29,7 +29,7 @@ public enum Interval {
 	public Duration toDuration() {
 		Duration duration = null;
 		if (this.compareTo(Interval.WEEK) == 0) {
-			duration = Duration.ofDays(7).minus(null);
+			duration = Duration.ofDays(7);
 		} else if (this.compareTo(Interval.THREE_DAYS) == 0) {
 			duration =  Duration.ofDays(3);
 		} else if (this.compareTo(Interval.ONE_DAYS) == 0) {
