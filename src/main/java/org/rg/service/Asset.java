@@ -22,6 +22,8 @@ import org.ta4j.core.BarSeries;
 
 public class Asset {
 	private static String TABLE_STYLE =
+		"border-collapse: collapse;" +
+ 		"width: 100%;" +
 		"border-spacing: 0px;"+
 		"color: #606060;"+
 		"font-size:" + Application.mailFontSizeInPixel + ";";
@@ -41,6 +43,12 @@ public class Asset {
 
 	private static String CELL_STYLE =
 		"padding: 15px;";
+
+	private static String HEADER_CELL_STYLE =
+		CELL_STYLE +
+		"position: sticky;" +
+		"top: 0;" +
+		"z-index: 1;";
 
 	private Map<String, Object> values;
 
@@ -242,20 +250,23 @@ public class Asset {
 			});
 			AtomicInteger rowCounter = new AtomicInteger(0);
 			List<String> labels = new ArrayList<>(LABELS);
-			return "<table style=\"" + TABLE_STYLE + "\">" +
-				"<thead>" +
-					"<tr style=\"" + HEADER_ROW_STYLE + "\">" +
-						String.join("", labels.stream().filter(showColumnFilter()).map(label -> "<th style=\"" + CELL_STYLE + "\"><b>" + label + "</b></th>").collect(Collectors.toList())) +
-						String.join("", Stream.of(dynamicLabelsGroup).map(dynamicLabelGroup -> {
-							return
-								String.join("", dynamicLabelGroup.stream().map(label ->
-									"<th style=\"" + CELL_STYLE + "\"><b>" + label + "</b></th>"
-								).collect(Collectors.toList()));
-						}).collect(Collectors.toList())) +
-					"</tr>" +
-				"</thead>" +
-				String.join("", datas.stream().map(dt -> toHTML(dt, rowCounter.incrementAndGet())).collect(Collectors.toList())) +
-			"</table>";
+			return
+				"<div style=\"overflow: auto; height: 450px;\">" +
+					"<table style=\"" + TABLE_STYLE + "\">" +
+						"<thead>" +
+							"<tr style=\"" + HEADER_ROW_STYLE + "\">" +
+								String.join("", labels.stream().filter(showColumnFilter()).map(label -> "<th style=\"" + HEADER_CELL_STYLE + "\"><b>" + label + "</b></th>").collect(Collectors.toList())) +
+								String.join("", Stream.of(dynamicLabelsGroup).map(dynamicLabelGroup -> {
+									return
+										String.join("", dynamicLabelGroup.stream().map(label ->
+											"<th style=\"" + HEADER_CELL_STYLE + "\"><b>" + label + "</b></th>"
+										).collect(Collectors.toList()));
+								}).collect(Collectors.toList())) +
+							"</tr>" +
+						"</thead>" +
+						String.join("", datas.stream().map(dt -> toHTML(dt, rowCounter.incrementAndGet())).collect(Collectors.toList())) +
+					"</table>" +
+				"</div>";
 		}
 
 		private Predicate<String> showColumnFilter() {
