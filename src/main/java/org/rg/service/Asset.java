@@ -286,7 +286,7 @@ public class Asset {
         								} else {
         									return "<b>" + rec.getKey() + "</b>=" + Application.format((Double)rec.getValue());
         								}
-        							}).collect(Collectors.joining("</br>"));
+        							}).collect(Collectors.joining("<br/>"));
         						} else {
         							htmlCellValue = value.toString();
         						}
