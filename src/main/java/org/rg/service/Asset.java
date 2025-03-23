@@ -59,7 +59,7 @@ public class Asset {
 	private static final String TABLE_DIV_STYLE =
 		"overflow: auto;" +
 		"height: 475px;" +
-		"width: 1024px;";
+		"width: 100%;";
 
 	private static final String NOT_AVAILABLE =
 		"<center><i style=\"color: #C0C0C0;\">na</i></center>";
