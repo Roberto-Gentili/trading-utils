@@ -65,7 +65,7 @@ public class Application implements CommandLineRunner {
 		+ ",fercoletti@gmail.com"
 	;
 
-	static final String mailFontSizeInPixel = "15px";
+	//static final String mailFontSizeInPixel = "15px";
 	static final boolean filterEnabled = true;
 
 	@Autowired
@@ -331,7 +331,7 @@ public class Application implements CommandLineRunner {
 							return CriticalIndicatorValueDetectorAbst.checkIfIsBitcoin(asset.getName()) || counter >= 3;
 						});
 					}
-					StringBuffer presentation = new StringBuffer("<p style=\"font-size:" + mailFontSizeInPixel + ";\">Ciao!</br>Sono stati rilevati i seguenti " + (dataCollection.size() -1) + " asset (BTC escluso) con variazioni rilevanti</p>");
+					StringBuffer presentation = new StringBuffer("<p style=\"" + Asset.DEFAULT_FONT_SIZE + ";\">Ciao!</br>Sono stati rilevati i seguenti " + (dataCollection.size() -1) + " asset (BTC escluso) con variazioni rilevanti</p>");
 					if (dataCollection.size() > 1) {
 						sendMail(
 							RECIPIENTS,

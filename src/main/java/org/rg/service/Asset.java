@@ -21,12 +21,18 @@ import org.ta4j.core.Bar;
 import org.ta4j.core.BarSeries;
 
 public class Asset {
+	public static String DEFAULT_FONT_SIZE = "font-size:15px;";
+
 	private static String TABLE_STYLE =
 		"border-collapse: collapse;" +
- 		"width:100%!important;" +
 		"border-spacing: 0px;"+
 		"color: #606060;"+
-		"font-size:" + Application.mailFontSizeInPixel + ";";
+		DEFAULT_FONT_SIZE;
+
+	private static final String TABLE_DIV_STYLE =
+		"overflow: auto;"
+		+ "height: 450px;"
+		+ "width=1024px;";
 
 	private static String NOT_AVAILABLE =
 		"<center><i style=\"color: #C0C0C0;\">na</i></center>";
@@ -43,11 +49,14 @@ public class Asset {
 	private static String CELL_STYLE =
 		"padding: 15px;";
 
-	private static String HEADER_CELL_STYLE =
-		CELL_STYLE +
+	private static String BLOCKED_HEADER_STYLE =
 		"position: sticky;" +
 		"top: 0;" +
-		"z-index: 1;" +
+		"z-index: 1;";
+
+	private static String HEADER_CELL_STYLE =
+		CELL_STYLE +
+		BLOCKED_HEADER_STYLE +
 		"background: #7393B3;" +
 		"color: white;";
 
@@ -124,6 +133,7 @@ public class Asset {
 
 
 	static class Collection {
+
 		private static List<String> LABELS = Arrays.asList(
 			"Asset name",
 			"collateral",
@@ -252,9 +262,9 @@ public class Asset {
 			AtomicInteger rowCounter = new AtomicInteger(0);
 			List<String> labels = new ArrayList<>(LABELS);
 			return
-				"<div style=\"overflow: auto; height: 450px;\">" +
+				"<div style=\"" + TABLE_DIV_STYLE + "\">" +
 					"<table style=\"" + TABLE_STYLE + "\">" +
-						"<thead>" +
+						"<thead style=\"" + BLOCKED_HEADER_STYLE + "\">" +
 							"<tr style=\"" + HEADER_ROW_STYLE + "\">" +
 								String.join("", labels.stream().filter(showColumnFilter()).map(label -> "<th style=\"" + HEADER_CELL_STYLE + "\"><b>" + label + "</b></th>").collect(Collectors.toList())) +
 								String.join("", Stream.of(dynamicLabelsGroup).map(dynamicLabelGroup -> {
