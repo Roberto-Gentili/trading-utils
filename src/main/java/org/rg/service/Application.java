@@ -66,7 +66,7 @@ public class Application implements CommandLineRunner {
 	;
 
 	//static final String mailFontSizeInPixel = "15px";
-	static final boolean filterEnabled = true;
+	static final Integer MINIMAL_INDICATOR_ALERT_FOR_NOTIFICATION = 4;
 
 	@Autowired
 	private ApplicationContext appContext;
@@ -310,7 +310,7 @@ public class Application implements CommandLineRunner {
 							);
 						}
 					});
-					if (filterEnabled) {
+					if (MINIMAL_INDICATOR_ALERT_FOR_NOTIFICATION != null) {
 						dataCollection.filter(asset -> {
 							Collection<Runnable> alreadyNotifiedUpdaters = new ArrayList<>();
 							int counter =
@@ -325,10 +325,10 @@ public class Application implements CommandLineRunner {
 								+ computeIfMustBeNotified(intervals, alreadyNotified, candlesticksForCoin, asset,
 										BigCandleDetector.class, asset.getVariationPercentages(), alreadyNotifiedUpdaters);
 
-							if (counter >= 3) {
+							if (counter >= MINIMAL_INDICATOR_ALERT_FOR_NOTIFICATION) {
 								alreadyNotifiedUpdaters.stream().forEach(Runnable::run);
 							}
-							return CriticalIndicatorValueDetectorAbst.checkIfIsBitcoin(asset.getName()) || counter >= 3;
+							return CriticalIndicatorValueDetectorAbst.checkIfIsBitcoin(asset.getName()) || counter >= MINIMAL_INDICATOR_ALERT_FOR_NOTIFICATION;
 						});
 					}
 					StringBuffer presentation = new StringBuffer("<p style=\"" + Asset.DEFAULT_FONT_SIZE + ";\">Ciao!</br>Sono stati rilevati i seguenti " + (dataCollection.size() -1) + " asset (BTC escluso) con variazioni rilevanti</p>");
