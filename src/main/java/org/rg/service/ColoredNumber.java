@@ -16,7 +16,7 @@ public class ColoredNumber extends Number {
 		}
 
 		public String getCode() {
-			return this.getCode();
+			return this.code;
 		}
 
 		@Override
