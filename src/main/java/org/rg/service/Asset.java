@@ -88,10 +88,15 @@ public class Asset {
 		"z-index: 1;";
 
 	private static final String HEADER_CELL_STYLE =
-		CELL_STYLE +
-		BLOCKED_HEADER_STYLE +
 		"background: #7393B3;" +
 		"color: white;";
+
+	private static final String ON_TOP_FIXED_HEADER_CELL_STYLE =
+		CELL_STYLE +
+		BLOCKED_HEADER_STYLE +
+		HEADER_CELL_STYLE;
+
+
 
 	private Map<String, Object> values;
 
@@ -253,11 +258,11 @@ public class Asset {
 						(onTopFixedHeader ?
 							"<thead style=\"" + BLOCKED_HEADER_STYLE + "\">" +
 								"<tr style=\"" + HEADER_ROW_STYLE + "\">" +
-									String.join("", header.stream().filter(showColumnFilter()).map(label -> "<th style=\"" + HEADER_CELL_STYLE + "\"><b>" + label + "</b></th>").collect(Collectors.toList())) +
+									String.join("", header.stream().filter(showColumnFilter()).map(label -> "<th style=\"" + ON_TOP_FIXED_HEADER_CELL_STYLE + "\"><b>" + label + "</b></th>").collect(Collectors.toList())) +
 								"</tr>" +
-							"</thead>" +
-							String.join("", datas.stream().map(dt -> toHTML(header, dt, rowCounter.incrementAndGet(), onTopFixedHeader)).collect(Collectors.toList()))
+							"</thead>"
 						: "") +
+						String.join("", datas.stream().map(dt -> toHTML(header, dt, rowCounter.incrementAndGet(), onTopFixedHeader)).collect(Collectors.toList())) +
 					"</table>" +
 				"</div>";
 		}
@@ -275,7 +280,6 @@ public class Asset {
 						String.join("", header.stream().filter(showColumnFilter()).map(label -> "<th style=\"" + HEADER_CELL_STYLE + "\"><b>" + label + "</b></th>").collect(Collectors.toList())) +
 					"</tr>"
 				) +
-
 				"<tr style=\"" + (rowCounter % 2 == 0 ? EVEN_ROW_STYLE : ODD_ROW_STYLE) + "\">" +
 					String.join(
     					"",Stream.of(ValueName.values()).map(ValueName::toString).filter(showColumnFilter()).map(label -> {
