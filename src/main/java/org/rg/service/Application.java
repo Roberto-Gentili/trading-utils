@@ -14,6 +14,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.stream.Collectors;
 
 import javax.mail.BodyPart;
@@ -189,6 +190,7 @@ public class Application implements CommandLineRunner {
 		candlestickQuantityForInterval.put(intervals.get(2), 200);
 		candlestickQuantityForInterval.put(intervals.get(3), 370);
 		Map<String, Map<Interval, BarSeries>> candlesticksForCoin = new ConcurrentHashMap<>();
+		List<String> notifiedAssetInPreviousEmail = new CopyOnWriteArrayList<>();
 		int minNumberOfIndicatorsDetected =
 			Integer.valueOf((String)((Map<String, Object>)appContext.getBean("indicatorMailServiceNotifierConfig")).get("min-number-of-indicators-detected"));
 		boolean  resendAlreadyNotified =
@@ -351,7 +353,16 @@ public class Application implements CommandLineRunner {
 								Asset.DEFAULT_FONT_SIZE + ";\">Ciao!<br/>Sono stati rilevati i seguenti " +
 								(dataCollection.size() -1) +
 								" asset (BTC escluso) con variazioni rilevanti</p>");
-					if (dataCollection.size() > 1) {
+					List<String> notifiedAssetInThisEmail = null;
+					boolean sameAssetsSentInPreviousEmail = false;
+					if (resendAlreadyNotified) {
+						notifiedAssetInThisEmail = dataCollection.getAssetList().stream()
+							.map(Asset::getName).collect(Collectors.toList());
+						sameAssetsSentInPreviousEmail =
+							notifiedAssetInThisEmail.containsAll(notifiedAssetInPreviousEmail) &&
+							notifiedAssetInPreviousEmail.containsAll(notifiedAssetInThisEmail);
+					}
+					if (!sameAssetsSentInPreviousEmail && dataCollection.size() > 1) {
 						sendMail(
 							((Map<String, Object>)appContext.getBean("indicatorMailServiceNotifierConfig"))
 								.entrySet().stream()
@@ -363,6 +374,10 @@ public class Application implements CommandLineRunner {
 							presentation.append(dataCollection.toHTML()).toString(),
 							(String[])null
 						);
+						if (notifiedAssetInThisEmail != null) {
+							notifiedAssetInPreviousEmail.clear();
+							notifiedAssetInPreviousEmail.addAll(notifiedAssetInThisEmail);
+						}
 					}
 					dataCollection.clear();
 					candlesticksForCoin.clear();
