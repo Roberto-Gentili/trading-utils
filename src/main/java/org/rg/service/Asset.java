@@ -246,6 +246,10 @@ public class Asset {
 			return this;
 		}
 
+		public List<Asset> getAssetList() {
+			return this.datas;
+		}
+
 		public String toHTML() {
 			datas.sort((assetOne, assetTwo) -> {
 				return ((String)assetOne.get(ValueName.ASSET_NAME) + assetOne.get(ValueName.COLLATERAL))
