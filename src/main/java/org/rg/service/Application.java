@@ -12,7 +12,6 @@ import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Properties;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
@@ -206,6 +205,8 @@ public class Application implements CommandLineRunner {
 			Integer.valueOf((String)((Map<String, Object>)appContext.getBean("indicatorMailServiceNotifierConfig")).get("min-number-of-indicators-detected"));
 		boolean  resendAlreadyNotified =
 			Boolean.valueOf((String)((Map<String, Object>)appContext.getBean("indicatorMailServiceNotifierConfig")).get("resend-already-notified"));
+		boolean showOnlyConsistentData =
+			Boolean.valueOf((String)((Map<String, Object>)appContext.getBean("indicatorMailServiceNotifierConfig")).get("show-only-consistent-data"));
 		while (true) {
 			Asset.Collection dataCollection = new Asset.Collection().setOnTopFixedHeader(
 				Boolean.valueOf((String)((Map<String, Object>)appContext.getBean("indicatorMailServiceNotifierConfig")).get("text.table.on-top-fixed-header"))
@@ -322,15 +323,15 @@ public class Application implements CommandLineRunner {
 							Collection<Runnable> alreadyNotifiedUpdaters = new ArrayList<>();
 							int[] counters = {0,0,0};
 							List<int[]> counterList = Arrays.asList(
-								computeIfMustBeNotified(intervals, alreadyNotified, candlesticksForCoin, asset,
+								computeIfMustBeNotified(intervals, showOnlyConsistentData, alreadyNotified, candlesticksForCoin, asset,
 										RSIDetector.class, asset.getRSI(), alreadyNotifiedUpdaters),
-								computeIfMustBeNotified(intervals, alreadyNotified, candlesticksForCoin, asset,
+								computeIfMustBeNotified(intervals, showOnlyConsistentData, alreadyNotified, candlesticksForCoin, asset,
 										StochasticRSIDetector.class, asset.getStochasticRSI(), alreadyNotifiedUpdaters),
-								computeIfMustBeNotified(intervals, alreadyNotified, candlesticksForCoin, asset,
+								computeIfMustBeNotified(intervals, showOnlyConsistentData, alreadyNotified, candlesticksForCoin, asset,
 										BollingerBandDetector.class, asset.getBollingerBands(), alreadyNotifiedUpdaters),
-								computeIfMustBeNotified(intervals, alreadyNotified, candlesticksForCoin, asset,
+								computeIfMustBeNotified(intervals, showOnlyConsistentData, alreadyNotified, candlesticksForCoin, asset,
 										SpikeDetector.class, asset.getSpikeSizePercentage(), alreadyNotifiedUpdaters),
-								computeIfMustBeNotified(intervals, alreadyNotified, candlesticksForCoin, asset,
+								computeIfMustBeNotified(intervals, showOnlyConsistentData, alreadyNotified, candlesticksForCoin, asset,
 										BigCandleDetector.class, asset.getVariationPercentages(), alreadyNotifiedUpdaters)
 							);
 							for (int i = 0; i < counterList.size(); i++) {
@@ -339,18 +340,29 @@ public class Application implements CommandLineRunner {
 									counters[j] += countersFromCounterList[j];
 								}
 							}
-							if (counters[0] >= minNumberOfIndicatorsDetected) {
-								alreadyNotifiedUpdaters.stream().forEach(Runnable::run);
+							if (!showOnlyConsistentData) {
+								if (counters[0] >= minNumberOfIndicatorsDetected) {
+									alreadyNotifiedUpdaters.stream().forEach(Runnable::run);
+								}
+								return
+									CriticalIndicatorValueDetectorAbst.checkIfIsBitcoin(asset.getName()) ||
+									counters[0] >= minNumberOfIndicatorsDetected;
+							} else {
+								boolean	show = (counters[1] == 0 && counters[2] >= minNumberOfIndicatorsDetected) ||
+									counters[2] == 0 && counters[1] >= minNumberOfIndicatorsDetected;
+								if (show) {
+									alreadyNotifiedUpdaters.stream().forEach(Runnable::run);
+								}
+								return
+									show ||
+									CriticalIndicatorValueDetectorAbst.checkIfIsBitcoin(asset.getName());
 							}
-							return
-								CriticalIndicatorValueDetectorAbst.checkIfIsBitcoin(asset.getName()) ||
-								counters[0] >= minNumberOfIndicatorsDetected;
 						});
 					}
 					StringBuffer presentation = new StringBuffer(
 						"<p style=\"" +
 								Asset.DEFAULT_FONT_SIZE + ";\">Ciao!<br/>Sono stati rilevati i seguenti " +
-								(resendAlreadyNotified? dataCollection.size() -1 : backup.size()) +
+								(resendAlreadyNotified? backup.size() -1 : dataCollection.size() -1) +
 								" asset (BTC escluso) con variazioni rilevanti</p>");
 					if (dataCollection.size() > 1) {
 						sendMail(
@@ -379,6 +391,7 @@ public class Application implements CommandLineRunner {
 
 	protected int[] computeIfMustBeNotified(
 		List<Interval> intervals,
+		boolean showOnlyConsistentData,
 		Map<Class<? extends CriticalIndicatorValueDetector>,
 		Map<Interval, Map<String, Bar>>> alreadyNotified,
 		Map<String, Map<Interval, BarSeries>> candlesticksForCoin,
@@ -391,31 +404,43 @@ public class Application implements CommandLineRunner {
 		int redCounter = 0;
 		int greenCounter = 0;
 		if (indicatorValues != null && !indicatorValues.isEmpty()) {
+			Collection<Runnable> alreadyNotifiedGreenUpdaters = new ArrayList<>();
+			Collection<Runnable> alreadyNotifiedRedUpdaters = new ArrayList<>();
+			Collection<Runnable> allUpdaters = new ArrayList<>();
 			for (Map.Entry<String, Number> indicator : indicatorValues.entrySet()) {
 				for (Interval interval : intervals) {
 					if (indicator.getKey().contains(interval.toString())) {
 						Map<Interval, BarSeries> candlesticks =
 							candlesticksForCoin.get(asset.getName()+ asset.getCollateral());
 						candlesticks.get(interval);
-						if (
-							Optional.ofNullable(
-								checkIfAlreadyNotified(
-									asset,
-									interval,
-									candlesticksForCoin.get(asset.getName() + asset.getCollateral()),
-									getAlreadyNotified(alreadyNotified.get(indicatorType), interval)
-								)
-							).map(alreadyNotifiedUpdaters::add).orElseGet(() -> null) != null
-						) {
+						Runnable updater = checkIfAlreadyNotified(
+							asset,
+							interval,
+							candlesticksForCoin.get(asset.getName() + asset.getCollateral()),
+							getAlreadyNotified(alreadyNotified.get(indicatorType), interval)
+						);
+						if (updater != null) {
 							if (ColoredNumber.Color.GREEN.getCode().equals(((ColoredNumber)indicator.getValue()).getColor())) {
+								alreadyNotifiedGreenUpdaters.add(updater);
 								greenCounter++;
 							} else if (ColoredNumber.Color.RED.getCode().equals(((ColoredNumber)indicator.getValue()).getColor())) {
+								alreadyNotifiedRedUpdaters.add(updater);
 								redCounter++;
 							}
+							allUpdaters.add(updater);
 							counter++;
 						}
 					}
 				}
+			}
+			if (showOnlyConsistentData) {
+				if (alreadyNotifiedGreenUpdaters.size() == 0) {
+					alreadyNotifiedUpdaters.addAll(alreadyNotifiedRedUpdaters);
+				} else if (alreadyNotifiedRedUpdaters.size() == 0) {
+					alreadyNotifiedUpdaters.addAll(alreadyNotifiedGreenUpdaters);
+				}
+			} else {
+				alreadyNotifiedUpdaters.addAll(allUpdaters);
 			}
 		}
 		return new int[] {counter, redCounter, greenCounter};

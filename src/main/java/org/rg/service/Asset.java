@@ -244,6 +244,7 @@ public class Asset {
 				Asset asset = assetIterator.next();
 				if (!assetPredicate.test(asset)) {
 					assetIterator.remove();
+					backup.datas.remove(asset);
 				}
 			}
 			return backup;

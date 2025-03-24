@@ -31,6 +31,7 @@ service:
          text.table.on-top-fixed-header: false
          min-number-of-indicators-detected: 6
          resend-already-notified: true
+         show-only-consistent-data: false
          recipient:
             - roberto.gentili.1980@gmail.com
             - fercoletti@gmail.comm
