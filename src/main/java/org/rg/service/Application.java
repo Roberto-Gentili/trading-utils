@@ -316,8 +316,9 @@ public class Application implements CommandLineRunner {
 							);
 						}
 					});
+					Asset.Collection backup = null;
 					if (minNumberOfIndicatorsDetected > -1) {
-						dataCollection.filter(asset -> {
+						backup = dataCollection.filter(asset -> {
 							Collection<Runnable> alreadyNotifiedUpdaters = new ArrayList<>();
 							int[] counters = {0,0,0};
 							List<int[]> counterList = Arrays.asList(
@@ -339,9 +340,7 @@ public class Application implements CommandLineRunner {
 								}
 							}
 							if (counters[0] >= minNumberOfIndicatorsDetected) {
-								if (!resendAlreadyNotified) {
-									alreadyNotifiedUpdaters.stream().forEach(Runnable::run);
-								}
+								alreadyNotifiedUpdaters.stream().forEach(Runnable::run);
 							}
 							return
 								CriticalIndicatorValueDetectorAbst.checkIfIsBitcoin(asset.getName()) ||
@@ -358,7 +357,7 @@ public class Application implements CommandLineRunner {
 								.map(String.class::cast)
 								.collect(Collectors.joining(",")),
 								"Segnalazione asset",
-							presentation.append(dataCollection.toHTML()).toString(),
+							presentation.append(resendAlreadyNotified? backup.toHTML() : dataCollection.toHTML()).toString(),
 							(String[])null
 						);
 					}

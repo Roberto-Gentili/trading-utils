@@ -235,7 +235,10 @@ public class Asset {
 			return datas.isEmpty();
 		}
 
-		public void filter(Predicate<Asset> assetPredicate) {
+		public Collection filter(Predicate<Asset> assetPredicate) {
+			Collection backup = new Collection();
+			backup.setOnTopFixedHeader(this.onTopFixedHeader);
+			backup.datas.addAll(this.datas);
 			Iterator<Asset> assetIterator = datas.iterator();
 			while (assetIterator.hasNext()) {
 				Asset asset = assetIterator.next();
@@ -243,6 +246,7 @@ public class Asset {
 					assetIterator.remove();
 				}
 			}
+			return backup;
 		}
 
 		public String toHTML() {
