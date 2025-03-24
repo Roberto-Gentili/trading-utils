@@ -60,13 +60,6 @@ import org.ta4j.core.BarSeries;
 @SpringBootApplication
 @SuppressWarnings({ "null" })
 public class Application implements CommandLineRunner {
-	private static final String RECIPIENTS =
-		"roberto.gentili.1980@gmail.com"
-		+ ",fercoletti@gmail.com"
-	;
-
-	//static final String mailFontSizeInPixel = "15px";
-	static final Integer MINIMAL_INDICATOR_ALERT_FOR_NOTIFICATION = 6;
 
 	@Autowired
 	private ApplicationContext appContext;
@@ -145,6 +138,13 @@ public class Application implements CommandLineRunner {
 	    return org.burningwave.core.assembler.ComponentContainer.getInstance();
 	}
 
+	@Bean("indicatorMailServiceNotifierConfig")
+	@ConfigurationProperties("service.mail.indicator.notifier")
+	public Map<String, String> indicatorMailServiceNotifierConfig(){
+	    return new LinkedHashMap<>();
+	}
+
+
 	private Map<String, String> createMap() {
 		return new LinkedHashMap<String, String>() {
 
@@ -202,8 +202,12 @@ public class Application implements CommandLineRunner {
 		candlestickQuantityForInterval.put(intervals.get(2), 200);
 		candlestickQuantityForInterval.put(intervals.get(3), 370);
 		Map<String, Map<Interval, BarSeries>> candlesticksForCoin = new ConcurrentHashMap<>();
+		int minNumberOfIndicatorsDetected =
+			Integer.valueOf((String)((Map<String, Object>)appContext.getBean("indicatorMailServiceNotifierConfig")).get("min-number-of-indicators-detected"));
 		while (true) {
-			Asset.Collection dataCollection = new Asset.Collection().setOnTopFixedHeader(false);
+			Asset.Collection dataCollection = new Asset.Collection().setOnTopFixedHeader(
+				Boolean.valueOf((String)((Map<String, Object>)appContext.getBean("indicatorMailServiceNotifierConfig")).get("text.table.on-top-fixed-header"))
+			);
 			for (Map.Entry<Wallet, ProducerTask<Collection<String>>> walletForAvailableCoins : walletsForAvailableCoins.entrySet()) {
 				if (walletForAvailableCoins.getKey() instanceof BinanceWallet) {
 					String defaultCollateral = walletForAvailableCoins.getKey().getCollateralForCoin("DEFAULT");
@@ -310,7 +314,7 @@ public class Application implements CommandLineRunner {
 							);
 						}
 					});
-					if (MINIMAL_INDICATOR_ALERT_FOR_NOTIFICATION != null) {
+					if (minNumberOfIndicatorsDetected > -1) {
 						dataCollection.filter(asset -> {
 							Collection<Runnable> alreadyNotifiedUpdaters = new ArrayList<>();
 							int counter =
@@ -325,17 +329,22 @@ public class Application implements CommandLineRunner {
 								+ computeIfMustBeNotified(intervals, alreadyNotified, candlesticksForCoin, asset,
 										BigCandleDetector.class, asset.getVariationPercentages(), alreadyNotifiedUpdaters);
 
-							if (counter >= MINIMAL_INDICATOR_ALERT_FOR_NOTIFICATION) {
+							if (counter >= minNumberOfIndicatorsDetected) {
 								alreadyNotifiedUpdaters.stream().forEach(Runnable::run);
 							}
-							return CriticalIndicatorValueDetectorAbst.checkIfIsBitcoin(asset.getName()) || counter >= MINIMAL_INDICATOR_ALERT_FOR_NOTIFICATION;
+							return CriticalIndicatorValueDetectorAbst.checkIfIsBitcoin(asset.getName()) || counter >= minNumberOfIndicatorsDetected;
 						});
 					}
 					StringBuffer presentation = new StringBuffer("<p style=\"" + Asset.DEFAULT_FONT_SIZE + ";\">Ciao!<br/>Sono stati rilevati i seguenti " + (dataCollection.size() -1) + " asset (BTC escluso) con variazioni rilevanti</p>");
-					if (dataCollection.size() > 1) {
+					if (dataCollection.size() > 0) {
 						sendMail(
-							RECIPIENTS,
-							"Segnalazione asset",
+							((Map<String, Object>)appContext.getBean("indicatorMailServiceNotifierConfig"))
+								.entrySet().stream()
+								.filter(keyAndVal -> keyAndVal.getKey().startsWith("recipient"))
+								.map(Map.Entry::getValue)
+								.map(String.class::cast)
+								.collect(Collectors.joining(",")),
+								"Segnalazione asset",
 							presentation.append(dataCollection.toHTML()).toString(),
 							(String[])null
 						);

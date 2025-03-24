@@ -24,3 +24,12 @@ burningwave.core.static-component-container:
    thread-supplier.max-detached-thread-count: 8
    thread-supplier.max-detached-thread-count.increasing-step: 4
    thread-supplier.max-poolable-thread-count: 0
+
+service:
+   mail:
+      indicator.notifier:
+         text.table.on-top-fixed-header: false
+         min-number-of-indicators-detected: 6
+         recipient:
+            - roberto.gentili.1980@gmail.com
+            - fercoletti@gmail.comm
