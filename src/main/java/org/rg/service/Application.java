@@ -203,7 +203,7 @@ public class Application implements CommandLineRunner {
 		candlestickQuantityForInterval.put(intervals.get(3), 370);
 		Map<String, Map<Interval, BarSeries>> candlesticksForCoin = new ConcurrentHashMap<>();
 		while (true) {
-			Asset.Collection dataCollection = new Asset.Collection();
+			Asset.Collection dataCollection = new Asset.Collection().setOnTopFixedHeader(false);
 			for (Map.Entry<Wallet, ProducerTask<Collection<String>>> walletForAvailableCoins : walletsForAvailableCoins.entrySet()) {
 				if (walletForAvailableCoins.getKey() instanceof BinanceWallet) {
 					String defaultCollateral = walletForAvailableCoins.getKey().getCollateralForCoin("DEFAULT");

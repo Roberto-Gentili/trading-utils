@@ -18,6 +18,7 @@ public class Asset {
 	private final static String DECIMAL_SEPARATOR = Optional.of(Character.valueOf(
 			new java.text.DecimalFormatSymbols().getDecimalSeparator()
 		).toString()).map(sep -> sep.equals(".") ? "\\"+ sep : sep).get();
+
 	public static enum ValueName {
 		ASSET_NAME("Asset name"),
 		COLLATERAL("collateral"),
@@ -161,9 +162,16 @@ public class Asset {
 	static class Collection {
 
 		private List<Asset> datas;
+		private boolean onTopFixedHeader;
 
 		public Collection() {
 			datas = new ArrayList<>();
+			onTopFixedHeader = true;
+		}
+
+		public Collection setOnTopFixedHeader(boolean flag) {
+			this.onTopFixedHeader = flag;
+			return this;
 		}
 
 		public int size() {
@@ -238,16 +246,18 @@ public class Asset {
 					.compareTo((String)assetTwo.get(ValueName.ASSET_NAME) + assetTwo.get(ValueName.COLLATERAL));
 			});
 			AtomicInteger rowCounter = new AtomicInteger(0);
-			List<String> labels = Stream.of(ValueName.values()).map(ValueName::toString).collect(Collectors.toList());
+			List<String> header = Stream.of(ValueName.values()).map(ValueName::toString).collect(Collectors.toList());
 			return
 				"<div style=\"" + TABLE_DIV_STYLE + "\">" +
 					"<table style=\"" + TABLE_STYLE + "\">" +
-						"<thead style=\"" + BLOCKED_HEADER_STYLE + "\">" +
-							"<tr style=\"" + HEADER_ROW_STYLE + "\">" +
-								String.join("", labels.stream().filter(showColumnFilter()).map(label -> "<th style=\"" + HEADER_CELL_STYLE + "\"><b>" + label + "</b></th>").collect(Collectors.toList())) +
-							"</tr>" +
-						"</thead>" +
-						String.join("", datas.stream().map(dt -> toHTML(dt, rowCounter.incrementAndGet())).collect(Collectors.toList())) +
+						(onTopFixedHeader ?
+							"<thead style=\"" + BLOCKED_HEADER_STYLE + "\">" +
+								"<tr style=\"" + HEADER_ROW_STYLE + "\">" +
+									String.join("", header.stream().filter(showColumnFilter()).map(label -> "<th style=\"" + HEADER_CELL_STYLE + "\"><b>" + label + "</b></th>").collect(Collectors.toList())) +
+								"</tr>" +
+							"</thead>" +
+							String.join("", datas.stream().map(dt -> toHTML(header, dt, rowCounter.incrementAndGet(), onTopFixedHeader)).collect(Collectors.toList()))
+						: "") +
 					"</table>" +
 				"</div>";
 		}
@@ -258,8 +268,15 @@ public class Asset {
 			};
 		}
 
-		private String toHTML(Asset data, int rowCounter) {
-			return "<tr style=\"" + (rowCounter % 2 == 0 ? EVEN_ROW_STYLE : ODD_ROW_STYLE) + "\">" +
+		private String toHTML(List<String> header, Asset data, int rowCounter, boolean onTopFixedHeader) {
+			return
+				(onTopFixedHeader ? "" :
+					"<tr style=\"" + HEADER_ROW_STYLE + "\">" +
+						String.join("", header.stream().filter(showColumnFilter()).map(label -> "<th style=\"" + HEADER_CELL_STYLE + "\"><b>" + label + "</b></th>").collect(Collectors.toList())) +
+					"</tr>"
+				) +
+
+				"<tr style=\"" + (rowCounter % 2 == 0 ? EVEN_ROW_STYLE : ODD_ROW_STYLE) + "\">" +
 					String.join(
     					"",Stream.of(ValueName.values()).map(ValueName::toString).filter(showColumnFilter()).map(label -> {
     						Object value = data.values.get(label);
