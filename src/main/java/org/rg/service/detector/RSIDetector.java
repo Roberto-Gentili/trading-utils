@@ -40,9 +40,9 @@ public class RSIDetector extends CriticalIndicatorValueDetectorAbst {
 		Map<String, Object> values = new LinkedHashMap<>();
 		if (latestRSIValue != 0) {
 			if (latestRSIValue > 70) {
-				values.put(interval.toString(), ColoredNumber.valueOf(latestRSIValue).color(ColoredNumber.RED_COLOR));
+				values.put(interval.toString(), ColoredNumber.valueOf(latestRSIValue).color(ColoredNumber.Color.RED.getCode()));
 			} else if (latestRSIValue < 30) {
-				values.put(interval.toString(), ColoredNumber.valueOf(latestRSIValue).color(ColoredNumber.GREEN_COLOR));
+				values.put(interval.toString(), ColoredNumber.valueOf(latestRSIValue).color(ColoredNumber.Color.GREEN.getCode()));
 			} else if (checkIfIsBitcoin(mainAsset)) {
 				values.put(interval.toString(), ColoredNumber.valueOf(latestRSIValue));
 			}

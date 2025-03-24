@@ -52,9 +52,9 @@ public class SpikeDetector extends CriticalIndicatorValueDetectorAbst {
 		Asset data = null;
 		Map<String, Object> values = new LinkedHashMap<>();
 		if (buyCondition) {
-			values.put(interval.toString(), ColoredNumber.valueOf(lowSpikePercentage.doubleValue()).color(ColoredNumber.GREEN_COLOR));
+			values.put(interval.toString(), ColoredNumber.valueOf(lowSpikePercentage.doubleValue()).color(ColoredNumber.Color.GREEN.getCode()));
 		} else if (sellCondition) {
-			values.put(interval.toString(), ColoredNumber.valueOf(highSpikePercentage.doubleValue()).color(ColoredNumber.RED_COLOR));
+			values.put(interval.toString(), ColoredNumber.valueOf(highSpikePercentage.doubleValue()).color(ColoredNumber.Color.RED.getCode()));
 		}
 		if (!values.isEmpty()) {
 			data = new Asset(

@@ -4,16 +4,33 @@ public class ColoredNumber extends Number {
 
 	private static final long serialVersionUID = 2917611752415418621L;
 
-	public static final String DEFAULT_COLOR = "#606060";
-	public static final String RED_COLOR = "red";
-	public static final String GREEN_COLOR = "green";
+	public static enum Color {
+		DEFAULT("#606060"),
+		RED("red"),
+		GREEN("green");
+
+		private String code;
+
+		private Color(String code) {
+			this.code = code;
+		}
+
+		public String getCode() {
+			return this.getCode();
+		}
+
+		@Override
+		public String toString() {
+			return this.code;
+		}
+	}
 
 	private Double value;
 	private String color;
 
 	public ColoredNumber(Double value) {
 		this.value = value;
-		this.color = DEFAULT_COLOR;
+		this.color = Color.DEFAULT.getCode();
 	}
 
 	public ColoredNumber(long vl) {

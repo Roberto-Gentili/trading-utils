@@ -62,12 +62,12 @@ public class BollingerBandDetector extends CriticalIndicatorValueDetectorAbst {
 			if (low.compareTo(bBLower) <= 0) {
 				values.put(
 					interval.toString() + "-l",
-					ColoredNumber.valueOf(bBLower.doubleValue()).color(ColoredNumber.GREEN_COLOR)
+					ColoredNumber.valueOf(bBLower.doubleValue()).color(ColoredNumber.Color.GREEN.getCode())
 				);
 			} else if (high.compareTo(bBUpper) >= 0) {
 				values.put(
 					interval.toString() + "-u",
-					ColoredNumber.valueOf(bBLower.doubleValue()).color(ColoredNumber.RED_COLOR)
+					ColoredNumber.valueOf(bBLower.doubleValue()).color(ColoredNumber.Color.RED.getCode())
 				);
 			} else if (checkIfIsBitcoin(mainAsset)) {
 				values.put(

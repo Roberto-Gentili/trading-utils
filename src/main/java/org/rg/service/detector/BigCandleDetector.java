@@ -44,9 +44,9 @@ public class BigCandleDetector extends CriticalIndicatorValueDetectorAbst {
 		Map<String, Object> values = new LinkedHashMap<>();
 		priceVariation = priceVariation.compareTo(BigDecimal.ZERO) >= 0 ? variationPerc : variationPerc.negate();
 		if (buyCondition) {
-			values.put(interval.toString(), ColoredNumber.valueOf(variationPerc.doubleValue()).color(ColoredNumber.GREEN_COLOR));
+			values.put(interval.toString(), ColoredNumber.valueOf(variationPerc.doubleValue()).color(ColoredNumber.Color.GREEN.getCode()));
 		} else if (sellCondition) {
-			values.put(interval.toString(), ColoredNumber.valueOf(variationPerc.doubleValue()).color(ColoredNumber.RED_COLOR));
+			values.put(interval.toString(), ColoredNumber.valueOf(variationPerc.doubleValue()).color(ColoredNumber.Color.GREEN.getCode()));
 		}
 		if (!values.isEmpty()) {
 			data = new Asset(

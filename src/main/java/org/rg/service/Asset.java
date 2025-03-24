@@ -53,7 +53,7 @@ public class Asset {
 
 	public static String DEFAULT_FONT_SIZE = "font-size:15px;";
 
-	static String DEFAULT_TEXT_COLOR = ColoredNumber.DEFAULT_COLOR;
+	static String DEFAULT_TEXT_COLOR = ColoredNumber.Color.DEFAULT.getCode();
 
 	private static String TABLE_STYLE =
 		"border-collapse: collapse;" +
