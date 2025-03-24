@@ -8,18 +8,19 @@ import java.util.Map;
 import org.rg.finance.Interval;
 import org.rg.service.Asset;
 import org.rg.service.Asset.ValueName;
+import org.rg.service.ColoredNumber;
 import org.ta4j.core.Bar;
 import org.ta4j.core.BarSeries;
 
 public class BigCandleDetector extends CriticalIndicatorValueDetectorAbst {
-	BigDecimal variationPercentage;
+	BigDecimal minimumCandlePercentageSize;
 	public BigCandleDetector(
 		String mainAsset,
 		String collateralAsset, Map<Interval, BarSeries> candlesticks,
-		double variationPercentage
+		double minimumCandlePercentageSize
 	) {
 		super(mainAsset, collateralAsset, candlesticks);
-		this.variationPercentage = BigDecimal.valueOf(variationPercentage);
+		this.minimumCandlePercentageSize = BigDecimal.valueOf(minimumCandlePercentageSize);
 	}
 
 	@Override
@@ -31,28 +32,27 @@ public class BigCandleDetector extends CriticalIndicatorValueDetectorAbst {
 
 		BigDecimal high = toBigDecimal(latestBar.getHighPrice().doubleValue());
 		BigDecimal low = toBigDecimal(latestBar.getLowPrice().doubleValue());
-		BigDecimal open = toBigDecimal(latestBar.getOpenPrice().doubleValue());
-		BigDecimal close = toBigDecimal(latestBar.getClosePrice().doubleValue());
-
 		BigDecimal priceVariation = high.subtract(low);
 		BigDecimal totalForComputation = priceVariation.compareTo(BigDecimal.ZERO) >=0 ? low : high;
 		BigDecimal variationPerc = divide(priceVariation.abs().multiply(BigDecimal.valueOf(100d)),totalForComputation);
 
 		boolean buyCondition =
-			variationPerc.compareTo(variationPercentage) >= 0 && priceVariation.compareTo(BigDecimal.ZERO) < 0;
+			variationPerc.compareTo(minimumCandlePercentageSize) >= 0 && priceVariation.compareTo(BigDecimal.ZERO) < 0;
 		boolean sellCondition =
-			variationPerc.compareTo(variationPercentage) >= 0 && priceVariation.compareTo(BigDecimal.ZERO) >= 0;
+			variationPerc.compareTo(minimumCandlePercentageSize) >= 0 && priceVariation.compareTo(BigDecimal.ZERO) >= 0;
 		Asset data = null;
-		if (buyCondition || sellCondition) {
-			variationPerc = priceVariation.compareTo(BigDecimal.ZERO) >= 0 ? variationPerc : variationPerc.negate();
-			Map<String, Double> values = new LinkedHashMap<>();
-			values.put(interval.toString(), variationPerc.doubleValue());
+		Map<String, Object> values = new LinkedHashMap<>();
+		if (buyCondition) {
+			values.put(interval.toString(), ColoredNumber.valueOf(variationPerc.doubleValue()).color(ColoredNumber.GREEN_COLOR));
+		} else if (sellCondition) {
+			values.put(interval.toString(), ColoredNumber.valueOf(variationPerc.doubleValue()).color(ColoredNumber.RED_COLOR));
+		}
+		if (!values.isEmpty()) {
 			data = new Asset(
 				this.mainAsset,
 				this.collateralAsset,
 				candlesticks
 			).addDynamicValues(ValueName.VARIATION_PERCENTAGE, values);
-
 		}
 		return data;
 	}

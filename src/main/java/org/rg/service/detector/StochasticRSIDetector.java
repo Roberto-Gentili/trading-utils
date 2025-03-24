@@ -6,6 +6,7 @@ import java.util.Map;
 import org.rg.finance.Interval;
 import org.rg.service.Asset;
 import org.rg.service.Asset.ValueName;
+import org.rg.service.ColoredNumber;
 import org.ta4j.core.BarSeries;
 import org.ta4j.core.indicators.StochasticOscillatorKIndicator;
 
@@ -51,9 +52,17 @@ public class StochasticRSIDetector extends CriticalIndicatorValueDetectorAbst {
 		StochasticOscillatorKIndicator sRSI = new StochasticOscillatorKIndicator(barSeries, period);
         Double latestRSIValue = sRSI.getValue(barSeries.getEndIndex()).doubleValue();
         Asset data = null;
-        if (checkIfIsBitcoin(mainAsset) || ((latestRSIValue > 85 || latestRSIValue < 15) && latestRSIValue != 0)) {
-			Map<String, Double> values = new LinkedHashMap<>();
-			values.put(interval.toString(), latestRSIValue.doubleValue());
+		Map<String, Object> values = new LinkedHashMap<>();
+		if (latestRSIValue != 0) {
+			if (latestRSIValue > 85) {
+				values.put(interval.toString(), ColoredNumber.valueOf(latestRSIValue).color(ColoredNumber.RED_COLOR));
+			} else if (latestRSIValue < 15) {
+				values.put(interval.toString(), ColoredNumber.valueOf(latestRSIValue).color(ColoredNumber.GREEN_COLOR));
+			} else if (checkIfIsBitcoin(mainAsset)) {
+				values.put(interval.toString(), ColoredNumber.valueOf(latestRSIValue));
+			}
+		}
+		if (!values.isEmpty()) {
 			data = new Asset(
 				mainAsset,
 				collateralAsset,

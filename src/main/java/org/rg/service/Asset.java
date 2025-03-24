@@ -1,7 +1,4 @@
 package org.rg.service;
-import static org.rg.service.CriticalIndicatorValueDetector.divide;
-
-import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
@@ -55,12 +52,12 @@ public class Asset {
 
 	public static String DEFAULT_FONT_SIZE = "font-size:15px;";
 
-	private static String DEFAULT_TABLE_TEXT_COLOR = "#606060";
+	static String DEFAULT_TEXT_COLOR = ColoredNumber.DEFAULT_COLOR;
 
 	private static String TABLE_STYLE =
 		"border-collapse: collapse;" +
 		"border-spacing: 0px;"+
-		"color: " + DEFAULT_TABLE_TEXT_COLOR +";"+
+		"color: " + DEFAULT_TEXT_COLOR +";"+
 		DEFAULT_FONT_SIZE;
 
 	private static final String TABLE_DIV_STYLE =
@@ -108,9 +105,9 @@ public class Asset {
 		values.put(ValueName.LATEST_4H_BAR.toString(), candleSticks.get(Interval.FOUR_HOURS).getBar(candleSticks.get(Interval.FOUR_HOURS).getEndIndex()));
 	}
 
-	public Asset addDynamicValues(ValueName label, Map<String, Double> values) {
-		Map<String, Double> vals =
-			(Map<String, Double>)this.values.get(label.toString());
+	public Asset addDynamicValues(ValueName label, Map<String, Object> values) {
+		Map<String, Object> vals =
+			(Map<String, Object>)this.values.get(label.toString());
 		if (vals != null) {
 			vals.putAll(values);
 		} else {
@@ -132,26 +129,26 @@ public class Asset {
 	public Bar getLatest4HBar() {
 		return get(ValueName.LATEST_4H_BAR);
 	}
-	public Map<String, Double> getSpikeSizePercentage() {
+	public Map<String, Number> getSpikeSizePercentage() {
 		return get(ValueName.SPIKE_SIZE);
 	}
-	public Map<String, Double> getRSI() {
+	public Map<String, Number> getRSI() {
 		return get(ValueName.RSI);
 	}
-	public Map<String, Double> getStochasticRSI() {
+	public Map<String, Number> getStochasticRSI() {
 		return get(ValueName.STOCHASTIC_RSI);
 	}
-	public Map<String, Double> getBollingerBands() {
+	public Map<String, Number> getBollingerBands() {
 		return get(ValueName.BOLLINGER_BANDS);
 	}
-	public Map<String, Double> getVariationPercentages() {
+	public Map<String, Number> getVariationPercentages() {
 		return get(ValueName.VARIATION_PERCENTAGE);
 	}
-	public Map<String, Double> getSupportAndResistance() {
+	public Map<String, Number> getSupportAndResistance() {
 		return get(ValueName.SUPPORT_AND_RESISTANCE);
 	}
 
-	public static String format(double value) {
+	public static String format(Number value) {
 		String output = String.format("%1$,.8f", value);
 		String[] outputValueSplitted = output.split(DECIMAL_SEPARATOR);
 		if (outputValueSplitted[0].length() >= 3) {
@@ -270,28 +267,19 @@ public class Asset {
     						if (value != null) {
         						if (label.equals(ValueName.ASSET_NAME.toString())) {
         							htmlCellValue = "<a href=\"" + "https://www.binance.com/it/trade/" + value + "_" + data.values.get(ValueName.COLLATERAL.toString()) + "?type=isolated" + "\">" + data.values.get(label) + "</a>";
-        						} else if (value instanceof Double) {
-        							htmlCellValue = Asset.format((Double)value);
+        						} else if (value instanceof Number) {
+        							htmlCellValue = Asset.format((Number)value);
         						} else if (value instanceof Bar) {
         							htmlCellValue = "" + Asset.format(((Bar)value).getClosePrice().doubleValue());
         						} else if (value instanceof Map) {
         							htmlCellValue = (((Map<String, Object>)value).entrySet()).stream().map(rec -> {
-        								if (label.equals(ValueName.RSI.toString())||
-    										label.equals(ValueName.STOCHASTIC_RSI.toString())) {
-        									return "<b>" + rec.getKey() + "</b>=" +
-        										"<span " + ((Double)rec.getValue() < 30 || ((Double)rec.getValue() > 70) ? (("style=\"color: " + ((Double)rec.getValue() < 30 ? "green" : "red")) + "\"") : "") +">" + Asset.format((Double)rec.getValue()) + "</span>";
-        								} else if (label.equals(ValueName.BOLLINGER_BANDS.toString())) {
-        									return "<b>" + rec.getKey() + "</b>=" +
-        										"<span " + (rec.getKey().contains("l") || rec.getKey().contains("u") ? (("style=\"color: " + (rec.getKey().contains("l") ? "green" : "red")) + "\"") : "") +">" + Asset.format((Double)rec.getValue()) + "</span>";
-        								} else if (label.equals(ValueName.SPIKE_SIZE.toString()) ||
-        									label.equals(ValueName.VARIATION_PERCENTAGE.toString())) {
-        									return "<b>" + rec.getKey() + "</b>=" +
-        										"<span style=\"color: " + ((Double)rec.getValue() <= 0 ? "green" : "red") +"\">" + Asset.format((Double)rec.getValue()) + "</span>";
-        								} else if (label.equals(ValueName.SUPPORT_AND_RESISTANCE.toString())) {
-        									return "<b>" + rec.getKey() + "</b>=" +
-        										"<span style=\"color: " + computeResistanceAndSupportTextColor(rec.getKey(), (Double)rec.getValue(), ((Bar)data.get(ValueName.LATEST_1D_BAR)).getClosePrice().doubleValue()) +"\">" + Asset.format((Double)rec.getValue()) + "</span>";
-        								}else {
-        									return "<b>" + rec.getKey() + "</b>=" + Asset.format((Double)rec.getValue());
+        								Object vl = rec.getValue();
+        								String htmlCV = "<b>" + rec.getKey() + "</b>=";
+        								if (vl instanceof ColoredNumber) {
+        									ColoredNumber vlcd = (ColoredNumber)vl;
+        									return htmlCV + "<span style=\"color: " + vlcd.getColor() + ";\">" + Asset.format(((Number)rec.getValue()).doubleValue()) + "</span>";
+        								} else {
+        									return htmlCV + Asset.format(((Number)rec.getValue()).doubleValue());
         								}
         							}).collect(Collectors.joining("<br/>"));
         						} else {
@@ -304,28 +292,6 @@ public class Asset {
     					}).collect(Collectors.toList())
     				) +
 			"</tr>";
-		}
-
-		private String computeResistanceAndSupportTextColor(String key, Double sOrR, Double cP) {
-			BigDecimal currentPrice = BigDecimal.valueOf(cP);
-			BigDecimal sOrRUpper = divide(
-				BigDecimal.valueOf(sOrR).multiply(BigDecimal.valueOf(100.75)),
-				BigDecimal.valueOf(100d)
-			);
-			BigDecimal sOrRlower = divide(
-				BigDecimal.valueOf(sOrR).multiply(BigDecimal.valueOf(99.25)),
-				BigDecimal.valueOf(100d)
-			);
-			if (key.contains("S")) {
-				return
-					currentPrice.compareTo(sOrRlower) >= 0 && currentPrice.compareTo(sOrRUpper) <= 0 ?
-					"green" : DEFAULT_TABLE_TEXT_COLOR;
-			} else if (key.contains("R")) {
-				return
-					currentPrice.compareTo(sOrRlower) >= 0 && currentPrice.compareTo(sOrRUpper) <= 0 ?
-					"red" : DEFAULT_TABLE_TEXT_COLOR;
-			}
-			return DEFAULT_TABLE_TEXT_COLOR;
 		}
 
 	}

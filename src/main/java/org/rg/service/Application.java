@@ -359,12 +359,12 @@ public class Application implements CommandLineRunner {
 		Map<String, Map<Interval, BarSeries>> candlesticksForCoin,
 		Asset asset,
 		Class<? extends CriticalIndicatorValueDetector> indicatorType,
-		Map<String, Double> indicatorValues,
+		Map<String, Number> indicatorValues,
 		Collection<Runnable> alreadyNotifiedUpdaters
 	) {
 		int counter = 0;
 		if (indicatorValues != null && !indicatorValues.isEmpty()) {
-			for (Map.Entry<String, Double> indicator : indicatorValues.entrySet()) {
+			for (Map.Entry<String, Number> indicator : indicatorValues.entrySet()) {
 				for (Interval interval : intervals) {
 					if (indicator.getKey().contains(interval.toString())) {
 						Map<Interval, BarSeries> candlesticks =
