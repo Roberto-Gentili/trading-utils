@@ -180,20 +180,8 @@ public class Application implements CommandLineRunner {
 			);
 		}
 		List<Interval> intervals = Arrays.asList(Interval.WEEK, Interval.ONE_DAYS, Interval.FOUR_HOURS, Interval.ONE_HOURS);
-		Map<Class<? extends CriticalIndicatorValueDetector>, Map<Interval, Map<String, Bar>>> alreadyNotified = new ConcurrentHashMap<>();
-		for (Class<? extends CriticalIndicatorValueDetector> indicatorType : Arrays.asList(
-			RSIDetector.class,
-			StochasticRSIDetector.class,
-			BollingerBandDetector.class,
-			SpikeDetector.class,
-			BigCandleDetector.class
-		)) {
-			for (Interval interval : intervals) {
-				Map<Interval, Map<String, Bar>> temp = new ConcurrentHashMap<Interval, Map<String,Bar>>();
-				temp.put(interval, new ConcurrentHashMap<String, Bar>());
-				alreadyNotified.put(indicatorType, temp);
-			}
-		}
+		Map<Class<? extends CriticalIndicatorValueDetector>, Map<Interval, Map<String, Bar>>> alreadyNotifiedMap =
+			buildAlreadyNotifiedHolder(intervals, new ConcurrentHashMap<>());
 
 		Map<Interval, Integer> candlestickQuantityForInterval = new LinkedHashMap<>();
 		candlestickQuantityForInterval.put(intervals.get(0), 104);
@@ -317,21 +305,20 @@ public class Application implements CommandLineRunner {
 							);
 						}
 					});
-					Asset.Collection backup = null;
 					if (minNumberOfIndicatorsDetected > -1) {
-						backup = dataCollection.filter(asset -> {
+						dataCollection.filter(asset -> {
 							Collection<Runnable> alreadyNotifiedUpdaters = new ArrayList<>();
 							int[] counters = {0,0,0};
 							List<int[]> counterList = Arrays.asList(
-								computeIfMustBeNotified(intervals, showOnlyConsistentData, alreadyNotified, candlesticksForCoin, asset,
+								computeIfMustBeNotified(intervals, showOnlyConsistentData, alreadyNotifiedMap, candlesticksForCoin, asset,
 										RSIDetector.class, asset.getRSI(), alreadyNotifiedUpdaters),
-								computeIfMustBeNotified(intervals, showOnlyConsistentData, alreadyNotified, candlesticksForCoin, asset,
+								computeIfMustBeNotified(intervals, showOnlyConsistentData, alreadyNotifiedMap, candlesticksForCoin, asset,
 										StochasticRSIDetector.class, asset.getStochasticRSI(), alreadyNotifiedUpdaters),
-								computeIfMustBeNotified(intervals, showOnlyConsistentData, alreadyNotified, candlesticksForCoin, asset,
+								computeIfMustBeNotified(intervals, showOnlyConsistentData, alreadyNotifiedMap, candlesticksForCoin, asset,
 										BollingerBandDetector.class, asset.getBollingerBands(), alreadyNotifiedUpdaters),
-								computeIfMustBeNotified(intervals, showOnlyConsistentData, alreadyNotified, candlesticksForCoin, asset,
+								computeIfMustBeNotified(intervals, showOnlyConsistentData, alreadyNotifiedMap, candlesticksForCoin, asset,
 										SpikeDetector.class, asset.getSpikeSizePercentage(), alreadyNotifiedUpdaters),
-								computeIfMustBeNotified(intervals, showOnlyConsistentData, alreadyNotified, candlesticksForCoin, asset,
+								computeIfMustBeNotified(intervals, showOnlyConsistentData, alreadyNotifiedMap, candlesticksForCoin, asset,
 										BigCandleDetector.class, asset.getVariationPercentages(), alreadyNotifiedUpdaters)
 							);
 							for (int i = 0; i < counterList.size(); i++) {
@@ -362,7 +349,7 @@ public class Application implements CommandLineRunner {
 					StringBuffer presentation = new StringBuffer(
 						"<p style=\"" +
 								Asset.DEFAULT_FONT_SIZE + ";\">Ciao!<br/>Sono stati rilevati i seguenti " +
-								(resendAlreadyNotified? backup.size() -1 : dataCollection.size() -1) +
+								(dataCollection.size() -1) +
 								" asset (BTC escluso) con variazioni rilevanti</p>");
 					if (dataCollection.size() > 1) {
 						sendMail(
@@ -373,12 +360,15 @@ public class Application implements CommandLineRunner {
 								.map(String.class::cast)
 								.collect(Collectors.joining(",")),
 								"Segnalazione asset",
-							presentation.append(resendAlreadyNotified? backup.toHTML() : dataCollection.toHTML()).toString(),
+							presentation.append(dataCollection.toHTML()).toString(),
 							(String[])null
 						);
 					}
 					dataCollection.clear();
 					candlesticksForCoin.clear();
+					if (resendAlreadyNotified) {
+						buildAlreadyNotifiedHolder(intervals, alreadyNotifiedMap);
+					}
 //					org.burningwave.core.assembler.StaticComponentContainer.ManagedLoggerRepository.logInfo(
 //						getClass()::getName,
 //						"Waiting 10 seconds"
@@ -387,6 +377,28 @@ public class Application implements CommandLineRunner {
 				}
 			}
 		}
+	}
+
+
+	private Map<Class<? extends CriticalIndicatorValueDetector>, Map<Interval, Map<String, Bar>>> buildAlreadyNotifiedHolder(
+			List<Interval> intervals,
+			Map<Class<? extends CriticalIndicatorValueDetector>, Map<Interval, Map<String, Bar>>> alreadyNotifiedMap
+	) {
+		alreadyNotifiedMap.clear();
+		for (Class<? extends CriticalIndicatorValueDetector> indicatorType : Arrays.asList(
+			RSIDetector.class,
+			StochasticRSIDetector.class,
+			BollingerBandDetector.class,
+			SpikeDetector.class,
+			BigCandleDetector.class
+		)) {
+			for (Interval interval : intervals) {
+				Map<Interval, Map<String, Bar>> temp = new ConcurrentHashMap<Interval, Map<String,Bar>>();
+				temp.put(interval, new ConcurrentHashMap<String, Bar>());
+				alreadyNotifiedMap.put(indicatorType, temp);
+			}
+		}
+		return alreadyNotifiedMap;
 	}
 
 	protected int[] computeIfMustBeNotified(

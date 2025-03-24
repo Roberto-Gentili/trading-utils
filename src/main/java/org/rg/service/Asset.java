@@ -236,18 +236,14 @@ public class Asset {
 		}
 
 		public Collection filter(Predicate<Asset> assetPredicate) {
-			Collection backup = new Collection();
-			backup.setOnTopFixedHeader(this.onTopFixedHeader);
-			backup.datas.addAll(this.datas);
 			Iterator<Asset> assetIterator = datas.iterator();
 			while (assetIterator.hasNext()) {
 				Asset asset = assetIterator.next();
 				if (!assetPredicate.test(asset)) {
 					assetIterator.remove();
-					backup.datas.remove(asset);
 				}
 			}
-			return backup;
+			return this;
 		}
 
 		public String toHTML() {
