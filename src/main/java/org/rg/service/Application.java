@@ -336,7 +336,7 @@ public class Application implements CommandLineRunner {
 						});
 					}
 					StringBuffer presentation = new StringBuffer("<p style=\"" + Asset.DEFAULT_FONT_SIZE + ";\">Ciao!<br/>Sono stati rilevati i seguenti " + (dataCollection.size() -1) + " asset (BTC escluso) con variazioni rilevanti</p>");
-					if (dataCollection.size() > 0) {
+					if (dataCollection.size() > 1) {
 						sendMail(
 							((Map<String, Object>)appContext.getBean("indicatorMailServiceNotifierConfig"))
 								.entrySet().stream()
