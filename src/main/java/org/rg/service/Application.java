@@ -318,35 +318,34 @@ public class Application implements CommandLineRunner {
 					});
 					if (minNumberOfIndicatorsDetected > -1) {
 						dataCollection.filter(asset -> {
-							if (!resendAlreadyNotified) {
-								Collection<Runnable> alreadyNotifiedUpdaters = new ArrayList<>();
-								int[] counters = {0,0,0};
-								List<int[]> counterList = Arrays.asList(
-									computeIfMustBeNotified(intervals, alreadyNotified, candlesticksForCoin, asset,
-											RSIDetector.class, asset.getRSI(), alreadyNotifiedUpdaters),
-									computeIfMustBeNotified(intervals, alreadyNotified, candlesticksForCoin, asset,
-											StochasticRSIDetector.class, asset.getStochasticRSI(), alreadyNotifiedUpdaters),
-									computeIfMustBeNotified(intervals, alreadyNotified, candlesticksForCoin, asset,
-											BollingerBandDetector.class, asset.getBollingerBands(), alreadyNotifiedUpdaters),
-									computeIfMustBeNotified(intervals, alreadyNotified, candlesticksForCoin, asset,
-											SpikeDetector.class, asset.getSpikeSizePercentage(), alreadyNotifiedUpdaters),
-									computeIfMustBeNotified(intervals, alreadyNotified, candlesticksForCoin, asset,
-											BigCandleDetector.class, asset.getVariationPercentages(), alreadyNotifiedUpdaters)
-								);
-								for (int i = 0; i < counterList.size(); i++) {
-									int[] countersFromCounterList = counterList.get(i);
-									for (int j = 0; j < counters.length; j++) {
-										counters[j] += countersFromCounterList[j];
-									}
+							Collection<Runnable> alreadyNotifiedUpdaters = new ArrayList<>();
+							int[] counters = {0,0,0};
+							List<int[]> counterList = Arrays.asList(
+								computeIfMustBeNotified(intervals, alreadyNotified, candlesticksForCoin, asset,
+										RSIDetector.class, asset.getRSI(), alreadyNotifiedUpdaters),
+								computeIfMustBeNotified(intervals, alreadyNotified, candlesticksForCoin, asset,
+										StochasticRSIDetector.class, asset.getStochasticRSI(), alreadyNotifiedUpdaters),
+								computeIfMustBeNotified(intervals, alreadyNotified, candlesticksForCoin, asset,
+										BollingerBandDetector.class, asset.getBollingerBands(), alreadyNotifiedUpdaters),
+								computeIfMustBeNotified(intervals, alreadyNotified, candlesticksForCoin, asset,
+										SpikeDetector.class, asset.getSpikeSizePercentage(), alreadyNotifiedUpdaters),
+								computeIfMustBeNotified(intervals, alreadyNotified, candlesticksForCoin, asset,
+										BigCandleDetector.class, asset.getVariationPercentages(), alreadyNotifiedUpdaters)
+							);
+							for (int i = 0; i < counterList.size(); i++) {
+								int[] countersFromCounterList = counterList.get(i);
+								for (int j = 0; j < counters.length; j++) {
+									counters[j] += countersFromCounterList[j];
 								}
-								if (counters[0] >= minNumberOfIndicatorsDetected) {
+							}
+							if (counters[0] >= minNumberOfIndicatorsDetected) {
+								if (!resendAlreadyNotified) {
 									alreadyNotifiedUpdaters.stream().forEach(Runnable::run);
 								}
-								return
-									CriticalIndicatorValueDetectorAbst.checkIfIsBitcoin(asset.getName()) || counters[0] >= minNumberOfIndicatorsDetected;
-							} else {
-								return true;
 							}
+							return
+								CriticalIndicatorValueDetectorAbst.checkIfIsBitcoin(asset.getName()) ||
+								counters[0] >= minNumberOfIndicatorsDetected;
 						});
 					}
 					StringBuffer presentation = new StringBuffer("<p style=\"" + Asset.DEFAULT_FONT_SIZE + ";\">Ciao!<br/>Sono stati rilevati i seguenti " + (dataCollection.size() -1) + " asset (BTC escluso) con variazioni rilevanti</p>");
