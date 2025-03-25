@@ -402,12 +402,10 @@ public class Application implements CommandLineRunner {
 						});
 					}
 					StringBuffer presentation = new StringBuffer(
-						"<p style=\"" +
-							Asset.DEFAULT_FONT_SIZE + "\">Ciao!<br/>In data <b>" +
-							new SimpleDateFormat("yyyy\\MM\\dd-HH:mm:ss").format(new Date())+ "</b> sono stati rilevati i seguenti " +
-							(dataCollection.size() -1) +
-							" asset (BTC escluso) con variazioni rilevanti (la lista è visualizzabile anche da " +
-							"<a href=\"https://html-preview.github.io/?url=https://github.com/Roberto-Gentili/trading-utils/blob/main/src/main/resources/assets.html\">qui</a>)</p>");
+						"<p style=\"" + Asset.DEFAULT_FONT_SIZE + "\">" +
+						"Ciao!<br/>In data <b>" + new SimpleDateFormat("yyyy\\MM\\dd-HH:mm:ss").format(new Date())+ "</b> " +
+						"sono stati rilevati i seguenti" + (dataCollection.size() -1) + " asset (BTC escluso) con variazioni rilevanti {0}</p>"
+					);
 					List<String> notifiedAssetInThisEmail = null;
 					boolean sameAssetsSentInPreviousEmail = false;
 					if (resendAlreadyNotifiedOption) {
@@ -426,7 +424,11 @@ public class Application implements CommandLineRunner {
 								.map(String.class::cast)
 								.collect(Collectors.joining(",")),
 								"Segnalazione asset",
-							presentation.toString() + dataCollection.toHTML(),
+							presentation.toString().replace(
+								"{0}",
+								"(la lista è visualizzabile anche da <a href=\"https://html-preview.github.io/?url=https://github.com/Roberto-Gentili/trading-utils/blob/main/src/main/resources/assets.html\">qui</a>)"
+							) +
+							dataCollection.toHTML(),
 							(String[])null
 						);
 						org.burningwave.core.assembler.StaticComponentContainer.Streams.store(
@@ -438,7 +440,7 @@ public class Application implements CommandLineRunner {
 									"}, 60000);" +
 								"</script>" +
 								"<body>" +
-									presentation.toString() + dataCollection.setOnTopFixedHeader(true).toHTML() +
+									presentation.toString().replace("{0}", "") + dataCollection.setOnTopFixedHeader(true).toHTML() +
 								"</body>" +
 							"</html>")
 							.getBytes(StandardCharsets.UTF_8)
