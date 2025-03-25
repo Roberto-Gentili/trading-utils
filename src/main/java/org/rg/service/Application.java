@@ -329,7 +329,7 @@ public class Application implements CommandLineRunner {
 							}
 							if (detected != null) {
 								CriticalIndicatorValueDetector resistanceAndSupportDetector =
-									new ResistanceAndSupportDetector(coin, defaultCollateral, candlesticks);
+									new ResistanceAndSupportDetector(coin, defaultCollateral, candlesticks, false);
 								for (Map.Entry<Interval, Integer> cFI : candlestickQuantityForInterval.entrySet()) {
 									if (CriticalIndicatorValueDetectorAbst.checkIfIsBitcoin(coin) || candlesticks.get(cFI.getKey()).getBarCount() >= cFI.getValue()) {
 										detected = process(

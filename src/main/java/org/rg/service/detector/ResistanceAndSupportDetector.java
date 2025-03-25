@@ -9,6 +9,7 @@ import java.util.Map;
 import org.rg.finance.Interval;
 import org.rg.service.Asset;
 import org.rg.service.Asset.ValueName;
+import org.rg.service.Color;
 import org.rg.service.ColoredNumber;
 import org.ta4j.core.BarSeries;
 import org.ta4j.core.indicators.pivotpoints.PivotLevel;
@@ -17,11 +18,14 @@ import org.ta4j.core.indicators.pivotpoints.StandardReversalIndicator;
 import org.ta4j.core.indicators.pivotpoints.TimeLevel;
 
 public class ResistanceAndSupportDetector extends CriticalIndicatorValueDetectorAbst {
-
+	boolean retrieveOnlyCritical;
 	public ResistanceAndSupportDetector(
 		String mainAsset, String collateralAsset,
-		Map<Interval, BarSeries> candlesticks) {
+		Map<Interval, BarSeries> candlesticks,
+		boolean retrieveOnlyCritical
+	) {
 		super(mainAsset, collateralAsset, candlesticks);
+		this.retrieveOnlyCritical = retrieveOnlyCritical;
 	}
 
 	@Override
@@ -38,22 +42,35 @@ public class ResistanceAndSupportDetector extends CriticalIndicatorValueDetector
 			String levelName = level.name();
 			StandardReversalIndicator rI = new StandardReversalIndicator(indicator, level);
 			String key = interval.toString() + levelName.charAt(0)+ levelName.charAt(levelName.length()-1);
-			values.put(
+			ColoredNumber value = toColoredNumber(
 				key,
-				toColoredNumber(
-					key,
-					rI.getValue(candlestick.getEndIndex()).doubleValue(),
-					candlestick.getLastBar().getClosePrice().doubleValue()
-				)
+				rI.getValue(candlestick.getEndIndex()).doubleValue(),
+				candlestick.getLastBar().getClosePrice().doubleValue()
 			);
+			if (retrieveOnlyCritical) {
+				if (!value.getColor().equals(Color.DEFAULT.getCode())) {
+					values.put(
+						key,
+						value
+					);
+				}
+			} else {
+				values.put(
+					key,
+					value
+				);
+			}
 
 		}
-
-		return new Asset(
-			this.mainAsset,
-			this.collateralAsset,
-			candlesticks
-		).addDynamicValues(ValueName.SUPPORT_AND_RESISTANCE, values);
+		Asset data = null;
+		if (!values.isEmpty()) {
+			data = new Asset(
+				this.mainAsset,
+				this.collateralAsset,
+				candlesticks
+			).addDynamicValues(ValueName.SUPPORT_AND_RESISTANCE, values);
+		}
+		return data;
 	}
 
 
