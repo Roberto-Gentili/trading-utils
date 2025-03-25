@@ -278,7 +278,7 @@ public class Application implements CommandLineRunner {
 							for (Interval interval : intervals) {
 								detected =
 									process(
-										new EMADetector(coin,defaultCollateral,candlesticks, false, 21,50,100,200),
+										new EMADetector(coin,defaultCollateral,candlesticks, false, 25,50,100,200),
 										interval,
 										dataCollection,
 										detected
