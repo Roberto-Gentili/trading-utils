@@ -1,5 +1,7 @@
 package org.rg.service.detector;
 
+import static org.rg.service.CriticalIndicatorValueDetector.divide;
+
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -76,22 +78,21 @@ public class EMADetector extends CriticalIndicatorValueDetectorAbst {
 	}
 
 	private ColoredNumber toColoredNumber(String key, BigDecimal maValue, BigDecimal currentPrice) {
-//		if (currentPrice.compareTo(maValue) <= 0) {
-//			BigDecimal sOrRUpper = divide(
-//				maValue.multiply(BigDecimal.valueOf(100.75)),
-//				BigDecimal.valueOf(100d)
-//			);
-//			BigDecimal sOrRlower = divide(
-//				maValue.multiply(BigDecimal.valueOf(99.25)),
-//				BigDecimal.valueOf(100d)
-//			);
-//			if () {
-//
-//			}
-//		} else {
-//
-//		}
-		return ColoredNumber.valueOf(maValue.doubleValue());
+		BigDecimal maRUpper = divide(
+			maValue.multiply(BigDecimal.valueOf(100.75)),
+			BigDecimal.valueOf(100d)
+		);
+		BigDecimal malower = divide(
+			maValue.multiply(BigDecimal.valueOf(99.25)),
+			BigDecimal.valueOf(100d)
+		);
+		ColoredNumber value = ColoredNumber.valueOf(maValue.doubleValue());
+		if (currentPrice.compareTo(malower) >= 0 && currentPrice.compareTo(maValue) <= 0) {
+			value.color(Color.RED.getCode());
+		} else if (currentPrice.compareTo(maRUpper) <= 0 && currentPrice.compareTo(maValue) >= 0) {
+			value.color(Color.GREEN.getCode());
+		}
+		return value;
 	}
 
 }
