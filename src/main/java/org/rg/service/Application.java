@@ -354,8 +354,10 @@ public class Application implements CommandLineRunner {
 										BigCandleDetector.class, asset.getVariationPercentages(), alreadyNotifiedUpdaters)
 							);
 							if (ShowConsistentDataOption.HIGHLIGHT_THEM.valueEquals(showConsistentDataOption)) {
-								if ((counters[1] == 0 && counters[2] > 0 ) || (counters[2] == 0 && counters[2] > 0)) {
-									asset.highligtName(Color.YELLOW.getCode());
+								if ((counters[1] == 0 && counters[2] > 0)) {
+									asset.highligtName(Color.GREEN.getCode());
+								} else if ((counters[2] == 0 && counters[1] > 0)) {
+									asset.highligtName(Color.RED.getCode());
 								}
 							}
 							for (int i = 0; i < counterList.size(); i++) {
