@@ -16,13 +16,13 @@ set path=%path%;%MVN_HOME%\bin;%JAVA_HOME%\bin;%GIT_HOME%\bin;
 %CURRENT_UNIT%
 cd %CURRENT_DIR%
 
-call "%CURRENT_DIR%\setup-ssh.cmd"
-
-call mvn --settings %MVN_SETTINGS_PATH% clean dependency:list install
+::call "%CURRENT_DIR%\setup-ssh.cmd"
 
 :loop
 
 call git pull
+
+call mvn --settings %MVN_SETTINGS_PATH% clean dependency:list install
 
 IF ["%~1"] == ["LOGGING_ENABLED"] (
 	echo.
