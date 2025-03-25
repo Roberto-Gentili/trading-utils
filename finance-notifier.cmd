@@ -16,7 +16,7 @@ set path=%path%;%MVN_HOME%\bin;%JAVA_HOME%\bin;%GIT_HOME%\bin;
 %CURRENT_UNIT%
 cd %CURRENT_DIR%
 
-::call "%CURRENT_DIR%\setup-ssh.cmd"
+call "%CURRENT_DIR%\setup-ssh.cmd"
 
 :loop
 
