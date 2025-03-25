@@ -2,8 +2,9 @@ package org.rg.service;
 
 public enum Color {
 	DEFAULT("#606060"),
+	GREEN("green"),
 	RED("red"),
-	GREEN("green");
+	YELLOW("yellow");
 
 	private String code;
 

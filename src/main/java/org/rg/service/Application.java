@@ -467,12 +467,12 @@ public class Application implements CommandLineRunner {
 				for (Interval interval : intervals) {
 					if (indicator.getKey().contains(interval.toString())) {
 						Map<Interval, BarSeries> candlesticks =
-							candlesticksForCoin.get(asset.getName()+ asset.getCollateral());
+							candlesticksForCoin.get(asset.getColoredName()+ asset.getCollateral());
 						candlesticks.get(interval);
 						Runnable updater = checkIfAlreadyNotified(
 							asset,
 							interval,
-							candlesticksForCoin.get(asset.getName() + asset.getCollateral()),
+							candlesticksForCoin.get(asset.getColoredName() + asset.getCollateral()),
 							getAlreadyNotified(alreadyNotified.get(indicatorType), interval)
 						);
 						if (updater != null) {
@@ -499,7 +499,7 @@ public class Application implements CommandLineRunner {
 				if (ShowConsistentDataOption.HIGHLIGHT_THEM.valueEquals(showConsistentDataOption)) {
 					if ((alreadyNotifiedGreenUpdaters.isEmpty() && !alreadyNotifiedRedUpdaters.isEmpty()) ||
 						(alreadyNotifiedRedUpdaters.isEmpty() && !alreadyNotifiedGreenUpdaters.isEmpty())) {
-						asset.convertNameToColored();
+						asset.getColoredName().color(Color.YELLOW.getCode());
 					}
 				}
 				alreadyNotifiedUpdaters.addAll(allUpdaters);
@@ -553,7 +553,7 @@ public class Application implements CommandLineRunner {
 				}
 			};
 		}
-		Bar latestNotified = alreadyNotified.get(asset.getName());
+		Bar latestNotified = alreadyNotified.get(asset.getColoredName());
 		boolean alreadyNotifiedFlag = false;
 		Bar latestBar = candlesticks.get(interval).getLastBar();
 		Runnable updater = null;
@@ -566,7 +566,7 @@ public class Application implements CommandLineRunner {
 				org.burningwave.core.assembler.StaticComponentContainer.ManagedLoggerRepository.logInfo(
 					getClass()::getName,
 					"Variation already notified for coin {}",
-					asset.getName()
+					asset.getColoredName()
 				);
 			}
 		} else {

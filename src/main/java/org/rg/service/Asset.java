@@ -101,15 +101,17 @@ public class Asset {
 	private Map<String, Object> values;
 
 	public Asset(
-		Object assetName,
-		Object collateral,
+		String assetName,
+		String collateral,
 		Map<Interval, BarSeries> candleSticks
 	) {
 		values = new LinkedHashMap<>();
-		values.put(ValueName.ASSET_NAME.toString(), assetName);
+		values.put(ValueName.ASSET_NAME.toString(),
+		ColoredString.valueOf(assetName));
 		values.put(ValueName.COLLATERAL.toString(), collateral);
 		values.put(ValueName.LATEST_1D_BAR.toString(), candleSticks.get(Interval.ONE_DAYS).getBar(candleSticks.get(Interval.ONE_DAYS).getEndIndex()));
 		values.put(ValueName.LATEST_4H_BAR.toString(), candleSticks.get(Interval.FOUR_HOURS).getBar(candleSticks.get(Interval.FOUR_HOURS).getEndIndex()));
+
 	}
 
 	public Asset addDynamicValues(ValueName label, Map<String, Object> values) {
@@ -127,30 +129,18 @@ public class Asset {
 		return (O)values.get(key.toString());
 	}
 
-	public ColoredString convertNameToColored() {
-		Object name = getName();
-		ColoredString coloredValue = null;
-		if (name instanceof String) {
-			coloredValue = ColoredString.valueOf((String)name);
-			setColoredName(coloredValue);
-		} else if (name instanceof ColoredString) {
-			coloredValue = (ColoredString)name;
-		}
-		return coloredValue;
-	}
-
-	public Asset setColoredName(ColoredString value) {
-		values.put(ValueName.ASSET_NAME.toString(), value);
+	public Asset highligtName(String color) {
+		getColoredName().color(color);
 		return this;
 	}
 
-	public String getName() {
-		Object name = get(ValueName.ASSET_NAME);
-		if (name instanceof String) {
-			return (String)name;
-		}
-		return name != null? name.toString() : null;
+	public ColoredString getColoredName() {
+		return (ColoredString)get(ValueName.ASSET_NAME);
 	}
+	public String getName() {
+		return getColoredName().value();
+	}
+
 	public String getCollateral() {
 		return get(ValueName.COLLATERAL);
 	}
@@ -216,7 +206,7 @@ public class Asset {
 			Iterator<Asset> oldDataIterator = datas.iterator();
 			while (oldDataIterator.hasNext()) {
 				Asset dataAlreadyAdded = oldDataIterator.next();
-				if (dataAlreadyAdded.get(ValueName.ASSET_NAME).equals(data.get(ValueName.ASSET_NAME)) &&
+				if (dataAlreadyAdded.getName().equals(data.getName()) &&
 						dataAlreadyAdded.get(ValueName.COLLATERAL).equals(data.get(ValueName.COLLATERAL))) {
 					data = mergeInNewData(dataAlreadyAdded, data);
 					oldDataIterator.remove();
@@ -274,8 +264,8 @@ public class Asset {
 
 		public String toHTML() {
 			datas.sort((assetOne, assetTwo) -> {
-				return (assetOne.getName() + assetOne.get(ValueName.COLLATERAL))
-					.compareTo((String)assetTwo.get(ValueName.ASSET_NAME) + assetTwo.get(ValueName.COLLATERAL));
+				return (assetOne.getColoredName().value() + assetOne.get(ValueName.COLLATERAL))
+					.compareTo(assetTwo.getColoredName().value() + assetTwo.get(ValueName.COLLATERAL));
 			});
 			AtomicInteger rowCounter = new AtomicInteger(0);
 			List<String> header = Stream.of(ValueName.values()).map(ValueName::toString).collect(Collectors.toList());
@@ -315,8 +305,9 @@ public class Asset {
     						String cellStyle = CELL_STYLE;
     						if (value != null) {
     							if (label.equals(ValueName.ASSET_NAME.toString())) {
-    								if (value instanceof ColoredString) {
-    									cellStyle += "background-color: yellow;";
+    								ColoredString assetName = data.getColoredName();
+    								if (!assetName.getColor().equals(Color.DEFAULT.name())) {
+    									cellStyle += "background-color: " + assetName.getColor() +";";
     								}
         							htmlCellValue = "<a href=\"" + "https://www.binance.com/it/trade/" + value + "_" + data.values.get(ValueName.COLLATERAL.toString()) + "?type=isolated" + "\">" + data.values.get(label) + "</a>";
         						} else if (value instanceof Number) {
