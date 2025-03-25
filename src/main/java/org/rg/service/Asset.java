@@ -292,7 +292,7 @@ public class Asset {
 
 		private String toHTML(List<String> header, Asset data, int rowCounter, boolean onTopFixedHeader) {
 			return
-				(!onTopFixedHeader ? "" :
+				(onTopFixedHeader ? "" :
 					"<tr style=\"" + HEADER_ROW_STYLE + "\">" +
 						String.join("", header.stream().filter(showColumnFilter()).map(label -> "<td style=\"" + HEADER_CELL_STYLE + "\"><b>" + label + "</b></td>").collect(Collectors.toList())) +
 					"</tr>"

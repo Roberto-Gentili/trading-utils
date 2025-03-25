@@ -250,6 +250,7 @@ public class Application implements CommandLineRunner {
 					Collection<String> marginUSDCCoins = ((BinanceWallet)walletForAvailableCoins.getKey()).getAllMarginAssetPairs()
 						.stream().filter(asset -> asset.get("quote").equals(defaultCollateral)).map(asset -> asset.get("base")).
 						map(String.class::cast).collect(Collectors.toList());
+					marginUSDCCoins= Arrays.asList("BTC", "CRV");
 					marginUSDCCoins.parallelStream().forEach(coin -> {
 						try {
 							org.burningwave.core.assembler.StaticComponentContainer.ManagedLoggerRepository.logInfo(
@@ -403,11 +404,11 @@ public class Application implements CommandLineRunner {
 					}
 					StringBuffer presentation = new StringBuffer(
 						"<p style=\"" +
-								Asset.DEFAULT_FONT_SIZE + "\">Ciao!<br/>In data " +
-								new SimpleDateFormat("yyyy\\MM\\dd-HH:mm:ss").format(new Date())+ " sono stati rilevati i seguenti " +
-								(dataCollection.size() -1) +
-								" asset (BTC escluso) con variazioni rilevanti (la lista è visualizzabile anche da " +
-								"<a href=\"https://html-preview.github.io/?url=https://github.com/Roberto-Gentili/trading-utils/blob/main/src/main/resources/assets.html\">qui</a>)</p>");
+							Asset.DEFAULT_FONT_SIZE + "\">Ciao!<br/>In data " +
+							new SimpleDateFormat("yyyy\\MM\\dd-HH:mm:ss").format(new Date())+ " sono stati rilevati i seguenti " +
+							(dataCollection.size() -1) +
+							" asset (BTC escluso) con variazioni rilevanti (la lista è visualizzabile anche da " +
+							"<a href=\"https://html-preview.github.io/?url=https://github.com/Roberto-Gentili/trading-utils/blob/main/src/main/resources/assets.html\">qui</a>)</p>");
 					List<String> notifiedAssetInThisEmail = null;
 					boolean sameAssetsSentInPreviousEmail = false;
 					if (resendAlreadyNotifiedOption) {
@@ -426,14 +427,14 @@ public class Application implements CommandLineRunner {
 								.map(String.class::cast)
 								.collect(Collectors.joining(",")),
 								"Segnalazione asset",
-							presentation.append(dataCollection.toHTML()).toString(),
+							presentation.toString() + dataCollection.toHTML(),
 							(String[])null
 						);
 						org.burningwave.core.assembler.StaticComponentContainer.Streams.store(
 							FileSystemItem.ofPath(projectFolder.getAbsolutePath() + "/src/main/resources/assets.html").getAbsolutePath(),
 							("<html>" +
 								"<body>" +
-									presentation.append(dataCollection.setOnTopFixedHeader(true).toHTML()).toString() +
+									presentation.toString() + dataCollection.setOnTopFixedHeader(true).toHTML() +
 								"</body>" +
 							"</html>")
 							.getBytes(StandardCharsets.UTF_8)
