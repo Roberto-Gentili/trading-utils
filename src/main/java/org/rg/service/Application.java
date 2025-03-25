@@ -353,6 +353,11 @@ public class Application implements CommandLineRunner {
 								computeIfMustBeNotified(intervals, showConsistentDataOption, alreadyNotifiedMap, candlesticksForCoin, asset,
 										BigCandleDetector.class, asset.getVariationPercentages(), alreadyNotifiedUpdaters)
 							);
+							if (ShowConsistentDataOption.HIGHLIGHT_THEM.valueEquals(showConsistentDataOption)) {
+								if ((counters[1] == 0 && counters[2] > 0 ) || (counters[2] == 0 && counters[2] > 0)) {
+									asset.highligtName(Color.YELLOW.getCode());
+								}
+							}
 							for (int i = 0; i < counterList.size(); i++) {
 								int[] countersFromCounterList = counterList.get(i);
 								for (int j = 0; j < counters.length; j++) {
@@ -496,12 +501,6 @@ public class Application implements CommandLineRunner {
 					alreadyNotifiedUpdaters.addAll(alreadyNotifiedGreenUpdaters);
 				}
 			} else {
-				if (ShowConsistentDataOption.HIGHLIGHT_THEM.valueEquals(showConsistentDataOption)) {
-					if ((alreadyNotifiedGreenUpdaters.isEmpty() && !alreadyNotifiedRedUpdaters.isEmpty()) ||
-						(alreadyNotifiedRedUpdaters.isEmpty() && !alreadyNotifiedGreenUpdaters.isEmpty())) {
-						asset.highligtName(Color.YELLOW.getCode());
-					}
-				}
 				alreadyNotifiedUpdaters.addAll(allUpdaters);
 			}
 		}
