@@ -1,7 +1,5 @@
 @echo off
 
-set JAVA_COMMAND=javaw.exe
-
 set CURRENT_DIR=%~dp0
 set CURRENT_UNIT=%CURRENT_DIR:~0,2%
 set GIT_HOME=%CURRENT_UNIT%\Shared\Programmi\Git\current
@@ -18,9 +16,7 @@ set path=%path%;%MVN_HOME%\bin;%JAVA_HOME%\bin;%GIT_HOME%\bin;
 %CURRENT_UNIT%
 cd %CURRENT_DIR%
 
-sc start ssh-agent
-
-git pull
+call "%CURRENT_DIR%\setup-ssh.cmd"
 
 call mvn --settings %MVN_SETTINGS_PATH% clean dependency:list install
 
@@ -32,7 +28,7 @@ IF ["%~1"] == ["LOGGING_ENABLED"] (
 	echo.
 	call java.exe -DcryptoComApiKey=%CRYPTO_COM_API_KEY% -DcryptoComApiSecret=%CRYPTO_COM_API_SECRET% -DbinanceApiKey=%BINANCE_API_KEY% -DbinanceApiSecret=%BINANCE_API_SECRET% -DemailAccount=%BURNINGWAVE_ORG_ACCOUNT_NAME% -DemailPassword=%BURNINGWAVE_ORG_ACCOUNT_PASSWORD% -DmultiThreadingMode=normal -jar ./target/runner-1.0.0.jar org.rg.service.Runner
 ) else (
-	start "Crypto RSI Change Notifier" javaw.exe -DcryptoComApiKey=%CRYPTO_COM_API_KEY% -DcryptoComApiSecret=%CRYPTO_COM_API_SECRET% -DbinanceApiKey=%BINANCE_API_KEY% -DbinanceApiSecret=%BINANCE_API_SECRET% -DemailAccount=%BURNINGWAVE_ORG_ACCOUNT_NAME% -DemailPassword=%BURNINGWAVE_ORG_ACCOUNT_PASSWORD% -DmultiThreadingMode=normal -jar ./target/runner-1.0.0.jar org.rg.service.Runner
+	start "Crypto RSI Change Notifier" javaw.exe -DcryptoComApiKey=%CRYPTO_COM_API_KEY% -DcryptoComApiSecret=%CRYPTO_COM_API_SECRET% -DbinanceApiKey=%BINANCE_API_KEY% -DbinanceApiSecret=%BINANCE_API_SECRET% -DemailAccount=%BURNINGWAVE_ORG_ACCOUNT_NAME% -DemailPassword=%BURNINGWAVE_ORG_ACCOUNT_PASSWORD% -DmultiThreadingMode=normal -jar "%CURRENT_DIR%/target/runner-1.0.0.jar" org.rg.service.Runner
 )
 call git commit -am "Updated asset report"
 call git push
