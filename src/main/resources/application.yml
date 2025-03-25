@@ -36,3 +36,5 @@ service:
          recipient:
             - roberto.gentili.1980@gmail.com
             - fercoletti@gmail.comm
+         view:
+            autorefresh-every: 180000

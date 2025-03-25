@@ -240,6 +240,10 @@ public class Application implements CommandLineRunner {
 			removeEmptySpaces
 			((String)((Map<String, Object>)appContext.getBean("indicatorMailServiceNotifierConfig")).getOrDefault("show-consistent-data", "ignore"))
 			;
+		long viewAutorefreshOption =
+			Long.valueOf(
+				((String)((Map<String, Object>)appContext.getBean("indicatorMailServiceNotifierConfig")).getOrDefault("view.autorefresh-every", "300000"))
+			);
 		int cycles = 1;
 		while (cycles-- > 0 ) {
 			Asset.Collection dataCollection = new Asset.Collection().setOnTopFixedHeader(
@@ -448,7 +452,7 @@ public class Application implements CommandLineRunner {
 								"<script>" +
 									"window.setTimeout( function() {" +
 										"window.location.reload();" +
-									"}, 60000);" +
+									"}, " + viewAutorefreshOption + ");" +
 								"</script>" +
 								"<body>" +
 									presentation.toString().replace("{0}", "") + dataCollection.setOnTopFixedHeader(true).toHTML() +
