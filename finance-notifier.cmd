@@ -17,6 +17,9 @@ set path=%path%;%MVN_HOME%\bin;%JAVA_HOME%\bin;%GIT_HOME%\bin;
 
 %CURRENT_UNIT%
 cd %CURRENT_DIR%
+
+sc start ssh-agent
+
 git pull
 
 call mvn --settings %MVN_SETTINGS_PATH% clean dependency:list install
