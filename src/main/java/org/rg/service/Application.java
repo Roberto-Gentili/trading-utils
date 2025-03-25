@@ -2,6 +2,7 @@ package org.rg.service;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
@@ -26,6 +27,7 @@ import javax.mail.internet.MimeMessage;
 import javax.mail.internet.MimeMultipart;
 
 import org.burningwave.core.concurrent.QueuedTaskExecutor.ProducerTask;
+import org.burningwave.core.io.FileSystemItem;
 import org.rg.finance.BinanceWallet;
 import org.rg.finance.CryptoComWallet;
 import org.rg.finance.Interval;
@@ -193,6 +195,14 @@ public class Application implements CommandLineRunner {
 
 	@Override
 	public void run(String... args) throws Exception {
+		FileSystemItem targetFolder =
+			org.burningwave.core.assembler.ComponentContainer.getInstance().getPathHelper().findResources(path ->
+				path.contains("target") && path.contains(Application.class.getSimpleName())
+			).stream().findFirst().map(fIS -> {
+				while (!(fIS = fIS.getParent()).getName().equals("target")) {}
+				return fIS;
+			}).get();
+		FileSystemItem projectFolder = targetFolder.getParent();
 		Map<Wallet, ProducerTask<Collection<String>>> walletsForAvailableCoins = new LinkedHashMap<>();
 		for(String beanName : appContext.getBeanNamesForType(Wallet.class)) {
 			Wallet wallet = appContext.getBean(beanName, Wallet.class);
@@ -227,7 +237,8 @@ public class Application implements CommandLineRunner {
 			removeEmptySpaces
 			((String)((Map<String, Object>)appContext.getBean("indicatorMailServiceNotifierConfig")).getOrDefault("show-consistent-data", "ignore"))
 			;
-		while (true) {
+		int cycles = 1;
+		while (cycles-- > 0 ) {
 			Asset.Collection dataCollection = new Asset.Collection().setOnTopFixedHeader(
 				Boolean.valueOf((String)((Map<String, Object>)appContext.getBean("indicatorMailServiceNotifierConfig")).get("text.table.on-top-fixed-header"))
 			);
@@ -403,6 +414,7 @@ public class Application implements CommandLineRunner {
 							notifiedAssetInPreviousEmail.containsAll(notifiedAssetInThisEmail);
 					}
 					if (!sameAssetsSentInPreviousEmail && dataCollection.size() > 1) {
+						String mailText = presentation.append(dataCollection.toHTML()).toString();
 						sendMail(
 							((Map<String, Object>)appContext.getBean("indicatorMailServiceNotifierConfig"))
 								.entrySet().stream()
@@ -411,8 +423,17 @@ public class Application implements CommandLineRunner {
 								.map(String.class::cast)
 								.collect(Collectors.joining(",")),
 								"Segnalazione asset",
-							presentation.append(dataCollection.toHTML()).toString(),
+							mailText,
 							(String[])null
+						);
+						org.burningwave.core.assembler.StaticComponentContainer.Streams.store(
+							FileSystemItem.ofPath(projectFolder.getAbsolutePath() + "/src/main/resources/assets.html").getAbsolutePath(),
+							("<html>" +
+								"<body>" +
+									mailText +
+								"</body>" +
+							"</html>")
+							.getBytes(StandardCharsets.UTF_8)
 						);
 						if (notifiedAssetInThisEmail != null) {
 							notifiedAssetInPreviousEmail.clear();
