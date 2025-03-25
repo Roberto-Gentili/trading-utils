@@ -41,7 +41,7 @@ public class ResistanceAndSupportDetector extends CriticalIndicatorValueDetector
 		for (PivotLevel level : PivotLevel.values()) {
 			String levelName = level.name();
 			StandardReversalIndicator rI = new StandardReversalIndicator(indicator, level);
-			String key = interval.toString() + levelName.charAt(0)+ levelName.charAt(levelName.length()-1);
+			String key = interval.toString() + "-" + levelName.charAt(0)+ levelName.charAt(levelName.length()-1);
 			ColoredNumber value = toColoredNumber(
 				key,
 				rI.getValue(candlestick.getEndIndex()).doubleValue(),

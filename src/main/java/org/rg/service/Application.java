@@ -37,6 +37,7 @@ import org.rg.finance.Wallet;
 import org.rg.service.detector.BigCandleDetector;
 import org.rg.service.detector.BollingerBandDetector;
 import org.rg.service.detector.CriticalIndicatorValueDetectorAbst;
+import org.rg.service.detector.EMADetector;
 import org.rg.service.detector.RSIDetector;
 import org.rg.service.detector.ResistanceAndSupportDetector;
 import org.rg.service.detector.SpikeDetector;
@@ -225,10 +226,10 @@ public class Application implements CommandLineRunner {
 			buildAlreadyNotifiedHolder(intervals, new ConcurrentHashMap<>());
 
 		Map<Interval, Integer> candlestickQuantityForInterval = new LinkedHashMap<>();
-		candlestickQuantityForInterval.put(intervals.get(0), 104);
-		candlestickQuantityForInterval.put(intervals.get(1), 370);
-		candlestickQuantityForInterval.put(intervals.get(2), 200);
-		candlestickQuantityForInterval.put(intervals.get(3), 370);
+		candlestickQuantityForInterval.put(intervals.get(0), 215);
+		candlestickQuantityForInterval.put(intervals.get(1), 215);
+		candlestickQuantityForInterval.put(intervals.get(2), 215);
+		candlestickQuantityForInterval.put(intervals.get(3), 215);
 		Map<String, Map<Interval, BarSeries>> candlesticksForCoin = new ConcurrentHashMap<>();
 		List<String> notifiedAssetInPreviousEmail = new CopyOnWriteArrayList<>();
 		int minNumberOfIndicatorsDetectedOption =
@@ -250,6 +251,7 @@ public class Application implements CommandLineRunner {
 					Collection<String> marginUSDCCoins = ((BinanceWallet)walletForAvailableCoins.getKey()).getAllMarginAssetPairs()
 						.stream().filter(asset -> asset.get("quote").equals(defaultCollateral)).map(asset -> asset.get("base")).
 						map(String.class::cast).collect(Collectors.toList());
+					marginUSDCCoins = new ArrayList<>(marginUSDCCoins).subList(0, 25);
 					marginUSDCCoins.parallelStream().forEach(coin -> {
 						try {
 							org.burningwave.core.assembler.StaticComponentContainer.ManagedLoggerRepository.logInfo(
@@ -273,6 +275,15 @@ public class Application implements CommandLineRunner {
 								coin
 							);
 							Asset detected = null;
+							for (Interval interval : intervals) {
+								detected =
+									process(
+										new EMADetector(coin,defaultCollateral,candlesticks, false, 21,50,100,200),
+										interval,
+										dataCollection,
+										detected
+									);
+							}
 							for (Interval interval : intervals) {
 								detected =
 									process(

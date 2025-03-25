@@ -21,10 +21,11 @@ public class Asset {
 
 	public static enum ValueName {
 		ASSET_NAME("Asset name"),
-		COLLATERAL("collateral"),
+		COLLATERAL("Collateral"),
 		LATEST_1D_BAR("Latest price from " + Interval.ONE_DAYS),
 		LATEST_4H_BAR("Latest price"),
 		//Dynamic values
+		EMA("EMA"),
 		RSI("RSI"),
 		STOCHASTIC_RSI("Stochastic RSI"),
 		BOLLINGER_BANDS("Bollinger Bands"),
@@ -149,6 +150,9 @@ public class Asset {
 	}
 	public Map<String, Number> getSpikeSizePercentage() {
 		return get(ValueName.SPIKE_SIZE);
+	}
+	public Map<String, Number> getEMA() {
+		return get(ValueName.EMA);
 	}
 	public Map<String, Number> getRSI() {
 		return get(ValueName.RSI);
@@ -286,7 +290,8 @@ public class Asset {
 
 		private Predicate<String> showColumnFilter() {
 			return label -> {
-				return !label.equals((ValueName.LATEST_1D_BAR.toString()));
+				return !label.equals((ValueName.LATEST_1D_BAR.toString())) &&
+					!label.equals((ValueName.COLLATERAL.toString()));
 			};
 		}
 
