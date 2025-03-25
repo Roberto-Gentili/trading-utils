@@ -401,7 +401,7 @@ public class Application implements CommandLineRunner {
 					}
 					StringBuffer presentation = new StringBuffer(
 						"<p style=\"" +
-								Asset.DEFAULT_FONT_SIZE + ";\">Ciao!<br/>Sono stati rilevati i seguenti " +
+								Asset.DEFAULT_FONT_SIZE + "\">Ciao!<br/>Sono stati rilevati i seguenti " +
 								(dataCollection.size() -1) +
 								" asset (BTC escluso) con variazioni rilevanti</p>");
 					List<String> notifiedAssetInThisEmail = null;
@@ -414,7 +414,6 @@ public class Application implements CommandLineRunner {
 							notifiedAssetInPreviousEmail.containsAll(notifiedAssetInThisEmail);
 					}
 					if (!sameAssetsSentInPreviousEmail && dataCollection.size() > 1) {
-						String mailText = presentation.append(dataCollection.toHTML()).toString();
 						sendMail(
 							((Map<String, Object>)appContext.getBean("indicatorMailServiceNotifierConfig"))
 								.entrySet().stream()
@@ -423,14 +422,14 @@ public class Application implements CommandLineRunner {
 								.map(String.class::cast)
 								.collect(Collectors.joining(",")),
 								"Segnalazione asset",
-							mailText,
+							presentation.append(dataCollection.toHTML()).toString(),
 							(String[])null
 						);
 						org.burningwave.core.assembler.StaticComponentContainer.Streams.store(
 							FileSystemItem.ofPath(projectFolder.getAbsolutePath() + "/src/main/resources/assets.html").getAbsolutePath(),
 							("<html>" +
 								"<body>" +
-									mailText +
+									presentation.append(dataCollection.setOnTopFixedHeader(true).toHTML()).toString() +
 								"</body>" +
 							"</html>")
 							.getBytes(StandardCharsets.UTF_8)
