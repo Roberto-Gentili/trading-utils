@@ -309,7 +309,7 @@ public class Asset {
     								if (!assetColoredName.getColor().equals(Color.DEFAULT.getCode())) {
     									cellStyle += "background-color: " + assetColoredName.getColor() +";";
     								}
-        							htmlCellValue = "<a href=\"" + "https://www.binance.com/it/trade/" + value + "_" + data.values.get(ValueName.COLLATERAL.toString()) + "?type=isolated" + "\">" + data.values.get(label) + "</a>";
+        							htmlCellValue = "<a href=\"" + "https://www.binance.com/it/trade/" + value + "_" + data.values.get(ValueName.COLLATERAL.toString()) + "?type=isolated\" target=\"_blank\">" + data.values.get(label) + "</a>";
         						} else if (value instanceof Number) {
         							htmlCellValue = Asset.format((Number)value);
         						} else if (value instanceof Bar) {
