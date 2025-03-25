@@ -432,6 +432,11 @@ public class Application implements CommandLineRunner {
 						org.burningwave.core.assembler.StaticComponentContainer.Streams.store(
 							FileSystemItem.ofPath(projectFolder.getAbsolutePath() + "/src/main/resources/assets.html").getAbsolutePath(),
 							("<html>" +
+								"<script>" +
+									"window.setTimeout( function() {" +
+										"window.location.reload();" +
+									"}, 60000);" +
+								"</script>" +
 								"<body>" +
 									presentation.toString() + dataCollection.setOnTopFixedHeader(true).toHTML() +
 								"</body>" +

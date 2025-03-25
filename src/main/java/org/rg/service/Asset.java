@@ -51,7 +51,7 @@ public class Asset {
 		}
 	}
 
-	public static String DEFAULT_FONT_SIZE = "font-size:15px;";
+	public static final String DEFAULT_FONT_SIZE = "font-size: 25px;";
 
 	static String DEFAULT_TEXT_COLOR = Color.DEFAULT.getCode();
 
@@ -302,7 +302,7 @@ public class Asset {
     					"",Stream.of(ValueName.values()).map(ValueName::toString).filter(showColumnFilter()).map(label -> {
     						Object value = data.values.get(label);
     						String htmlCellValue = "";
-    						String cellStyle = CELL_STYLE;
+    						String cellStyle = CELL_STYLE + DEFAULT_FONT_SIZE;
     						if (value != null) {
     							if (label.equals(ValueName.ASSET_NAME.toString())) {
     								ColoredString assetColoredName = data.getColoredName();
@@ -331,7 +331,7 @@ public class Asset {
     						} else {
     							htmlCellValue = NOT_AVAILABLE;
     						}
-    						return "<td style=\"" + cellStyle + DEFAULT_FONT_SIZE + "\">" + htmlCellValue + "</td>";
+    						return "<td style=\"" + cellStyle + "\">" + htmlCellValue + "</td>";
     					}).collect(Collectors.toList())
     				) +
 			"</tr>";
