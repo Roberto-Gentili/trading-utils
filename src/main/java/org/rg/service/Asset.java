@@ -305,9 +305,9 @@ public class Asset {
     						String cellStyle = CELL_STYLE;
     						if (value != null) {
     							if (label.equals(ValueName.ASSET_NAME.toString())) {
-    								ColoredString assetName = data.getColoredName();
-    								if (!assetName.getColor().equals(Color.DEFAULT.name())) {
-    									cellStyle += "background-color: " + assetName.getColor() +";";
+    								ColoredString assetColoredName = data.getColoredName();
+    								if (!assetColoredName.getColor().equals(Color.DEFAULT.name())) {
+    									cellStyle += "background-color: " + assetColoredName.getColor() +";";
     								}
         							htmlCellValue = "<a href=\"" + "https://www.binance.com/it/trade/" + value + "_" + data.values.get(ValueName.COLLATERAL.toString()) + "?type=isolated" + "\">" + data.values.get(label) + "</a>";
         						} else if (value instanceof Number) {
