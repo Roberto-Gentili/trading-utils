@@ -7,6 +7,7 @@ import java.util.Map;
 import org.rg.finance.Interval;
 import org.rg.service.Asset;
 import org.rg.service.Asset.ValueName;
+import org.rg.service.Color;
 import org.rg.service.ColoredNumber;
 import org.ta4j.core.Bar;
 import org.ta4j.core.BarSeries;
@@ -62,12 +63,12 @@ public class BollingerBandDetector extends CriticalIndicatorValueDetectorAbst {
 			if (low.compareTo(bBLower) <= 0) {
 				values.put(
 					interval.toString() + "-l",
-					ColoredNumber.valueOf(bBLower.doubleValue()).color(ColoredNumber.Color.GREEN.getCode())
+					ColoredNumber.valueOf(bBLower.doubleValue()).color(Color.GREEN.getCode())
 				);
 			} else if (high.compareTo(bBUpper) >= 0) {
 				values.put(
 					interval.toString() + "-u",
-					ColoredNumber.valueOf(bBLower.doubleValue()).color(ColoredNumber.Color.RED.getCode())
+					ColoredNumber.valueOf(bBLower.doubleValue()).color(Color.RED.getCode())
 				);
 			} else if (checkIfIsBitcoin(mainAsset)) {
 				values.put(

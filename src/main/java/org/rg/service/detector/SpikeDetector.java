@@ -9,6 +9,7 @@ import java.util.Map;
 import org.rg.finance.Interval;
 import org.rg.service.Asset;
 import org.rg.service.Asset.ValueName;
+import org.rg.service.Color;
 import org.rg.service.ColoredNumber;
 import org.ta4j.core.Bar;
 import org.ta4j.core.BarSeries;
@@ -52,9 +53,9 @@ public class SpikeDetector extends CriticalIndicatorValueDetectorAbst {
 		Asset data = null;
 		Map<String, Object> values = new LinkedHashMap<>();
 		if (buyCondition) {
-			values.put(interval.toString(), ColoredNumber.valueOf(lowSpikePercentage.doubleValue()).color(ColoredNumber.Color.GREEN.getCode()));
+			values.put(interval.toString(), ColoredNumber.valueOf(lowSpikePercentage.doubleValue()).color(Color.GREEN.getCode()));
 		} else if (sellCondition) {
-			values.put(interval.toString(), ColoredNumber.valueOf(highSpikePercentage.doubleValue()).color(ColoredNumber.Color.RED.getCode()));
+			values.put(interval.toString(), ColoredNumber.valueOf(highSpikePercentage.doubleValue()).color(Color.RED.getCode()));
 		}
 		if (!values.isEmpty()) {
 			data = new Asset(

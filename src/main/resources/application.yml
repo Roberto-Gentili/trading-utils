@@ -31,7 +31,8 @@ service:
          text.table.on-top-fixed-header: false
          min-number-of-indicators-detected: 4
          resend-already-notified: true
-         show-only-consistent-data: true
+         #possible values: 'highlight them', 'only them'
+         show-consistent-data: 'highlight them'
          recipient:
             - roberto.gentili.1980@gmail.com
             - fercoletti@gmail.comm

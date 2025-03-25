@@ -60,6 +60,34 @@ import org.ta4j.core.BarSeries;
 @SpringBootApplication
 @SuppressWarnings({ "null" })
 public class Application implements CommandLineRunner {
+	private static enum ShowConsistentDataOption {
+		ONLY_THEM("Only them"),
+		HIGHLIGHT_THEM("Highlight them"),
+		IGNORE("ignore");
+
+		private String value;
+
+		private ShowConsistentDataOption(String value) {
+			this.value = value;
+		}
+
+		public String getValue() {
+			return this.value;
+		}
+
+		public boolean valueEquals(String value) {
+			if (value != null) {
+				return false;
+			}
+			return removeEmptySpaces(this.value).equalsIgnoreCase(removeEmptySpaces(value));
+		}
+
+		@Override
+		public String toString() {
+			return value;
+		}
+
+	}
 
 	@Autowired
 	private ApplicationContext appContext;
@@ -195,8 +223,10 @@ public class Application implements CommandLineRunner {
 			Integer.valueOf((String)((Map<String, Object>)appContext.getBean("indicatorMailServiceNotifierConfig")).get("min-number-of-indicators-detected"));
 		boolean  resendAlreadyNotified =
 			Boolean.valueOf((String)((Map<String, Object>)appContext.getBean("indicatorMailServiceNotifierConfig")).get("resend-already-notified"));
-		boolean showOnlyConsistentData =
-			Boolean.valueOf((String)((Map<String, Object>)appContext.getBean("indicatorMailServiceNotifierConfig")).get("show-only-consistent-data"));
+		String showConsistentData =
+			removeEmptySpaces
+			((String)((Map<String, Object>)appContext.getBean("indicatorMailServiceNotifierConfig")).getOrDefault("show-consistent-data", "ignore"))
+			;
 		while (true) {
 			Asset.Collection dataCollection = new Asset.Collection().setOnTopFixedHeader(
 				Boolean.valueOf((String)((Map<String, Object>)appContext.getBean("indicatorMailServiceNotifierConfig")).get("text.table.on-top-fixed-header"))
@@ -312,15 +342,15 @@ public class Application implements CommandLineRunner {
 							Collection<Runnable> alreadyNotifiedUpdaters = new ArrayList<>();
 							int[] counters = {0,0,0};
 							List<int[]> counterList = Arrays.asList(
-								computeIfMustBeNotified(intervals, showOnlyConsistentData, alreadyNotifiedMap, candlesticksForCoin, asset,
+								computeIfMustBeNotified(intervals, showConsistentData, alreadyNotifiedMap, candlesticksForCoin, asset,
 										RSIDetector.class, asset.getRSI(), alreadyNotifiedUpdaters),
-								computeIfMustBeNotified(intervals, showOnlyConsistentData, alreadyNotifiedMap, candlesticksForCoin, asset,
+								computeIfMustBeNotified(intervals, showConsistentData, alreadyNotifiedMap, candlesticksForCoin, asset,
 										StochasticRSIDetector.class, asset.getStochasticRSI(), alreadyNotifiedUpdaters),
-								computeIfMustBeNotified(intervals, showOnlyConsistentData, alreadyNotifiedMap, candlesticksForCoin, asset,
+								computeIfMustBeNotified(intervals, showConsistentData, alreadyNotifiedMap, candlesticksForCoin, asset,
 										BollingerBandDetector.class, asset.getBollingerBands(), alreadyNotifiedUpdaters),
-								computeIfMustBeNotified(intervals, showOnlyConsistentData, alreadyNotifiedMap, candlesticksForCoin, asset,
+								computeIfMustBeNotified(intervals, showConsistentData, alreadyNotifiedMap, candlesticksForCoin, asset,
 										SpikeDetector.class, asset.getSpikeSizePercentage(), alreadyNotifiedUpdaters),
-								computeIfMustBeNotified(intervals, showOnlyConsistentData, alreadyNotifiedMap, candlesticksForCoin, asset,
+								computeIfMustBeNotified(intervals, showConsistentData, alreadyNotifiedMap, candlesticksForCoin, asset,
 										BigCandleDetector.class, asset.getVariationPercentages(), alreadyNotifiedUpdaters)
 							);
 							for (int i = 0; i < counterList.size(); i++) {
@@ -329,7 +359,7 @@ public class Application implements CommandLineRunner {
 									counters[j] += countersFromCounterList[j];
 								}
 							}
-							if (!showOnlyConsistentData) {
+							if (!ShowConsistentDataOption.ONLY_THEM.valueEquals(showConsistentData)) {
 								if (counters[0] >= minNumberOfIndicatorsDetected) {
 									alreadyNotifiedUpdaters.stream().forEach(Runnable::run);
 								}
@@ -394,7 +424,6 @@ public class Application implements CommandLineRunner {
 		}
 	}
 
-
 	private Map<Class<? extends CriticalIndicatorValueDetector>, Map<Interval, Map<String, Bar>>> buildAlreadyNotifiedHolder(
 			List<Interval> intervals,
 			Map<Class<? extends CriticalIndicatorValueDetector>, Map<Interval, Map<String, Bar>>> alreadyNotifiedMap
@@ -418,7 +447,7 @@ public class Application implements CommandLineRunner {
 
 	protected int[] computeIfMustBeNotified(
 		List<Interval> intervals,
-		boolean showOnlyConsistentData,
+		String showConsistentData,
 		Map<Class<? extends CriticalIndicatorValueDetector>,
 		Map<Interval, Map<String, Bar>>> alreadyNotified,
 		Map<String, Map<Interval, BarSeries>> candlesticksForCoin,
@@ -447,10 +476,10 @@ public class Application implements CommandLineRunner {
 							getAlreadyNotified(alreadyNotified.get(indicatorType), interval)
 						);
 						if (updater != null) {
-							if (ColoredNumber.Color.GREEN.getCode().equals(((ColoredNumber)indicator.getValue()).getColor())) {
+							if (Color.GREEN.getCode().equals(((ColoredNumber)indicator.getValue()).getColor())) {
 								alreadyNotifiedGreenUpdaters.add(updater);
 								greenCounter++;
-							} else if (ColoredNumber.Color.RED.getCode().equals(((ColoredNumber)indicator.getValue()).getColor())) {
+							} else if (Color.RED.getCode().equals(((ColoredNumber)indicator.getValue()).getColor())) {
 								alreadyNotifiedRedUpdaters.add(updater);
 								redCounter++;
 							}
@@ -460,10 +489,17 @@ public class Application implements CommandLineRunner {
 					}
 				}
 			}
-			if (showOnlyConsistentData) {
-				if (alreadyNotifiedGreenUpdaters.size() == 0) {
+			if (ShowConsistentDataOption.HIGHLIGHT_THEM.valueEquals(showConsistentData)) {
+				if (alreadyNotifiedGreenUpdaters.isEmpty() && !alreadyNotifiedRedUpdaters.isEmpty()) {
+					asset.convertNameToColored();
+				} else if (alreadyNotifiedRedUpdaters.isEmpty() && !alreadyNotifiedGreenUpdaters.isEmpty()) {
+					asset.convertNameToColored();
+				}
+				alreadyNotifiedUpdaters.addAll(allUpdaters);
+			} else if (ShowConsistentDataOption.ONLY_THEM.valueEquals(showConsistentData)) {
+				if (alreadyNotifiedGreenUpdaters.isEmpty()) {
 					alreadyNotifiedUpdaters.addAll(alreadyNotifiedRedUpdaters);
-				} else if (alreadyNotifiedRedUpdaters.size() == 0) {
+				} else if (alreadyNotifiedRedUpdaters.isEmpty()) {
 					alreadyNotifiedUpdaters.addAll(alreadyNotifiedGreenUpdaters);
 				}
 			} else {
@@ -604,5 +640,10 @@ public class Application implements CommandLineRunner {
     private Long currentTimeMillis() {
         return LocalDateTime.now().atZone(ZoneId.systemDefault()).toInstant().toEpochMilli();
     }
+
+
+	public static String removeEmptySpaces(String value) {
+		return value.replaceAll("\\s+", "");
+	}
 
 }

@@ -53,7 +53,7 @@ public class Asset {
 
 	public static String DEFAULT_FONT_SIZE = "font-size:15px;";
 
-	static String DEFAULT_TEXT_COLOR = ColoredNumber.Color.DEFAULT.getCode();
+	static String DEFAULT_TEXT_COLOR = Color.DEFAULT.getCode();
 
 	private static String TABLE_STYLE =
 		"border-collapse: collapse;" +
@@ -101,7 +101,8 @@ public class Asset {
 	private Map<String, Object> values;
 
 	public Asset(
-		String assetName, String collateral,
+		Object assetName,
+		Object collateral,
 		Map<Interval, BarSeries> candleSticks
 	) {
 		values = new LinkedHashMap<>();
@@ -124,6 +125,22 @@ public class Asset {
 
 	public <O> O get(ValueName key) {
 		return (O)values.get(key.toString());
+	}
+
+	public ColoredString convertNameToColored() {
+		Object name = getName();
+		ColoredString coloredValue = null;
+		if (name instanceof String) {
+			coloredValue = ColoredString.valueOf((String)name);
+		} else if (name instanceof ColoredString) {
+			coloredValue = (ColoredString)name;
+		}
+		return coloredValue;
+	}
+
+	public Asset setColoredName(ColoredString value) {
+		values.put(ValueName.ASSET_NAME.toString(), value);
+		return this;
 	}
 
 	public String getName() {
@@ -290,8 +307,12 @@ public class Asset {
     					"",Stream.of(ValueName.values()).map(ValueName::toString).filter(showColumnFilter()).map(label -> {
     						Object value = data.values.get(label);
     						String htmlCellValue = "";
+    						String cellStyle = CELL_STYLE;
     						if (value != null) {
-        						if (label.equals(ValueName.ASSET_NAME.toString())) {
+    							if (label.equals(ValueName.ASSET_NAME.toString())) {
+    								if (value instanceof ColoredString) {
+    									cellStyle += "background-color: yellow;";
+    								}
         							htmlCellValue = "<a href=\"" + "https://www.binance.com/it/trade/" + value + "_" + data.values.get(ValueName.COLLATERAL.toString()) + "?type=isolated" + "\">" + data.values.get(label) + "</a>";
         						} else if (value instanceof Number) {
         							htmlCellValue = Asset.format((Number)value);
@@ -314,7 +335,7 @@ public class Asset {
     						} else {
     							htmlCellValue = NOT_AVAILABLE;
     						}
-    						return "<td style=\"" + CELL_STYLE + "\">" + htmlCellValue + "</td>";
+    						return "<td style=\"" + cellStyle + "\">" + htmlCellValue + "</td>";
     					}).collect(Collectors.toList())
     				) +
 			"</tr>";

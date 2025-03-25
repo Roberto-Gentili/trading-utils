@@ -8,6 +8,7 @@ import java.util.Map;
 import org.rg.finance.Interval;
 import org.rg.service.Asset;
 import org.rg.service.Asset.ValueName;
+import org.rg.service.Color;
 import org.rg.service.ColoredNumber;
 import org.ta4j.core.Bar;
 import org.ta4j.core.BarSeries;
@@ -44,9 +45,9 @@ public class BigCandleDetector extends CriticalIndicatorValueDetectorAbst {
 		Map<String, Object> values = new LinkedHashMap<>();
 		priceVariation = priceVariation.compareTo(BigDecimal.ZERO) >= 0 ? variationPerc : variationPerc.negate();
 		if (buyCondition) {
-			values.put(interval.toString(), ColoredNumber.valueOf(variationPerc.doubleValue()).color(ColoredNumber.Color.GREEN.getCode()));
+			values.put(interval.toString(), ColoredNumber.valueOf(variationPerc.doubleValue()).color(Color.GREEN.getCode()));
 		} else if (sellCondition) {
-			values.put(interval.toString(), ColoredNumber.valueOf(variationPerc.doubleValue()).color(ColoredNumber.Color.GREEN.getCode()));
+			values.put(interval.toString(), ColoredNumber.valueOf(variationPerc.doubleValue()).color(Color.GREEN.getCode()));
 		}
 		if (!values.isEmpty()) {
 			data = new Asset(
