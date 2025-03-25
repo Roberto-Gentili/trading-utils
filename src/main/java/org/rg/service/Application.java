@@ -251,7 +251,7 @@ public class Application implements CommandLineRunner {
 					Collection<String> marginUSDCCoins = ((BinanceWallet)walletForAvailableCoins.getKey()).getAllMarginAssetPairs()
 						.stream().filter(asset -> asset.get("quote").equals(defaultCollateral)).map(asset -> asset.get("base")).
 						map(String.class::cast).collect(Collectors.toList());
-					marginUSDCCoins = new ArrayList<>(marginUSDCCoins).subList(0, 25);
+//					marginUSDCCoins = new ArrayList<>(marginUSDCCoins).subList(0, 25);
 					marginUSDCCoins.parallelStream().forEach(coin -> {
 						try {
 							org.burningwave.core.assembler.StaticComponentContainer.ManagedLoggerRepository.logInfo(
