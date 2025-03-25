@@ -490,9 +490,8 @@ public class Application implements CommandLineRunner {
 				}
 			}
 			if (ShowConsistentDataOption.HIGHLIGHT_THEM.valueEquals(showConsistentData)) {
-				if (alreadyNotifiedGreenUpdaters.isEmpty() && !alreadyNotifiedRedUpdaters.isEmpty()) {
-					asset.convertNameToColored();
-				} else if (alreadyNotifiedRedUpdaters.isEmpty() && !alreadyNotifiedGreenUpdaters.isEmpty()) {
+				if ((alreadyNotifiedGreenUpdaters.isEmpty() && !alreadyNotifiedRedUpdaters.isEmpty()) ||
+					(alreadyNotifiedRedUpdaters.isEmpty() && !alreadyNotifiedGreenUpdaters.isEmpty())) {
 					asset.convertNameToColored();
 				}
 				alreadyNotifiedUpdaters.addAll(allUpdaters);
