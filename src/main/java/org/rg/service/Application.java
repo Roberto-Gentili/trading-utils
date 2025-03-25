@@ -353,17 +353,20 @@ public class Application implements CommandLineRunner {
 								computeIfMustBeNotified(intervals, showConsistentDataOption, alreadyNotifiedMap, candlesticksForCoin, asset,
 										BigCandleDetector.class, asset.getVariationPercentages(), alreadyNotifiedUpdaters)
 							);
-							if (ShowConsistentDataOption.HIGHLIGHT_THEM.valueEquals(showConsistentDataOption)) {
-								if ((counters[1] == 0 && counters[2] > 0)) {
-									asset.highligtName(Color.GREEN.getCode());
-								} else if ((counters[2] == 0 && counters[1] > 0)) {
-									asset.highligtName(Color.RED.getCode());
-								}
-							}
 							for (int i = 0; i < counterList.size(); i++) {
 								int[] countersFromCounterList = counterList.get(i);
 								for (int j = 0; j < counters.length; j++) {
 									counters[j] += countersFromCounterList[j];
+								}
+							}
+							if (ShowConsistentDataOption.HIGHLIGHT_THEM.valueEquals(showConsistentDataOption)) {
+								if (asset.getName().equals("CRV")) {
+									System.out.println();
+								}
+								if ((counters[1] == 0 && counters[2] > 0)) {
+									asset.highligtName(Color.GREEN.getCode());
+								} else if ((counters[2] == 0 && counters[1] > 0)) {
+									asset.highligtName(Color.RED.getCode());
 								}
 							}
 							if (!ShowConsistentDataOption.ONLY_THEM.valueEquals(showConsistentDataOption)) {
