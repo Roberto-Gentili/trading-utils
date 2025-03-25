@@ -331,7 +331,7 @@ public class Asset {
     						} else {
     							htmlCellValue = NOT_AVAILABLE;
     						}
-    						return "<td style=\"" + cellStyle + "\">" + htmlCellValue + "</td>";
+    						return "<td style=\"" + cellStyle + DEFAULT_FONT_SIZE + "\">" + htmlCellValue + "</td>";
     					}).collect(Collectors.toList())
     				) +
 			"</tr>";

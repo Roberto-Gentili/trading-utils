@@ -403,8 +403,8 @@ public class Application implements CommandLineRunner {
 					}
 					StringBuffer presentation = new StringBuffer(
 						"<p style=\"" +
-							Asset.DEFAULT_FONT_SIZE + "\">Ciao!<br/>In data " +
-							new SimpleDateFormat("yyyy\\MM\\dd-HH:mm:ss").format(new Date())+ " sono stati rilevati i seguenti " +
+							Asset.DEFAULT_FONT_SIZE + "\">Ciao!<br/>In data <b>" +
+							new SimpleDateFormat("yyyy\\MM\\dd-HH:mm:ss").format(new Date())+ "</b> sono stati rilevati i seguenti " +
 							(dataCollection.size() -1) +
 							" asset (BTC escluso) con variazioni rilevanti (la lista è visualizzabile anche da " +
 							"<a href=\"https://html-preview.github.io/?url=https://github.com/Roberto-Gentili/trading-utils/blob/main/src/main/resources/assets.html\">qui</a>)</p>");
