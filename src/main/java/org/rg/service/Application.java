@@ -3,6 +3,7 @@ package org.rg.service;
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.text.SimpleDateFormat;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
@@ -10,6 +11,7 @@ import java.time.temporal.TemporalAdjusters;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Date;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -401,9 +403,11 @@ public class Application implements CommandLineRunner {
 					}
 					StringBuffer presentation = new StringBuffer(
 						"<p style=\"" +
-								Asset.DEFAULT_FONT_SIZE + "\">Ciao!<br/>Sono stati rilevati i seguenti " +
+								Asset.DEFAULT_FONT_SIZE + "\">Ciao!<br/>In data " +
+								new SimpleDateFormat("yyyy\\MM\\dd-HH:mm:ss").format(new Date())+ " sono stati rilevati i seguenti " +
 								(dataCollection.size() -1) +
-								" asset (BTC escluso) con variazioni rilevanti</p>");
+								" asset (BTC escluso) con variazioni rilevanti (la lista è visualizzabile anche da " +
+								"<a href=\"https://html-preview.github.io/?url=https://github.com/Roberto-Gentili/trading-utils/blob/main/src/main/resources/assets.html\">qui</a>)</p>");
 					List<String> notifiedAssetInThisEmail = null;
 					boolean sameAssetsSentInPreviousEmail = false;
 					if (resendAlreadyNotifiedOption) {
