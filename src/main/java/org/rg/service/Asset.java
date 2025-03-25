@@ -274,7 +274,7 @@ public class Asset {
 
 		public String toHTML() {
 			datas.sort((assetOne, assetTwo) -> {
-				return ((String)assetOne.get(ValueName.ASSET_NAME) + assetOne.get(ValueName.COLLATERAL))
+				return (assetOne.getName() + assetOne.get(ValueName.COLLATERAL))
 					.compareTo((String)assetTwo.get(ValueName.ASSET_NAME) + assetTwo.get(ValueName.COLLATERAL));
 			});
 			AtomicInteger rowCounter = new AtomicInteger(0);
