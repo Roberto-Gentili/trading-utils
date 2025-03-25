@@ -132,6 +132,7 @@ public class Asset {
 		ColoredString coloredValue = null;
 		if (name instanceof String) {
 			coloredValue = ColoredString.valueOf((String)name);
+			setColoredName(coloredValue);
 		} else if (name instanceof ColoredString) {
 			coloredValue = (ColoredString)name;
 		}
@@ -144,7 +145,11 @@ public class Asset {
 	}
 
 	public String getName() {
-		return get(ValueName.ASSET_NAME);
+		Object name = get(ValueName.ASSET_NAME);
+		if (name instanceof String) {
+			return (String)name;
+		}
+		return name != null? name.toString() : null;
 	}
 	public String getCollateral() {
 		return get(ValueName.COLLATERAL);
