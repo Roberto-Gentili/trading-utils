@@ -63,8 +63,8 @@ public class Asset {
 
 	private static final String TABLE_DIV_STYLE =
 		"overflow: auto;" +
-		"height: 100%;" +
-		"width: 100%;";
+		"height: 90%;" +
+		"width: 95%;";
 
 	private static final String NOT_AVAILABLE =
 		"<center><i style=\"color: #C0C0C0;\">na</i></center>";
@@ -270,7 +270,7 @@ public class Asset {
 			AtomicInteger rowCounter = new AtomicInteger(0);
 			List<String> header = Stream.of(ValueName.values()).map(ValueName::toString).collect(Collectors.toList());
 			return
-				"<div style=\"" + TABLE_DIV_STYLE + "\">" +
+				"<center><div style=\"" + TABLE_DIV_STYLE + "\">" +
 					"<table style=\"" + TABLE_STYLE + "\">" +
 						(onTopFixedHeader ?
 							"<thead style=\"" + BLOCKED_HEADER_STYLE + "\">" +
@@ -281,7 +281,7 @@ public class Asset {
 						: "") +
 						String.join("", datas.stream().map(dt -> toHTML(header, dt, rowCounter.incrementAndGet(), onTopFixedHeader)).collect(Collectors.toList())) +
 					"</table>" +
-				"</div>";
+				"</center></div>";
 		}
 
 		private Predicate<String> showColumnFilter() {
@@ -302,7 +302,7 @@ public class Asset {
     					"",Stream.of(ValueName.values()).map(ValueName::toString).filter(showColumnFilter()).map(label -> {
     						Object value = data.values.get(label);
     						String htmlCellValue = "";
-    						String cellStyle = CELL_STYLE + DEFAULT_FONT_SIZE;
+    						String cellStyle = CELL_STYLE;
     						if (value != null) {
     							if (label.equals(ValueName.ASSET_NAME.toString())) {
     								ColoredString assetColoredName = data.getColoredName();

@@ -20,7 +20,7 @@ call "%CURRENT_DIR%\setup-ssh.cmd"
 
 :loop
 
-call git pull
+call git pull --ff-only
 
 call mvn --settings %MVN_SETTINGS_PATH% clean dependency:list install
 
@@ -30,6 +30,7 @@ IF ["%~1"] == ["LOGGING_ENABLED"] (
 ) else (
 	start "Crypto RSI Change Notifier" javaw.exe -DcryptoComApiKey=%CRYPTO_COM_API_KEY% -DcryptoComApiSecret=%CRYPTO_COM_API_SECRET% -DbinanceApiKey=%BINANCE_API_KEY% -DbinanceApiSecret=%BINANCE_API_SECRET% -DemailAccount=%BURNINGWAVE_ORG_ACCOUNT_NAME% -DemailPassword=%BURNINGWAVE_ORG_ACCOUNT_PASSWORD% -DmultiThreadingMode=normal -jar "%CURRENT_DIR%/target/runner-1.0.0.jar" org.rg.service.Runner
 )
+call git pull --ff-only
 call git commit -am "Updated asset report"
 call git push
 
