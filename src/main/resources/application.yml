@@ -29,7 +29,7 @@ service:
    mail:
       indicator.notifier:
          text.table.on-top-fixed-header: false
-         min-number-of-indicators-detected: 4
+         min-number-of-indicators-detected: 6
          resend-already-notified: true
          #possible values: 'highlight them', 'only them'
          show-consistent-data: 'highlight them'
