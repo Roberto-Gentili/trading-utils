@@ -489,19 +489,19 @@ public class Application implements CommandLineRunner {
 					}
 				}
 			}
-			if (ShowConsistentDataOption.HIGHLIGHT_THEM.valueEquals(showConsistentDataOption)) {
-				if ((alreadyNotifiedGreenUpdaters.isEmpty() && !alreadyNotifiedRedUpdaters.isEmpty()) ||
-					(alreadyNotifiedRedUpdaters.isEmpty() && !alreadyNotifiedGreenUpdaters.isEmpty())) {
-					asset.convertNameToColored();
-				}
-				alreadyNotifiedUpdaters.addAll(allUpdaters);
-			} else if (ShowConsistentDataOption.ONLY_THEM.valueEquals(showConsistentDataOption)) {
+			if (ShowConsistentDataOption.ONLY_THEM.valueEquals(showConsistentDataOption)) {
 				if (alreadyNotifiedGreenUpdaters.isEmpty()) {
 					alreadyNotifiedUpdaters.addAll(alreadyNotifiedRedUpdaters);
 				} else if (alreadyNotifiedRedUpdaters.isEmpty()) {
 					alreadyNotifiedUpdaters.addAll(alreadyNotifiedGreenUpdaters);
 				}
 			} else {
+				if (ShowConsistentDataOption.HIGHLIGHT_THEM.valueEquals(showConsistentDataOption)) {
+					if ((alreadyNotifiedGreenUpdaters.isEmpty() && !alreadyNotifiedRedUpdaters.isEmpty()) ||
+						(alreadyNotifiedRedUpdaters.isEmpty() && !alreadyNotifiedGreenUpdaters.isEmpty())) {
+						asset.convertNameToColored();
+					}
+				}
 				alreadyNotifiedUpdaters.addAll(allUpdaters);
 			}
 		}
