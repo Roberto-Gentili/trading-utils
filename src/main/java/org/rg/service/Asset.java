@@ -68,7 +68,7 @@ public class Asset {
 		"width: 95%;";
 
 	private static final String NOT_AVAILABLE =
-		"<center><i style=\"color: #C0C0C0;\">na</i></center>";
+		"<i style=\"color: #C0C0C0;\">na</i>";
 
 	private static final String EVEN_ROW_STYLE =
 		"background-color: #D6EEEE;";
@@ -336,6 +336,7 @@ public class Asset {
         							htmlCellValue = value.toString();
         						}
     						} else {
+    							cellStyle += "text-align: center;";
     							htmlCellValue = NOT_AVAILABLE;
     						}
     						return "<td style=\"" + cellStyle + "\">" + htmlCellValue + "</td>";
