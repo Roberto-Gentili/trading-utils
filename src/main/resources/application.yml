@@ -33,8 +33,8 @@ service:
          resend-already-notified: true
          #possible values: 'highlight them', 'only them'
          show-consistent-data: 'highlight them'
-         recipient:
-            - roberto.gentili.1980@gmail.com
-            - fercoletti@gmail.comm
+#         recipient:
+#            - roberto.gentili.1980@gmail.com
+#            - fercoletti@gmail.comm
          view:
             autorefresh-every: 180000

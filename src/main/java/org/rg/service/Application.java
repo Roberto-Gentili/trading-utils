@@ -249,6 +249,12 @@ public class Application implements CommandLineRunner {
 			Long.valueOf(
 				((String)((Map<String, Object>)appContext.getBean("indicatorMailServiceNotifierConfig")).getOrDefault("view.autorefresh-every", "300000"))
 			);
+		String recipients = ((Map<String, Object>)appContext.getBean("indicatorMailServiceNotifierConfig"))
+			.entrySet().stream()
+			.filter(keyAndVal -> keyAndVal.getKey().startsWith("recipient"))
+			.map(Map.Entry::getValue)
+			.map(String.class::cast)
+			.collect(Collectors.joining(","));
 		int cycles = 1;
 		while (cycles-- > 0 ) {
 			Asset.Collection dataCollection = new Asset.Collection().setOnTopFixedHeader(
@@ -436,24 +442,21 @@ public class Application implements CommandLineRunner {
 							notifiedAssetInPreviousEmail.containsAll(notifiedAssetInThisEmail);
 					}
 					if (!sameAssetsSentInPreviousEmail && dataCollection.size() > 1) {
-						sendMail(
-							((Map<String, Object>)appContext.getBean("indicatorMailServiceNotifierConfig"))
-								.entrySet().stream()
-								.filter(keyAndVal -> keyAndVal.getKey().startsWith("recipient"))
-								.map(Map.Entry::getValue)
-								.map(String.class::cast)
-								.collect(Collectors.joining(",")),
+						if (!recipients.isEmpty()) {
+							sendMail(
+								recipients,
 								"Segnalazione asset",
-							presentation.toString().replace(
-								"{0}",
-								"(la lista è visualizzabile anche da <a href=\"" +
-								//"https://html-preview.github.io/?url=https://github.com/Roberto-Gentili/trading-utils/blob/main/src/main/resources/assets.html" +
-								"https://rg-shared.neocities.org/assets" +
-								"\">qui</a>)"
-							) +
-							dataCollection.toHTML(),
-							(String[])null
-						);
+								presentation.toString().replace(
+									"{0}",
+									"(la lista è visualizzabile anche da <a href=\"" +
+									//"https://html-preview.github.io/?url=https://github.com/Roberto-Gentili/trading-utils/blob/main/src/main/resources/assets.html" +
+									"https://rg-shared.neocities.org/assets" +
+									"\">qui</a>)"
+								) +
+								dataCollection.toHTML(),
+								(String[])null
+							);
+						}
 						org.burningwave.core.assembler.StaticComponentContainer.Streams.store(
 							FileSystemItem.ofPath(projectFolder.getAbsolutePath() + "/src/main/resources/assets.html").getAbsolutePath(),
 							("<html>" +
