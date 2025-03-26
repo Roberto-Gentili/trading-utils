@@ -43,6 +43,7 @@ import org.rg.service.detector.ResistanceAndSupportDetector;
 import org.rg.service.detector.SpikeDetector;
 import org.rg.service.detector.StochasticRSIDetector;
 import org.rg.util.RestTemplateSupplier;
+import org.rg.util.ShellExecutor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.CommandLineRunner;
@@ -460,6 +461,7 @@ public class Application implements CommandLineRunner {
 							"</html>")
 							.getBytes(StandardCharsets.UTF_8)
 						);
+						ShellExecutor.execute(projectFolder.getAbsolutePath() + "/upload-assets.cmd", true);
 						if (notifiedAssetInThisEmail != null) {
 							notifiedAssetInPreviousEmail.clear();
 							notifiedAssetInPreviousEmail.addAll(notifiedAssetInThisEmail);
