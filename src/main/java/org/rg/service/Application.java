@@ -446,7 +446,10 @@ public class Application implements CommandLineRunner {
 								"Segnalazione asset",
 							presentation.toString().replace(
 								"{0}",
-								"(la lista è visualizzabile anche da <a href=\"https://html-preview.github.io/?url=https://github.com/Roberto-Gentili/trading-utils/blob/main/src/main/resources/assets.html\">qui</a>)"
+								"(la lista è visualizzabile anche da <a href=\"" +
+								//"https://html-preview.github.io/?url=https://github.com/Roberto-Gentili/trading-utils/blob/main/src/main/resources/assets.html" +
+								"https://rg-shared.neocities.org/assets" +
+								"\">qui</a>)"
 							) +
 							dataCollection.toHTML(),
 							(String[])null
