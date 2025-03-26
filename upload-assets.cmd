@@ -7,4 +7,4 @@ cd "%CURRENT_DIR%src\main\resources"
 
 %CURRENT_UNIT%
 
-curl -F assets.html=@assets.html https://rg-shared:ShaSpa2023@neocities.org/api/upload
+curl -F assets.html=@assets.html https://%~1@neocities.org/api/upload

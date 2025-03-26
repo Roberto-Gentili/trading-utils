@@ -135,7 +135,11 @@ public class Application implements CommandLineRunner {
 	}
 
 	@Bean("cryptoComWallet")
-	public Wallet cryptoComWallet(RestTemplate restTemplate, Environment environment, @Qualifier("cryptoComAliasForCoinName")Map<String, String> cryptoComAliasForCoinName, @Qualifier("cryptoComCoinCollaterals")Map<String, String> coinCollaterals) {
+	public Wallet cryptoComWallet(
+		RestTemplate restTemplate, Environment environment,
+		@Qualifier("cryptoComAliasForCoinName")Map<String, String> cryptoComAliasForCoinName,
+		@Qualifier("cryptoComCoinCollaterals")Map<String, String> coinCollaterals
+	) {
 		return new CryptoComWallet(restTemplate, environment.getProperty("cryptoComApiKey"), environment.getProperty("cryptoComApiSecret"), cryptoComAliasForCoinName, coinCollaterals);
 	}
 
@@ -461,7 +465,12 @@ public class Application implements CommandLineRunner {
 							"</html>")
 							.getBytes(StandardCharsets.UTF_8)
 						);
-						ShellExecutor.execute(projectFolder.getAbsolutePath() + "/upload-assets.cmd", true);
+						ShellExecutor.execute(
+							projectFolder.getAbsolutePath() + "/upload-assets.cmd "+
+							environment.getProperty("NEOCITIES_ACCOUNT_NAME")+":"+
+							environment.getProperty("NEOCITIES_ACCOUNT_PASSWORD"),
+							true
+						);
 						if (notifiedAssetInThisEmail != null) {
 							notifiedAssetInPreviousEmail.clear();
 							notifiedAssetInPreviousEmail.addAll(notifiedAssetInThisEmail);
