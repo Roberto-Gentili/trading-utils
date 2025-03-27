@@ -323,6 +323,7 @@ public class Application implements CommandLineRunner {
 			);
 			for (Map.Entry<Wallet, ProducerTask<Collection<String>>> walletForAvailableCoins : walletsForAvailableCoins.entrySet()) {
 				if (walletForAvailableCoins.getKey() instanceof BinanceWallet) {
+					Long totalIterationElapsedTime = System.currentTimeMillis();
 					String defaultCollateral = walletForAvailableCoins.getKey().getCollateralForCoin("DEFAULT");
 					Collection<Map<String, Object>> assetsToBeProcessed = ((BinanceWallet)walletForAvailableCoins.getKey()).getAllMarginAssetPairs()
 						.stream().filter(asset -> {
@@ -334,7 +335,7 @@ public class Application implements CommandLineRunner {
 						}).collect(Collectors.toList());
 //					marginUSDCCoins = new ArrayList<>(marginUSDCCoins).subList(0, 25);
 
-					Long elapsedTime = System.currentTimeMillis();
+					Long elapsedTimeForRetrieveRemoteData = System.currentTimeMillis();
 					processWithBurningwave(
 						candlestickQuantityForInterval.keySet(),
 						candlestickQuantityForInterval,
@@ -343,8 +344,8 @@ public class Application implements CommandLineRunner {
 						walletForAvailableCoins,
 						assetsToBeProcessed
 					);
-					elapsedTime = System.currentTimeMillis() - elapsedTime;
-					double elapsedTimeInSeconds = elapsedTime / 1000d;
+					elapsedTimeForRetrieveRemoteData = System.currentTimeMillis() - elapsedTimeForRetrieveRemoteData;
+					double elapsedTimeInSeconds = elapsedTimeForRetrieveRemoteData / 1000d;
 					org.burningwave.core.assembler.StaticComponentContainer.ManagedLoggerRepository.logInfo(
 						getClass()::getName,
 						"Elapsed time for data retrieve: {} seconds",
@@ -462,11 +463,20 @@ public class Application implements CommandLineRunner {
 					if (resendAlreadyNotifiedOption) {
 						buildAlreadyNotifiedHolder(candlestickQuantityForInterval.keySet(), alreadyNotifiedMap);
 					}
-//					org.burningwave.core.assembler.StaticComponentContainer.ManagedLoggerRepository.logInfo(
-//						getClass()::getName,
-//						"Waiting 10 seconds"
-//					);
-//					Thread.sleep(10000);
+					totalIterationElapsedTime = System.currentTimeMillis() - totalIterationElapsedTime;
+					org.burningwave.core.assembler.StaticComponentContainer.ManagedLoggerRepository.logInfo(
+						getClass()::getName,
+						"Total iteration elapsed time: " + (totalIterationElapsedTime/1000d) + " seconds"
+					);
+					if (totalIterationElapsedTime < 90000) {
+						long waitingTime = (90000 - totalIterationElapsedTime);
+						org.burningwave.core.assembler.StaticComponentContainer.ManagedLoggerRepository.logInfo(
+							getClass()::getName,
+							"Waiting " + (waitingTime/1000d) + " seconds"
+						);
+						Thread.sleep((waitingTime));
+					}
+
 				}
 			}
 		}

@@ -1,4 +1,4 @@
-@echo on
+@echo off
 
 set CURRENT_DIR=%~dp0
 set CURRENT_UNIT=%CURRENT_DIR:~0,2%
