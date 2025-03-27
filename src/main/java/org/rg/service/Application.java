@@ -18,6 +18,8 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import javax.mail.BodyPart;
@@ -255,8 +257,10 @@ public class Application implements CommandLineRunner {
 			.map(Map.Entry::getValue)
 			.map(String.class::cast)
 			.collect(Collectors.joining(","));
-		int cycles = 1;
-		while (cycles-- > 0 ) {
+		AtomicInteger cycles = new AtomicInteger(1);
+		Supplier<Integer> cyclesSupplier = () ->
+			environment.getProperty("EXTERNAL_MANAGED_LOOP") != null ? cycles.getAndDecrement(): cycles.get();
+		while (cyclesSupplier.get() > 0) {
 			Asset.Collection dataCollection = new Asset.Collection().setOnTopFixedHeader(
 				Boolean.valueOf((String)((Map<String, Object>)appContext.getBean("indicatorMailServiceNotifierConfig")).get("text.table.on-top-fixed-header"))
 			);

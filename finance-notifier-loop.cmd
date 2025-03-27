@@ -18,6 +18,10 @@ cd %CURRENT_DIR%
 
 call "%CURRENT_DIR%\setup-ssh.cmd"
 
+set EXTERNAL_MANAGED_LOOP=true
+
+:loop
+
 call git pull --ff-only
 
 call mvn --settings %MVN_SETTINGS_PATH% clean dependency:list install
@@ -33,3 +37,4 @@ IF ["%~1"] == ["LOGGING_ENABLED"] (
 ::call git push
 
 timeout /t 5 /NOBREAK > NUL
+goto loop
