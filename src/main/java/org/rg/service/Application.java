@@ -269,10 +269,10 @@ public class Application implements CommandLineRunner {
 			buildAlreadyNotifiedHolder(intervals, new ConcurrentHashMap<>());
 
 		Map<Interval, Integer> candlestickQuantityForInterval = new LinkedHashMap<>();
-		candlestickQuantityForInterval.put(intervals.get(0), 215);
-		candlestickQuantityForInterval.put(intervals.get(1), 215);
-		candlestickQuantityForInterval.put(intervals.get(2), 215);
-		candlestickQuantityForInterval.put(intervals.get(3), 215);
+		candlestickQuantityForInterval.put(intervals.get(0), 300);
+		candlestickQuantityForInterval.put(intervals.get(1), 300);
+		candlestickQuantityForInterval.put(intervals.get(2), 300);
+		candlestickQuantityForInterval.put(intervals.get(3), 300);
 		Map<String, Map<Interval, BarSeries>> candlesticksForCoin = new ConcurrentHashMap<>();
 		List<String> notifiedAssetInPreviousEmail = new CopyOnWriteArrayList<>();
 		int minNumberOfIndicatorsDetectedOption =
@@ -378,7 +378,7 @@ public class Application implements CommandLineRunner {
 					StringBuffer presentation = new StringBuffer(
 						"<p style=\"" + Asset.DEFAULT_FONT_SIZE + "\">" +
 						"Ciao!<br/>In data <b>" + new SimpleDateFormat("yyyy\\MM\\dd-HH:mm:ss").format(new Date())+ "</b> " +
-						"sono stati rilevati i seguenti " + (dataCollection.size() -1) + " asset (BTC escluso) con variazioni rilevanti {0}:</p><br/>"
+						"sono stati rilevati i seguenti " + (dataCollection.size() -1) + " asset (BTC escluso) con variazioni rilevanti {0}</p><br/>"
 					);
 					List<String> notifiedAssetInThisEmail = null;
 					boolean sameAssetsSentInPreviousEmail = false;
