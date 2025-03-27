@@ -31,6 +31,7 @@ import javax.mail.internet.MimeBodyPart;
 import javax.mail.internet.MimeMessage;
 import javax.mail.internet.MimeMultipart;
 
+import org.burningwave.core.assembler.StaticComponentContainer;
 import org.burningwave.core.concurrent.QueuedTaskExecutor.ProducerTask;
 import org.burningwave.core.io.FileSystemItem;
 import org.rg.finance.BinanceWallet;
@@ -70,6 +71,30 @@ import org.ta4j.core.BarSeries;
 @SuppressWarnings({ "null" })
 public class Application implements CommandLineRunner {
 	private static ServerSocket alreadyRunningChecker = null;
+	private static String targetFolderAbsolutePath;
+	private static String projectFolderAbsolutePath;
+
+
+	protected static void init() {
+		try {
+			alreadyRunningChecker = new ServerSocket(Byte.MAX_VALUE);
+			FileSystemItem targetFolder =
+				org.burningwave.core.assembler.ComponentContainer.getInstance().getPathHelper().findResources(path ->
+					path.contains("target") && path.contains(Application.class.getSimpleName())
+				).stream().findFirst().map(fIS -> {
+					while (!(fIS = fIS.getParent()).getName().equals("target")) {}
+					return fIS;
+				}).get();
+			FileSystemItem projectFolder = targetFolder.getParent();
+			targetFolderAbsolutePath = targetFolder.getAbsolutePath();
+			projectFolderAbsolutePath = projectFolder.getAbsolutePath();
+			StaticComponentContainer.Cache.clear(true);
+	    } catch (IOException e) {
+	        System.err.println("Application already running!");
+	        System.exit(-1);
+	    }
+	}
+
 	private static enum ShowConsistentDataOption {
 		ONLY_THEM("Only them"),
 		HIGHLIGHT_THEM("Highlight them"),
@@ -106,13 +131,7 @@ public class Application implements CommandLineRunner {
 	private Environment environment;
 
 	public static void main(String[] args) {
-	    try {
-	    	alreadyRunningChecker = new ServerSocket(Byte.MAX_VALUE);
-	    	new SpringApplicationBuilder(Application.class).web(WebApplicationType.NONE).run(args);
-	    } catch (IOException e) {
-	        System.err.println("Application already running!");
-	        System.exit(-1);
-	    }
+		new SpringApplicationBuilder(Application.class).web(WebApplicationType.NONE).run(args);
 	}
 
 	@Bean("restTemplate")
@@ -213,14 +232,7 @@ public class Application implements CommandLineRunner {
 
 	@Override
 	public void run(String... args) throws Exception {
-		FileSystemItem targetFolder =
-			org.burningwave.core.assembler.ComponentContainer.getInstance().getPathHelper().findResources(path ->
-				path.contains("target") && path.contains(Application.class.getSimpleName())
-			).stream().findFirst().map(fIS -> {
-				while (!(fIS = fIS.getParent()).getName().equals("target")) {}
-				return fIS;
-			}).get();
-		FileSystemItem projectFolder = targetFolder.getParent();
+		init();
 		Map<Wallet, ProducerTask<Collection<String>>> walletsForAvailableCoins = new LinkedHashMap<>();
 		for(String beanName : appContext.getBeanNamesForType(Wallet.class)) {
 			Wallet wallet = appContext.getBean(beanName, Wallet.class);
@@ -470,7 +482,7 @@ public class Application implements CommandLineRunner {
 							);
 						}
 						org.burningwave.core.assembler.StaticComponentContainer.Streams.store(
-							projectFolder.getAbsolutePath() + "/src/main/resources/assets.html",
+							projectFolderAbsolutePath + "/src/main/resources/assets.html",
 							("<html>" +
 								"<script>" +
 									"window.setTimeout( function() {" +
@@ -484,7 +496,7 @@ public class Application implements CommandLineRunner {
 							.getBytes(StandardCharsets.UTF_8)
 						);
 						ShellExecutor.execute(
-							projectFolder.getAbsolutePath() + "/upload-assets.cmd "+
+							projectFolderAbsolutePath + "/upload-assets.cmd "+
 							environment.getProperty("NEOCITIES_ACCOUNT_NAME")+":"+
 							environment.getProperty("NEOCITIES_ACCOUNT_PASSWORD"),
 							true
