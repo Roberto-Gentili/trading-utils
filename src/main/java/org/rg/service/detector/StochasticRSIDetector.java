@@ -9,49 +9,44 @@ import org.rg.service.Asset.ValueName;
 import org.rg.service.Color;
 import org.rg.service.ColoredNumber;
 import org.ta4j.core.BarSeries;
-import org.ta4j.core.indicators.StochasticOscillatorKIndicator;
+import org.ta4j.core.indicators.RSIIndicator;
+import org.ta4j.core.indicators.SMAIndicator;
+import org.ta4j.core.indicators.StochasticRSIIndicator;
+import org.ta4j.core.indicators.helpers.ClosePriceIndicator;
 
 public class StochasticRSIDetector extends CriticalIndicatorValueDetectorAbst {
 	private int period;
+	private int barCount;
 
 	public StochasticRSIDetector(
 		String mainAsset,
 		String collateralAsset,
 		Map<Interval, BarSeries> candlesticks,
-		int period
+		int period,
+		int barCount
 	) {
 		super(mainAsset, collateralAsset, candlesticks);
 		this.period = period;
+		this.barCount = barCount;
 	}
 
-//	@Override
-//	public Asset compute(
-//		Interval interval
-//	) {
-//		BarSeries barSeries = candlesticks.get(interval);
-//		StochasticRSIIndicator rSIIndicator = new StochasticRSIIndicator(new ClosePriceIndicator(barSeries), period);
-//		List<Num> values = rSIIndicator.stream().collect(Collectors.toList());
-//		Double latestRSIValue = values.get(barSeries.getEndIndex()).doubleValue() * 100d;
-//		Asset data = null;
-//		if (checkIfIsBitcoin(mainAsset) || ((latestRSIValue > 85 || latestRSIValue < 15) && latestRSIValue != 0)) {
-//			Map<String, Double> variations = new LinkedHashMap<>();
-//			variations.put("Stoch. RSI value on " + interval.toString(), latestRSIValue.doubleValue());
-//			data = new Asset(
-//				mainAsset,
-//				collateralAsset,
-//				candlesticks
-//			).addRSI(variations);
-//		}
-//		return data;
-//	}
 
 	@Override
 	public Asset compute(
 		Interval interval
 	) {
 		BarSeries barSeries = candlesticks.get(interval);
-		StochasticOscillatorKIndicator sRSI = new StochasticOscillatorKIndicator(barSeries, period);
-        Double latestRSIValue = sRSI.getValue(barSeries.getEndIndex()).doubleValue();
+		StochasticRSIIndicator sRSI = new StochasticRSIIndicator(
+			new RSIIndicator(
+				new ClosePriceIndicator(barSeries),period
+			), period
+		);
+		SMAIndicator k = new SMAIndicator(sRSI, this.barCount);
+		//Indicator d = new SMAIndicator(k, this.barCount);
+
+
+
+        Double latestRSIValue = k.getValue(barSeries.getEndIndex()).doubleValue() * 100d;
         Asset data = null;
 		Map<String, Object> values = new LinkedHashMap<>();
 		if (latestRSIValue != 0) {

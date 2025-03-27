@@ -30,10 +30,10 @@ service:
       detector:
          min-number-of-indicators-detected: 6
          interval:
-            - 1h: 600
-            - 4h: 600
-            - 1d: 600
-            - 1w: 600
+            - 1h: 260
+            - 4h: 260
+            - 1d: 260
+            - 1w: 260
    mail:
       indicator.notifier:
          text.table.on-top-fixed-header: false

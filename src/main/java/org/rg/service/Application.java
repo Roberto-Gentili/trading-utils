@@ -576,7 +576,9 @@ public class Application implements CommandLineRunner {
 			for (Interval interval : intervals) {
 				detected =
 					process(
-						new StochasticRSIDetector(assetName,collateralName,candlesticks,14),
+						new StochasticRSIDetector(
+							assetName,collateralName,candlesticks,14, 3
+						),
 						interval,
 						dataCollection,
 						detected
