@@ -30,7 +30,7 @@ service:
       detector:
          min-number-of-indicators-detected: 6
          interval:
-            - 15m: 300
+            - 15m: 600
             - 1h: 300
             - 4h: 300
             - 1d: 300

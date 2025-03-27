@@ -359,9 +359,6 @@ public class Application implements CommandLineRunner {
 								}
 							}
 							if (ShowConsistentDataOption.HIGHLIGHT_THEM.valueEquals(showConsistentDataOption)) {
-								if (asset.getName().equals("CRV")) {
-									System.out.println();
-								}
 								if ((counters[1] == 0 && counters[2] > 0)) {
 									asset.highligtName(Color.GREEN.getCode());
 								} else if ((counters[2] == 0 && counters[1] > 0)) {
