@@ -469,7 +469,7 @@ public class Application implements CommandLineRunner {
 		Map<Interval, BarSeries>> candlesticksForCoin,
 		Asset.Collection dataCollection,
 		Map.Entry<Wallet, ProducerTask<Collection<String>>> walletForAvailableCoins,
-		String defaultCollateral,
+		String collateralName,
 		Collection<String> marginUSDCCoins
 	) {
 		StaticComponentContainer.IterableObjectHelper.iterate(IterationConfig.of(marginUSDCCoins)
@@ -479,7 +479,7 @@ public class Application implements CommandLineRunner {
 					intervals,
 					candlestickQuantityForInterval,
 					candlesticksForCoin,
-					wallet -> assetNm -> collateralName -> {
+					wallet -> assetNm -> {
 						return new BurningwaveAssetDataLoader(
 							wallet,
 							assetNm,
@@ -488,8 +488,8 @@ public class Application implements CommandLineRunner {
 					},
 					dataCollection,
 					walletForAvailableCoins,
-					defaultCollateral,
-					assetName
+					assetName,
+					collateralName
 				);
 		    })
 		);
@@ -503,7 +503,7 @@ public class Application implements CommandLineRunner {
 		Map<Interval, BarSeries>> candlesticksForCoin,
 		Asset.Collection dataCollection,
 		Map.Entry<Wallet, ProducerTask<Collection<String>>> walletForAvailableCoins,
-		String defaultCollateral,
+		String collateralName,
 		Collection<String> marginUSDCCoins
 	) {
 		marginUSDCCoins.parallelStream().forEach(assetName -> {
@@ -511,7 +511,7 @@ public class Application implements CommandLineRunner {
 				intervals,
 				candlestickQuantityForInterval,
 				candlesticksForCoin,
-				wallet -> assetNm -> collateralName -> {
+				wallet -> assetNm ->{
 					return new AssetDataLoader(
 						wallet,
 						assetNm,
@@ -520,18 +520,21 @@ public class Application implements CommandLineRunner {
 				},
 				dataCollection,
 				walletForAvailableCoins,
-				defaultCollateral,
-				assetName
+				assetName,
+				collateralName
 			);
 	    });
 	}
 
-	protected void processAsset(Collection<Interval> intervals, Map<Interval, Integer> candlestickQuantityForInterval,
-			Map<String, Map<Interval, BarSeries>> candlesticksForCoin,
-			Function<Wallet, Function<String, Function<String, ParallelIterator>>> parallalIteratorSupplier,
-			Asset.Collection dataCollection,
-			Map.Entry<Wallet, ProducerTask<Collection<String>>> walletForAvailableCoins, String defaultCollateral,
-			String assetName) {
+	protected void processAsset(
+		Collection<Interval> intervals, Map<Interval, Integer> candlestickQuantityForInterval,
+		Map<String, Map<Interval, BarSeries>> candlesticksForCoin,
+		Function<Wallet, Function<String, ParallelIterator>> parallalIteratorSupplier,
+		Asset.Collection dataCollection,
+		Map.Entry<Wallet, ProducerTask<Collection<String>>> walletForAvailableCoins,
+		String assetName,
+		String collateralName
+	) {
 		try {
 			org.burningwave.core.assembler.StaticComponentContainer.ManagedLoggerRepository.logInfo(
 				getClass()::getName,
@@ -540,12 +543,12 @@ public class Application implements CommandLineRunner {
 			);
 			ParallelIterator assetDataLoader = parallalIteratorSupplier.apply(
 				walletForAvailableCoins.getKey()
-			).apply(assetName).apply(defaultCollateral);
+			).apply(assetName);
 			for (Map.Entry<Interval, Integer> cFI : candlestickQuantityForInterval.entrySet()) {
 				assetDataLoader = assetDataLoader.loadInParallel(cFI.getKey(), cFI.getValue());
 			}
 			Map<Interval, BarSeries> candlesticks = assetDataLoader.retrieve();
-			candlesticksForCoin.put(assetName + defaultCollateral, candlesticks);
+			candlesticksForCoin.put(assetName + collateralName, candlesticks);
 			org.burningwave.core.assembler.StaticComponentContainer.ManagedLoggerRepository.logInfo(
 				getClass()::getName,
 				"... All data loaded from remote for asset {}",
@@ -555,7 +558,7 @@ public class Application implements CommandLineRunner {
 			for (Interval interval : intervals) {
 				detected =
 					process(
-						new EMADetector(assetName,defaultCollateral,candlesticks, false, 25,50,100,200),
+						new EMADetector(assetName,collateralName,candlesticks, false, 25,50,100,200),
 						interval,
 						dataCollection,
 						detected
@@ -564,7 +567,7 @@ public class Application implements CommandLineRunner {
 			for (Interval interval : intervals) {
 				detected =
 					process(
-						new RSIDetector(assetName,defaultCollateral,candlesticks,14),
+						new RSIDetector(assetName,collateralName,candlesticks,14),
 						interval,
 						dataCollection,
 						detected
@@ -573,7 +576,7 @@ public class Application implements CommandLineRunner {
 			for (Interval interval : intervals) {
 				detected =
 					process(
-						new StochasticRSIDetector(assetName,defaultCollateral,candlesticks,14),
+						new StochasticRSIDetector(assetName,collateralName,candlesticks,14),
 						interval,
 						dataCollection,
 						detected
@@ -582,7 +585,7 @@ public class Application implements CommandLineRunner {
 			for (Interval interval : intervals) {
 				detected =
 					process(
-						new BollingerBandDetector(assetName,defaultCollateral,candlesticks, 20, 2d),
+						new BollingerBandDetector(assetName,collateralName,candlesticks, 20, 2d),
 						interval,
 						dataCollection,
 						detected
@@ -591,7 +594,7 @@ public class Application implements CommandLineRunner {
 			for (Interval interval : intervals) {
 				detected =
 					process(
-						new BollingerBandDetector(assetName,defaultCollateral,candlesticks, 20, 2d),
+						new BollingerBandDetector(assetName,collateralName,candlesticks, 20, 2d),
 						interval,
 						dataCollection,
 						detected
@@ -600,7 +603,7 @@ public class Application implements CommandLineRunner {
 			for (Interval interval : intervals) {
 				detected =
 					process(
-						new SpikeDetector(assetName,defaultCollateral,candlesticks, 40, 3),
+						new SpikeDetector(assetName,collateralName,candlesticks, 40, 3),
 						interval,
 						dataCollection,
 						detected
@@ -609,7 +612,7 @@ public class Application implements CommandLineRunner {
 			for (Interval interval : intervals) {
 				detected =
 					process(
-						new BigCandleDetector(assetName,defaultCollateral,candlesticks, 10d),
+						new BigCandleDetector(assetName,collateralName,candlesticks, 10d),
 						interval,
 						dataCollection,
 						detected
@@ -617,7 +620,7 @@ public class Application implements CommandLineRunner {
 			}
 			if (detected != null) {
 				CriticalIndicatorValueDetector resistanceAndSupportDetector =
-					new ResistanceAndSupportDetector(assetName, defaultCollateral, candlesticks, false);
+					new ResistanceAndSupportDetector(assetName, collateralName, candlesticks, false);
 				for (Map.Entry<Interval, Integer> cFI : candlestickQuantityForInterval.entrySet()) {
 					if (CriticalIndicatorValueDetectorAbst.checkIfIsBitcoin(assetName) || candlesticks.get(cFI.getKey()).getBarCount() >= cFI.getValue()) {
 						detected = process(
