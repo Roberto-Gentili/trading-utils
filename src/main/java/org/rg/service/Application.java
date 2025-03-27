@@ -227,6 +227,18 @@ public class Application implements CommandLineRunner {
 	    return new LinkedHashMap<>();
 	}
 
+	@Bean("indicatorDetectorConfig")
+	@ConfigurationProperties("service.indicator.detector")
+	public Map<String, String> serviceDetectorConfig(){
+	    return new LinkedHashMap<>();
+	}
+
+	@Bean("indicatorDetectorIntervals")
+	@ConfigurationProperties("service.indicator.detector.interval")
+	public Map<String, String> indicatorDetectorIntervals(){
+		return createMap();
+	}
+
 
 	private Map<String, String> createMap() {
 		return new LinkedHashMap<String, String>() {
@@ -264,19 +276,19 @@ public class Application implements CommandLineRunner {
 				}).submit()
 			);
 		}
-		List<Interval> intervals = Arrays.asList(Interval.WEEK, Interval.ONE_DAYS, Interval.FOUR_HOURS, Interval.ONE_HOURS);
-		Map<Class<? extends CriticalIndicatorValueDetector>, Map<Interval, Map<String, Bar>>> alreadyNotifiedMap =
-			buildAlreadyNotifiedHolder(intervals, new ConcurrentHashMap<>());
-
 		Map<Interval, Integer> candlestickQuantityForInterval = new LinkedHashMap<>();
-		candlestickQuantityForInterval.put(intervals.get(0), 300);
-		candlestickQuantityForInterval.put(intervals.get(1), 300);
-		candlestickQuantityForInterval.put(intervals.get(2), 300);
-		candlestickQuantityForInterval.put(intervals.get(3), 300);
+		for (Map.Entry<String, String> entry : ((Map<String, String>)appContext.getBean("indicatorDetectorIntervals")).entrySet()) {
+			candlestickQuantityForInterval.put(Interval.fromValue(entry.getKey()), Integer.valueOf(entry.getValue()));
+		}
+		Map<Class<? extends CriticalIndicatorValueDetector>, Map<Interval, Map<String, Bar>>> alreadyNotifiedMap =
+			buildAlreadyNotifiedHolder(candlestickQuantityForInterval.keySet(), new ConcurrentHashMap<>());
+
 		Map<String, Map<Interval, BarSeries>> candlesticksForCoin = new ConcurrentHashMap<>();
 		List<String> notifiedAssetInPreviousEmail = new CopyOnWriteArrayList<>();
 		int minNumberOfIndicatorsDetectedOption =
-			Integer.valueOf((String)((Map<String, Object>)appContext.getBean("indicatorMailServiceNotifierConfig")).get("min-number-of-indicators-detected"));
+			Integer.valueOf((String)(
+				(Map<String, Object>)appContext.getBean("indicatorDetectorConfig")).get("min-number-of-indicators-detected")
+			);
 		boolean  resendAlreadyNotifiedOption =
 			Boolean.valueOf((String)((Map<String, Object>)appContext.getBean("indicatorMailServiceNotifierConfig")).get("resend-already-notified"));
 		String showConsistentDataOption =
@@ -309,7 +321,7 @@ public class Application implements CommandLineRunner {
 //					marginUSDCCoins = new ArrayList<>(marginUSDCCoins).subList(0, 25);
 					Long elapsedTime = System.currentTimeMillis();
 					processWithBurningwave(
-						intervals,
+						candlestickQuantityForInterval.keySet(),
 						candlestickQuantityForInterval,
 						candlesticksForCoin,
 						dataCollection,
@@ -329,15 +341,15 @@ public class Application implements CommandLineRunner {
 							Collection<Runnable> alreadyNotifiedUpdaters = new ArrayList<>();
 							int[] counters = {0,0,0};
 							List<int[]> counterList = Arrays.asList(
-								computeIfMustBeNotified(intervals, showConsistentDataOption, alreadyNotifiedMap, candlesticksForCoin, asset,
+								computeIfMustBeNotified(candlestickQuantityForInterval.keySet(), showConsistentDataOption, alreadyNotifiedMap, candlesticksForCoin, asset,
 										RSIDetector.class, asset.getRSI(), alreadyNotifiedUpdaters),
-								computeIfMustBeNotified(intervals, showConsistentDataOption, alreadyNotifiedMap, candlesticksForCoin, asset,
+								computeIfMustBeNotified(candlestickQuantityForInterval.keySet(), showConsistentDataOption, alreadyNotifiedMap, candlesticksForCoin, asset,
 										StochasticRSIDetector.class, asset.getStochasticRSI(), alreadyNotifiedUpdaters),
-								computeIfMustBeNotified(intervals, showConsistentDataOption, alreadyNotifiedMap, candlesticksForCoin, asset,
+								computeIfMustBeNotified(candlestickQuantityForInterval.keySet(), showConsistentDataOption, alreadyNotifiedMap, candlesticksForCoin, asset,
 										BollingerBandDetector.class, asset.getBollingerBands(), alreadyNotifiedUpdaters),
-								computeIfMustBeNotified(intervals, showConsistentDataOption, alreadyNotifiedMap, candlesticksForCoin, asset,
+								computeIfMustBeNotified(candlestickQuantityForInterval.keySet(), showConsistentDataOption, alreadyNotifiedMap, candlesticksForCoin, asset,
 										SpikeDetector.class, asset.getSpikeSizePercentage(), alreadyNotifiedUpdaters),
-								computeIfMustBeNotified(intervals, showConsistentDataOption, alreadyNotifiedMap, candlesticksForCoin, asset,
+								computeIfMustBeNotified(candlestickQuantityForInterval.keySet(), showConsistentDataOption, alreadyNotifiedMap, candlesticksForCoin, asset,
 										BigCandleDetector.class, asset.getVariationPercentages(), alreadyNotifiedUpdaters)
 							);
 							for (int i = 0; i < counterList.size(); i++) {
@@ -436,7 +448,7 @@ public class Application implements CommandLineRunner {
 					dataCollection.clear();
 					candlesticksForCoin.clear();
 					if (resendAlreadyNotifiedOption) {
-						buildAlreadyNotifiedHolder(intervals, alreadyNotifiedMap);
+						buildAlreadyNotifiedHolder(candlestickQuantityForInterval.keySet(), alreadyNotifiedMap);
 					}
 //					org.burningwave.core.assembler.StaticComponentContainer.ManagedLoggerRepository.logInfo(
 //						getClass()::getName,
@@ -450,7 +462,7 @@ public class Application implements CommandLineRunner {
 	}
 
 	protected void processWithBurningwave(
-		List<Interval> intervals,
+		Collection<Interval> intervals,
 		Map<Interval,
 		Integer> candlestickQuantityForInterval,
 		Map<String,
@@ -484,7 +496,7 @@ public class Application implements CommandLineRunner {
 	}
 
 	protected void processWithDefaultAPI(
-		List<Interval> intervals,
+		Collection<Interval> intervals,
 		Map<Interval,
 		Integer> candlestickQuantityForInterval,
 		Map<String,
@@ -514,7 +526,7 @@ public class Application implements CommandLineRunner {
 	    });
 	}
 
-	protected void processAsset(List<Interval> intervals, Map<Interval, Integer> candlestickQuantityForInterval,
+	protected void processAsset(Collection<Interval> intervals, Map<Interval, Integer> candlestickQuantityForInterval,
 			Map<String, Map<Interval, BarSeries>> candlesticksForCoin,
 			Function<Wallet, Function<String, Function<String, ParallelIterator>>> parallalIteratorSupplier,
 			Asset.Collection dataCollection,
@@ -628,7 +640,7 @@ public class Application implements CommandLineRunner {
 	}
 
 	private Map<Class<? extends CriticalIndicatorValueDetector>, Map<Interval, Map<String, Bar>>> buildAlreadyNotifiedHolder(
-			List<Interval> intervals,
+			Collection<Interval> intervals,
 			Map<Class<? extends CriticalIndicatorValueDetector>, Map<Interval, Map<String, Bar>>> alreadyNotifiedMap
 	) {
 		alreadyNotifiedMap.clear();
@@ -649,7 +661,7 @@ public class Application implements CommandLineRunner {
 	}
 
 	protected int[] computeIfMustBeNotified(
-		List<Interval> intervals,
+		Collection<Interval> intervals,
 		String showConsistentDataOption,
 		Map<Class<? extends CriticalIndicatorValueDetector>,
 		Map<Interval, Map<String, Bar>>> alreadyNotified,

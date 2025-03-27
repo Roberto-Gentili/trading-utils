@@ -25,6 +25,17 @@ public enum Interval {
     public String toString() {
         return value;
     }
+    public static Interval fromValue(String value) {
+    	if (value == null) {
+    		return null;
+    	}
+    	for (Interval interval : Interval.values()) {
+    		if (interval.value.equals(value)) {
+    			return interval;
+    		}
+    	}
+    	return null;
+    }
 
 	public Duration toDuration() {
 		Duration duration = null;

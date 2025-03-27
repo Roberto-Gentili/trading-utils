@@ -26,10 +26,17 @@ burningwave.core.static-component-container:
    thread-supplier.max-poolable-thread-count: 0
 
 service:
+   indicator:
+      detector:
+         min-number-of-indicators-detected: 6
+         interval:
+            - 1h: 600
+            - 4h: 600
+            - 1d: 600
+            - 1w: 600
    mail:
       indicator.notifier:
          text.table.on-top-fixed-header: false
-         min-number-of-indicators-detected: 6
          resend-already-notified: true
          #possible values: 'highlight them', 'only them'
          show-consistent-data: 'highlight them'
