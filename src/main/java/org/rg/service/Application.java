@@ -495,6 +495,7 @@ public class Application implements CommandLineRunner {
 				}
 			}
 		}
+		System.exit(0);
 	}
 
 	private Map<Class<? extends CriticalIndicatorValueDetector>, Map<Interval, Map<String, Bar>>> buildAlreadyNotifiedHolder(
