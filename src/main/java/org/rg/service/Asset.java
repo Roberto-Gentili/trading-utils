@@ -275,7 +275,7 @@ public class Asset {
 			AtomicInteger rowCounter = new AtomicInteger(0);
 			List<String> header = Stream.of(ValueName.values()).map(ValueName::toString).collect(Collectors.toList());
 			return
-				String.join("<br/>", datas.stream().map(dt -> {
+				String.join(", ", datas.stream().map(dt -> {
 					return "<a href=\"#" + dt.getName() + dt.getCollateral() + "\">" + dt.getName() + "/" + dt.getCollateral() + "</a>";
 				}).collect(Collectors.toList())) +
 				"<center>"+"" +
@@ -320,7 +320,7 @@ public class Asset {
     								if (!assetColoredName.getColor().equals(Color.DEFAULT.getCode())) {
     									cellStyle += "background-color: " + assetColoredName.getColor() +";";
     								}
-        							htmlCellValue = "<a name=\"\"" + value + ValueName.COLLATERAL.toString() + " href=\"" + "https://www.binance.com/it/trade/" + value + "_" + data.values.get(ValueName.COLLATERAL.toString()) + "?type=isolated\" target=\"_blank\">" + data.values.get(label) + "</a>";
+        							htmlCellValue = "<a name=\"" + value + data.values.get(ValueName.COLLATERAL.toString()) + "\" href=\"" + "https://www.binance.com/it/trade/" + value + "_" + data.values.get(ValueName.COLLATERAL.toString()) + "?type=isolated\" target=\"_blank\">" + data.values.get(label) + "</a>";
         						} else if (value instanceof Number) {
         							htmlCellValue = Asset.format((Number)value);
         						} else if (value instanceof Bar) {
