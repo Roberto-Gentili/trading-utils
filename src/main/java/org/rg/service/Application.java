@@ -2,6 +2,7 @@ package org.rg.service;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.ServerSocket;
 import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
 import java.time.LocalDate;
@@ -15,7 +16,6 @@ import java.util.Date;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Properties;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -32,6 +32,7 @@ import javax.mail.internet.MimeMessage;
 import javax.mail.internet.MimeMultipart;
 
 import org.burningwave.core.concurrent.QueuedTaskExecutor.ProducerTask;
+import org.burningwave.core.io.FileSystemItem;
 import org.rg.finance.BinanceWallet;
 import org.rg.finance.CryptoComWallet;
 import org.rg.finance.Interval;
@@ -44,7 +45,6 @@ import org.rg.service.detector.RSIDetector;
 import org.rg.service.detector.ResistanceAndSupportDetector;
 import org.rg.service.detector.SpikeDetector;
 import org.rg.service.detector.StochasticRSIDetector;
-import org.rg.util.ResourceUtils;
 import org.rg.util.RestTemplateSupplier;
 import org.rg.util.ShellExecutor;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -69,6 +69,7 @@ import org.ta4j.core.BarSeries;
 @SpringBootApplication
 @SuppressWarnings({ "null" })
 public class Application implements CommandLineRunner {
+	private static ServerSocket alreadyRunningChecker = null;
 	private static enum ShowConsistentDataOption {
 		ONLY_THEM("Only them"),
 		HIGHLIGHT_THEM("Highlight them"),
@@ -105,7 +106,13 @@ public class Application implements CommandLineRunner {
 	private Environment environment;
 
 	public static void main(String[] args) {
-		new SpringApplicationBuilder(Application.class).web(WebApplicationType.NONE).run(args);
+	    try {
+	    	alreadyRunningChecker = new ServerSocket(Byte.MAX_VALUE);
+	    	new SpringApplicationBuilder(Application.class).web(WebApplicationType.NONE).run(args);
+	    } catch (IOException e) {
+	        System.err.println("Application already running!");
+	        System.exit(-1);
+	    }
 	}
 
 	@Bean("restTemplate")
@@ -206,11 +213,14 @@ public class Application implements CommandLineRunner {
 
 	@Override
 	public void run(String... args) throws Exception {
-		File targetFolder = Optional.of(ResourceUtils.INSTANCE.getResourceFolder()).map(path -> {
-			while (!(path = path.getParentFile()).getName().equals("target")) {}
-			return path;
-		}).get();
-		File projectFolder = targetFolder.getParentFile();
+		FileSystemItem targetFolder =
+			org.burningwave.core.assembler.ComponentContainer.getInstance().getPathHelper().findResources(path ->
+				path.contains("target") && path.contains(Application.class.getSimpleName())
+			).stream().findFirst().map(fIS -> {
+				while (!(fIS = fIS.getParent()).getName().equals("target")) {}
+				return fIS;
+			}).get();
+		FileSystemItem projectFolder = targetFolder.getParent();
 		Map<Wallet, ProducerTask<Collection<String>>> walletsForAvailableCoins = new LinkedHashMap<>();
 		for(String beanName : appContext.getBeanNamesForType(Wallet.class)) {
 			Wallet wallet = appContext.getBean(beanName, Wallet.class);
