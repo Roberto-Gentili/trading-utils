@@ -45,4 +45,5 @@ service:
 #            - roberto.gentili.1980@gmail.com
 #            - fercoletti@gmail.comm
          view:
+            destination-file: 'all-assets.html'
             autorefresh-every: 180000

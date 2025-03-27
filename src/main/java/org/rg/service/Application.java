@@ -16,6 +16,7 @@ import java.util.Date;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Properties;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -239,6 +240,12 @@ public class Application implements CommandLineRunner {
 		return createMap();
 	}
 
+	@Bean("indicatorDetectorAssetFilter")
+	@ConfigurationProperties("service.indicator.detector.analyze")
+	public Map<String, String> indicatorDetectorAssetFilter(){
+		return createMap();
+	}
+
 
 	private Map<String, String> createMap() {
 		return new LinkedHashMap<String, String>() {
@@ -285,9 +292,9 @@ public class Application implements CommandLineRunner {
 
 		Map<String, Map<Interval, BarSeries>> candlesticksForCoin = new ConcurrentHashMap<>();
 		List<String> notifiedAssetInPreviousEmail = new CopyOnWriteArrayList<>();
+		Map<String, Object> indicattorDetectorConfig = (Map<String, Object>)appContext.getBean("indicatorDetectorConfig");
 		int minNumberOfIndicatorsDetectedOption =
-			Integer.valueOf((String)(
-				(Map<String, Object>)appContext.getBean("indicatorDetectorConfig")).get("min-number-of-indicators-detected")
+			Integer.valueOf((String)(indicattorDetectorConfig).get("min-number-of-indicators-detected")
 			);
 		boolean  resendAlreadyNotifiedOption =
 			Boolean.valueOf((String)((Map<String, Object>)appContext.getBean("indicatorMailServiceNotifierConfig")).get("resend-already-notified"));
@@ -299,6 +306,7 @@ public class Application implements CommandLineRunner {
 			Long.valueOf(
 				((String)((Map<String, Object>)appContext.getBean("indicatorMailServiceNotifierConfig")).getOrDefault("view.autorefresh-every", "300000"))
 			);
+		String destinationFileName = (String)((Map<String, Object>)appContext.getBean("indicatorMailServiceNotifierConfig")).get("view.destination-file");
 		String recipients = ((Map<String, Object>)appContext.getBean("indicatorMailServiceNotifierConfig"))
 			.entrySet().stream()
 			.filter(keyAndVal -> keyAndVal.getKey().startsWith("recipient"))
@@ -308,6 +316,7 @@ public class Application implements CommandLineRunner {
 		AtomicInteger cycles = new AtomicInteger(1);
 		Supplier<Integer> cyclesSupplier = () ->
 			environment.getProperty("EXTERNAL_MANAGED_LOOP") != null ? cycles.getAndDecrement(): cycles.get();
+		Map<String, String> assetFilter = (Map<String, String>)appContext.getBean("indicatorDetectorAssetFilter");
 		while (cyclesSupplier.get() > 0) {
 			Asset.Collection dataCollection = new Asset.Collection().setOnTopFixedHeader(
 				Boolean.valueOf((String)((Map<String, Object>)appContext.getBean("indicatorMailServiceNotifierConfig")).get("text.table.on-top-fixed-header"))
@@ -315,10 +324,16 @@ public class Application implements CommandLineRunner {
 			for (Map.Entry<Wallet, ProducerTask<Collection<String>>> walletForAvailableCoins : walletsForAvailableCoins.entrySet()) {
 				if (walletForAvailableCoins.getKey() instanceof BinanceWallet) {
 					String defaultCollateral = walletForAvailableCoins.getKey().getCollateralForCoin("DEFAULT");
-					Collection<String> marginUSDCCoins = ((BinanceWallet)walletForAvailableCoins.getKey()).getAllMarginAssetPairs()
-						.stream().filter(asset -> asset.get("quote").equals(defaultCollateral)).map(asset -> asset.get("base")).
-						map(String.class::cast).collect(Collectors.toList());
+					Collection<Map<String, Object>> assetsToBeProcessed = ((BinanceWallet)walletForAvailableCoins.getKey()).getAllMarginAssetPairs()
+						.stream().filter(asset -> {
+							if (assetFilter.isEmpty()) {
+								return asset.get("quote").equals(defaultCollateral);
+							} else {
+								return Optional.ofNullable(assetFilter.get(asset.get("base"))).map(collateral -> collateral.equals(asset.get("quote"))).orElseGet(() -> false);
+							}
+						}).collect(Collectors.toList());
 //					marginUSDCCoins = new ArrayList<>(marginUSDCCoins).subList(0, 25);
+
 					Long elapsedTime = System.currentTimeMillis();
 					processWithBurningwave(
 						candlestickQuantityForInterval.keySet(),
@@ -326,8 +341,7 @@ public class Application implements CommandLineRunner {
 						candlesticksForCoin,
 						dataCollection,
 						walletForAvailableCoins,
-						defaultCollateral,
-						marginUSDCCoins
+						assetsToBeProcessed
 					);
 					elapsedTime = System.currentTimeMillis() - elapsedTime;
 					double elapsedTimeInSeconds = elapsedTime / 1000d;
@@ -418,7 +432,7 @@ public class Application implements CommandLineRunner {
 							projectFolderAbsolutePathSupplier.changePriority(Thread.MAX_PRIORITY);
 						}
 						org.burningwave.core.assembler.StaticComponentContainer.Streams.store(
-							projectFolderAbsolutePathSupplier.join() + "/src/main/resources/assets.html",
+							projectFolderAbsolutePathSupplier.join() + "/src/main/resources/" + destinationFileName,
 							("<html>" +
 								"<script>" +
 									"window.setTimeout( function() {" +
@@ -433,6 +447,7 @@ public class Application implements CommandLineRunner {
 						);
 						ShellExecutor.execute(
 							projectFolderAbsolutePathSupplier.join() + "/upload-assets.cmd "+
+							destinationFileName + " " +
 							environment.getProperty("NEOCITIES_ACCOUNT_NAME")+":"+
 							environment.getProperty("NEOCITIES_ACCOUNT_PASSWORD"),
 							true
@@ -466,12 +481,11 @@ public class Application implements CommandLineRunner {
 		Map<Interval, BarSeries>> candlesticksForCoin,
 		Asset.Collection dataCollection,
 		Map.Entry<Wallet, ProducerTask<Collection<String>>> walletForAvailableCoins,
-		String collateralName,
-		Collection<String> marginUSDCCoins
+		Collection<Map<String, Object>> assets
 	) {
-		StaticComponentContainer.IterableObjectHelper.iterate(IterationConfig.of(marginUSDCCoins)
+		StaticComponentContainer.IterableObjectHelper.iterate(IterationConfig.of(assets)
 			.withPriority(Thread.MAX_PRIORITY)
-			.withAction((assetName) -> {
+			.withAction((asset) -> {
 		    	processAsset(
 					intervals,
 					candlestickQuantityForInterval,
@@ -480,13 +494,13 @@ public class Application implements CommandLineRunner {
 						return new BurningwaveAssetDataLoader(
 							wallet,
 							assetNm,
-							collateralName
+							(String)asset.get("quote")
 						);
 					},
 					dataCollection,
 					walletForAvailableCoins,
-					assetName,
-					collateralName
+					(String)asset.get("base"),
+					(String)asset.get("quote")
 				);
 		    })
 		);
@@ -500,10 +514,9 @@ public class Application implements CommandLineRunner {
 		Map<Interval, BarSeries>> candlesticksForCoin,
 		Asset.Collection dataCollection,
 		Map.Entry<Wallet, ProducerTask<Collection<String>>> walletForAvailableCoins,
-		String collateralName,
-		Collection<String> marginUSDCCoins
+		Collection<Map<String, Object>> assets
 	) {
-		marginUSDCCoins.parallelStream().forEach(assetName -> {
+		assets.parallelStream().forEach(asset -> {
 	    	processAsset(
 				intervals,
 				candlestickQuantityForInterval,
@@ -512,13 +525,13 @@ public class Application implements CommandLineRunner {
 					return new AssetDataLoader(
 						wallet,
 						assetNm,
-						collateralName
+						(String)asset.get("quote")
 					);
 				},
 				dataCollection,
 				walletForAvailableCoins,
-				assetName,
-				collateralName
+				(String)asset.get("base"),
+				(String)asset.get("quote")
 			);
 	    });
 	}

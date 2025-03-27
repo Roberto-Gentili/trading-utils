@@ -23,6 +23,7 @@
     <stringAttribute key="org.eclipse.jdt.launching.JRE_CONTAINER" value="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/21/"/>
     <stringAttribute key="org.eclipse.jdt.launching.MAIN_TYPE" value="org.rg.service.Application"/>
     <stringAttribute key="org.eclipse.jdt.launching.MODULE_NAME" value="rg-services"/>
+    <stringAttribute key="org.eclipse.jdt.launching.PROGRAM_ARGUMENTS" value="--spring.config.location=file:///${project_loc}\all-assets-scanner.yml"/>
     <stringAttribute key="org.eclipse.jdt.launching.PROJECT_ATTR" value="trading-utils"/>
     <stringAttribute key="org.eclipse.jdt.launching.SOURCE_PATH_PROVIDER" value="org.eclipse.m2e.launchconfig.sourcepathProvider"/>
 </launchConfiguration>

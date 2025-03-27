@@ -23,10 +23,9 @@ call git pull --ff-only
 call mvn --settings %MVN_SETTINGS_PATH% clean dependency:list install
 
 IF ["%~1"] == ["LOGGING_ENABLED"] (
-	echo.
-	call java.exe -DcryptoComApiKey=%CRYPTO_COM_API_KEY% -DcryptoComApiSecret=%CRYPTO_COM_API_SECRET% -DbinanceApiKey=%BINANCE_API_KEY% -DbinanceApiSecret=%BINANCE_API_SECRET% -DemailAccount=%BURNINGWAVE_ORG_ACCOUNT_NAME% -DemailPassword=%BURNINGWAVE_ORG_ACCOUNT_PASSWORD% -DmultiThreadingMode=normal -jar ./target/runner-1.0.0.jar org.rg.service.Runner
+	call java.exe -DcryptoComApiKey=%CRYPTO_COM_API_KEY% -DcryptoComApiSecret=%CRYPTO_COM_API_SECRET% -DbinanceApiKey=%BINANCE_API_KEY% -DbinanceApiSecret=%BINANCE_API_SECRET% -DemailAccount=%BURNINGWAVE_ORG_ACCOUNT_NAME% -DemailPassword=%BURNINGWAVE_ORG_ACCOUNT_PASSWORD% -DmultiThreadingMode=normal -jar ./target/runner-1.0.0.jar org.rg.service.Runner --spring.config.location=file:///%CURRENT_DIR%all-assets-scanner.yml
 ) else (
-	start "Crypto RSI Change Notifier" javaw.exe -DcryptoComApiKey=%CRYPTO_COM_API_KEY% -DcryptoComApiSecret=%CRYPTO_COM_API_SECRET% -DbinanceApiKey=%BINANCE_API_KEY% -DbinanceApiSecret=%BINANCE_API_SECRET% -DemailAccount=%BURNINGWAVE_ORG_ACCOUNT_NAME% -DemailPassword=%BURNINGWAVE_ORG_ACCOUNT_PASSWORD% -DmultiThreadingMode=normal -jar "%CURRENT_DIR%/target/runner-1.0.0.jar" org.rg.service.Runner
+	start "Crypto RSI Change Notifier" javaw.exe -DcryptoComApiKey=%CRYPTO_COM_API_KEY% -DcryptoComApiSecret=%CRYPTO_COM_API_SECRET% -DbinanceApiKey=%BINANCE_API_KEY% -DbinanceApiSecret=%BINANCE_API_SECRET% -DemailAccount=%BURNINGWAVE_ORG_ACCOUNT_NAME% -DemailPassword=%BURNINGWAVE_ORG_ACCOUNT_PASSWORD% -DmultiThreadingMode=normal -jar "%CURRENT_DIR%/target/runner-1.0.0.jar" org.rg.service.Runner --spring.config.location=file:///%CURRENT_DIR%all-assets-scanner.yml
 )
 ::call git pull --ff-only
 ::call git commit -am "Updated asset report"
