@@ -30,6 +30,10 @@ public class ColoredString {
 		return color;
 	}
 
+	public boolean isDefaultColor() {
+		return this.color.equals(Color.DEFAULT.getCode());
+	}
+
 	@Override
 	public String toString() {
 		return value;

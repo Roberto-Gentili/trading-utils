@@ -327,7 +327,7 @@ public class Asset {
         								String htmlCV = "<b>" + rec.getKey() + "</b>=";
         								if (vl instanceof ColoredNumber) {
         									ColoredNumber vlcd = (ColoredNumber)vl;
-        									return htmlCV + "<span style=\"color: " + vlcd.getColor() + ";\">" + Asset.format(((Number)rec.getValue()).doubleValue()) + "</span>";
+        									return htmlCV + "<span style=\"color: " + vlcd.getColor() + ";\">" + (!vlcd.isDefaultColor() ? "<b>" : "") + Asset.format(((Number)rec.getValue()).doubleValue())+ (!vlcd.isDefaultColor() ? "</b>" : "") + "</span>";
         								} else {
         									return htmlCV + Asset.format(((Number)rec.getValue()).doubleValue());
         								}

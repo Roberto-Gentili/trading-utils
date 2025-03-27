@@ -25,6 +25,10 @@ public class ColoredNumber extends Number {
 		return this;
 	}
 
+	public boolean isDefaultColor() {
+		return this.color.equals(Color.DEFAULT.getCode());
+	}
+
 	@Override
 	public int intValue() {
 		return value.intValue();
