@@ -277,7 +277,7 @@ public class Asset {
 			return
 				String.join(", ", datas.stream().map(dt -> {
 					return "<a href=\"#" + dt.getName() + dt.getCollateral() + "\">" + dt.getName() + "/" + dt.getCollateral() + "</a>";
-				}).collect(Collectors.toList())) + "<br/>" +
+				}).collect(Collectors.toList())) + "<br/><br/>" +
 				"<center>"+"" +
 					"<div style=\"" + TABLE_DIV_STYLE + "\">" +
 						"<table style=\"" + TABLE_STYLE + "\">" +
