@@ -20,6 +20,7 @@ import java.util.Properties;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
@@ -72,24 +73,38 @@ import org.ta4j.core.BarSeries;
 @SuppressWarnings({ "null" })
 public class Application implements CommandLineRunner {
 	private static ServerSocket alreadyRunningChecker = null;
-	private static String targetFolderAbsolutePath;
-	private static String projectFolderAbsolutePath;
+	private static ProducerTask<String> projectFolderAbsolutePathSupplier;
 
 
 	protected static void init() {
 		try {
 			alreadyRunningChecker = new ServerSocket(Byte.MAX_VALUE);
-			FileSystemItem targetFolder =
-				org.burningwave.core.assembler.ComponentContainer.getInstance().getPathHelper().findResources(path ->
-					path.contains("target") && path.contains(Application.class.getSimpleName())
-				).stream().findFirst().map(fIS -> {
-					while (!(fIS = fIS.getParent()).getName().equals("target")) {}
-					return fIS;
-				}).get();
-			FileSystemItem projectFolder = targetFolder.getParent();
-			targetFolderAbsolutePath = targetFolder.getAbsolutePath();
-			projectFolderAbsolutePath = projectFolder.getAbsolutePath();
-			StaticComponentContainer.Cache.clear(true);
+			projectFolderAbsolutePathSupplier =
+				org.burningwave.core.assembler.StaticComponentContainer.BackgroundExecutor.createProducerTask(()-> {
+					FileSystemItem projectFolder = org.burningwave.core.assembler.ComponentContainer.getInstance().getPathHelper().findResources(path ->
+						path.contains("target") && path.contains(Application.class.getSimpleName())
+					).stream().findFirst().map(fIS -> {
+						while (!(fIS = fIS.getParent()).getName().equals("target")) {}
+						return fIS;
+					}).get().getParent();
+					String projectFolderAbsolutePath = projectFolder.getAbsolutePath();
+					org.burningwave.core.assembler.StaticComponentContainer.ManagedLoggerRepository.logInfo(
+						Application.class::getName,
+						"Project absolute path is: {}",
+						projectFolderAbsolutePath
+					);
+					org.burningwave.core.assembler.StaticComponentContainer.ManagedLoggerRepository.logInfo(
+						Application.class::getName,
+						"Cleaning Burningwave cache..."
+					);
+					StaticComponentContainer.Cache.clear(true);
+					org.burningwave.core.assembler.StaticComponentContainer.ManagedLoggerRepository.logInfo(
+						Application.class::getName,
+						"... Burningwave cache cleaned"
+					);
+					return projectFolderAbsolutePath;
+				}, Thread.MIN_PRIORITY);
+			projectFolderAbsolutePathSupplier.submit();
 	    } catch (IOException e) {
 	        System.err.println("Application already running!");
 	        System.exit(-1);
@@ -292,121 +307,23 @@ public class Application implements CommandLineRunner {
 						.stream().filter(asset -> asset.get("quote").equals(defaultCollateral)).map(asset -> asset.get("base")).
 						map(String.class::cast).collect(Collectors.toList());
 //					marginUSDCCoins = new ArrayList<>(marginUSDCCoins).subList(0, 25);
-					StaticComponentContainer.IterableObjectHelper.iterate(IterationConfig.of(marginUSDCCoins)
-						.withPriority(Thread.MAX_PRIORITY)
-						.withAction((assetName) -> {
-			            	try {
-								org.burningwave.core.assembler.StaticComponentContainer.ManagedLoggerRepository.logInfo(
-									getClass()::getName,
-									"Loading data from remote for asset {}...",
-									assetName
-								);
-								BurningwaveAssetDataLoader assetDataLoader = new BurningwaveAssetDataLoader(
-									walletForAvailableCoins.getKey(),
-									assetName,
-									defaultCollateral
-								);
-								for (Map.Entry<Interval, Integer> cFI : candlestickQuantityForInterval.entrySet()) {
-									assetDataLoader = assetDataLoader.loadInParallel(cFI.getKey(), cFI.getValue());
-								}
-								Map<Interval, BarSeries> candlesticks = assetDataLoader.retrieve();
-								candlesticksForCoin.put(assetName + defaultCollateral, candlesticks);
-								org.burningwave.core.assembler.StaticComponentContainer.ManagedLoggerRepository.logInfo(
-									getClass()::getName,
-									"... All data loaded from remote for asset {}",
-									assetName
-								);
-								Asset detected = null;
-								for (Interval interval : intervals) {
-									detected =
-										process(
-											new EMADetector(assetName,defaultCollateral,candlesticks, false, 25,50,100,200),
-											interval,
-											dataCollection,
-											detected
-										);
-								}
-								for (Interval interval : intervals) {
-									detected =
-										process(
-											new RSIDetector(assetName,defaultCollateral,candlesticks,14),
-											interval,
-											dataCollection,
-											detected
-										);
-								}
-								for (Interval interval : intervals) {
-									detected =
-										process(
-											new StochasticRSIDetector(assetName,defaultCollateral,candlesticks,14),
-											interval,
-											dataCollection,
-											detected
-										);
-								}
-								for (Interval interval : intervals) {
-									detected =
-										process(
-											new BollingerBandDetector(assetName,defaultCollateral,candlesticks, 20, 2d),
-											interval,
-											dataCollection,
-											detected
-										);
-								}
-								for (Interval interval : intervals) {
-									detected =
-										process(
-											new BollingerBandDetector(assetName,defaultCollateral,candlesticks, 20, 2d),
-											interval,
-											dataCollection,
-											detected
-										);
-								}
-								for (Interval interval : intervals) {
-									detected =
-										process(
-											new SpikeDetector(assetName,defaultCollateral,candlesticks, 40, 3),
-											interval,
-											dataCollection,
-											detected
-										);
-								}
-								for (Interval interval : intervals) {
-									detected =
-										process(
-											new BigCandleDetector(assetName,defaultCollateral,candlesticks, 10d),
-											interval,
-											dataCollection,
-											detected
-										);
-								}
-								if (detected != null) {
-									CriticalIndicatorValueDetector resistanceAndSupportDetector =
-										new ResistanceAndSupportDetector(assetName, defaultCollateral, candlesticks, false);
-									for (Map.Entry<Interval, Integer> cFI : candlestickQuantityForInterval.entrySet()) {
-										if (CriticalIndicatorValueDetectorAbst.checkIfIsBitcoin(assetName) || candlesticks.get(cFI.getKey()).getBarCount() >= cFI.getValue()) {
-											detected = process(
-												resistanceAndSupportDetector,
-												cFI.getKey(),
-												dataCollection,
-												detected
-											);
-										}
-									}
-								}
-							} catch (Throwable exc) {
-								org.burningwave.core.assembler.StaticComponentContainer.ManagedLoggerRepository.logError(
-									getClass()::getName,
-									"Exception occurred while processing asset {}",
-									exc,
-									assetName
-								);
-							}
-			            })
-				    );
-					marginUSDCCoins.parallelStream().forEach(coin -> {
-
-					});
+					Long elapsedTime = System.currentTimeMillis();
+					processWithBurningwave(
+						intervals,
+						candlestickQuantityForInterval,
+						candlesticksForCoin,
+						dataCollection,
+						walletForAvailableCoins,
+						defaultCollateral,
+						marginUSDCCoins
+					);
+					elapsedTime = System.currentTimeMillis() - elapsedTime;
+					double elapsedTimeInSeconds = elapsedTime / 1000d;
+					org.burningwave.core.assembler.StaticComponentContainer.ManagedLoggerRepository.logInfo(
+						getClass()::getName,
+						"Elapsed time for data retrieve: {} seconds",
+						elapsedTimeInSeconds
+					);
 					if (minNumberOfIndicatorsDetectedOption > -1) {
 						dataCollection.filter(asset -> {
 							Collection<Runnable> alreadyNotifiedUpdaters = new ArrayList<>();
@@ -488,8 +405,11 @@ public class Application implements CommandLineRunner {
 								(String[])null
 							);
 						}
+						if (!projectFolderAbsolutePathSupplier.wasExecuted()) {
+							projectFolderAbsolutePathSupplier.changePriority(Thread.MAX_PRIORITY);
+						}
 						org.burningwave.core.assembler.StaticComponentContainer.Streams.store(
-							projectFolderAbsolutePath + "/src/main/resources/assets.html",
+							projectFolderAbsolutePathSupplier.join() + "/src/main/resources/assets.html",
 							("<html>" +
 								"<script>" +
 									"window.setTimeout( function() {" +
@@ -503,7 +423,7 @@ public class Application implements CommandLineRunner {
 							.getBytes(StandardCharsets.UTF_8)
 						);
 						ShellExecutor.execute(
-							projectFolderAbsolutePath + "/upload-assets.cmd "+
+							projectFolderAbsolutePathSupplier.join() + "/upload-assets.cmd "+
 							environment.getProperty("NEOCITIES_ACCOUNT_NAME")+":"+
 							environment.getProperty("NEOCITIES_ACCOUNT_PASSWORD"),
 							true
@@ -527,6 +447,184 @@ public class Application implements CommandLineRunner {
 			}
 		}
 		System.exit(0);
+	}
+
+	protected void processWithBurningwave(
+		List<Interval> intervals,
+		Map<Interval,
+		Integer> candlestickQuantityForInterval,
+		Map<String,
+		Map<Interval, BarSeries>> candlesticksForCoin,
+		Asset.Collection dataCollection,
+		Map.Entry<Wallet, ProducerTask<Collection<String>>> walletForAvailableCoins,
+		String defaultCollateral,
+		Collection<String> marginUSDCCoins
+	) {
+		StaticComponentContainer.IterableObjectHelper.iterate(IterationConfig.of(marginUSDCCoins)
+			.withPriority(Thread.MAX_PRIORITY)
+			.withAction((assetName) -> {
+		    	processAsset(
+					intervals,
+					candlestickQuantityForInterval,
+					candlesticksForCoin,
+					wallet -> assetNm -> collateralName -> {
+						return new BurningwaveAssetDataLoader(
+							wallet,
+							assetNm,
+							collateralName
+						);
+					},
+					dataCollection,
+					walletForAvailableCoins,
+					defaultCollateral,
+					assetName
+				);
+		    })
+		);
+	}
+
+	protected void processWithDefaultAPI(
+		List<Interval> intervals,
+		Map<Interval,
+		Integer> candlestickQuantityForInterval,
+		Map<String,
+		Map<Interval, BarSeries>> candlesticksForCoin,
+		Asset.Collection dataCollection,
+		Map.Entry<Wallet, ProducerTask<Collection<String>>> walletForAvailableCoins,
+		String defaultCollateral,
+		Collection<String> marginUSDCCoins
+	) {
+		marginUSDCCoins.parallelStream().forEach(assetName -> {
+	    	processAsset(
+				intervals,
+				candlestickQuantityForInterval,
+				candlesticksForCoin,
+				wallet -> assetNm -> collateralName -> {
+					return new AssetDataLoader(
+						wallet,
+						assetNm,
+						collateralName
+					);
+				},
+				dataCollection,
+				walletForAvailableCoins,
+				defaultCollateral,
+				assetName
+			);
+	    });
+	}
+
+	protected void processAsset(List<Interval> intervals, Map<Interval, Integer> candlestickQuantityForInterval,
+			Map<String, Map<Interval, BarSeries>> candlesticksForCoin,
+			Function<Wallet, Function<String, Function<String, ParallelIterator>>> parallalIteratorSupplier,
+			Asset.Collection dataCollection,
+			Map.Entry<Wallet, ProducerTask<Collection<String>>> walletForAvailableCoins, String defaultCollateral,
+			String assetName) {
+		try {
+			org.burningwave.core.assembler.StaticComponentContainer.ManagedLoggerRepository.logInfo(
+				getClass()::getName,
+				"Loading data from remote for asset {}...",
+				assetName
+			);
+			ParallelIterator assetDataLoader = parallalIteratorSupplier.apply(
+				walletForAvailableCoins.getKey()
+			).apply(assetName).apply(defaultCollateral);
+			for (Map.Entry<Interval, Integer> cFI : candlestickQuantityForInterval.entrySet()) {
+				assetDataLoader = assetDataLoader.loadInParallel(cFI.getKey(), cFI.getValue());
+			}
+			Map<Interval, BarSeries> candlesticks = assetDataLoader.retrieve();
+			candlesticksForCoin.put(assetName + defaultCollateral, candlesticks);
+			org.burningwave.core.assembler.StaticComponentContainer.ManagedLoggerRepository.logInfo(
+				getClass()::getName,
+				"... All data loaded from remote for asset {}",
+				assetName
+			);
+			Asset detected = null;
+			for (Interval interval : intervals) {
+				detected =
+					process(
+						new EMADetector(assetName,defaultCollateral,candlesticks, false, 25,50,100,200),
+						interval,
+						dataCollection,
+						detected
+					);
+			}
+			for (Interval interval : intervals) {
+				detected =
+					process(
+						new RSIDetector(assetName,defaultCollateral,candlesticks,14),
+						interval,
+						dataCollection,
+						detected
+					);
+			}
+			for (Interval interval : intervals) {
+				detected =
+					process(
+						new StochasticRSIDetector(assetName,defaultCollateral,candlesticks,14),
+						interval,
+						dataCollection,
+						detected
+					);
+			}
+			for (Interval interval : intervals) {
+				detected =
+					process(
+						new BollingerBandDetector(assetName,defaultCollateral,candlesticks, 20, 2d),
+						interval,
+						dataCollection,
+						detected
+					);
+			}
+			for (Interval interval : intervals) {
+				detected =
+					process(
+						new BollingerBandDetector(assetName,defaultCollateral,candlesticks, 20, 2d),
+						interval,
+						dataCollection,
+						detected
+					);
+			}
+			for (Interval interval : intervals) {
+				detected =
+					process(
+						new SpikeDetector(assetName,defaultCollateral,candlesticks, 40, 3),
+						interval,
+						dataCollection,
+						detected
+					);
+			}
+			for (Interval interval : intervals) {
+				detected =
+					process(
+						new BigCandleDetector(assetName,defaultCollateral,candlesticks, 10d),
+						interval,
+						dataCollection,
+						detected
+					);
+			}
+			if (detected != null) {
+				CriticalIndicatorValueDetector resistanceAndSupportDetector =
+					new ResistanceAndSupportDetector(assetName, defaultCollateral, candlesticks, false);
+				for (Map.Entry<Interval, Integer> cFI : candlestickQuantityForInterval.entrySet()) {
+					if (CriticalIndicatorValueDetectorAbst.checkIfIsBitcoin(assetName) || candlesticks.get(cFI.getKey()).getBarCount() >= cFI.getValue()) {
+						detected = process(
+							resistanceAndSupportDetector,
+							cFI.getKey(),
+							dataCollection,
+							detected
+						);
+					}
+				}
+			}
+		} catch (Throwable exc) {
+			org.burningwave.core.assembler.StaticComponentContainer.ManagedLoggerRepository.logError(
+				getClass()::getName,
+				"Exception occurred while processing asset {}",
+				exc,
+				assetName
+			);
+		}
 	}
 
 	private Map<Class<? extends CriticalIndicatorValueDetector>, Map<Interval, Map<String, Bar>>> buildAlreadyNotifiedHolder(

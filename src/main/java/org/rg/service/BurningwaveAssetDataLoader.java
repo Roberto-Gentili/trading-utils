@@ -21,7 +21,7 @@ import org.ta4j.core.BaseBar;
 import org.ta4j.core.BaseBarSeriesBuilder;
 import org.ta4j.core.num.DecimalNum;
 
-class BurningwaveAssetDataLoader {
+class BurningwaveAssetDataLoader implements ParallelIterator {
 	private Wallet wallet;
 	private List<ProducerTask<Map.Entry<Interval, BarSeries>>> assetDataLoaders;
 	private String mainAsset;
@@ -34,6 +34,7 @@ class BurningwaveAssetDataLoader {
 		this.collateralAsset = collateralAsset;
 	}
 
+	@Override
 	public BurningwaveAssetDataLoader loadInParallel(Interval interval, int quantiy) {
 		ProducerTask<Map.Entry<Interval, BarSeries>> task = StaticComponentContainer.BackgroundExecutor.createProducerTask(tsk -> {
 			Map.Entry<Interval, BarSeries> entry = new AbstractMap.SimpleEntry<>(interval, retrieveCandlestick(interval, quantiy));
@@ -46,6 +47,7 @@ class BurningwaveAssetDataLoader {
 		return this;
 	}
 
+	@Override
 	public Map<Interval, BarSeries> retrieve() {
 		Map<Interval, BarSeries> data = new LinkedHashMap<>();
 		for(ProducerTask<Entry<Interval, BarSeries>> assetDataLoader : assetDataLoaders) {

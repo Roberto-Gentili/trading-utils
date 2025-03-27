@@ -19,7 +19,7 @@ import org.ta4j.core.BaseBar;
 import org.ta4j.core.BaseBarSeriesBuilder;
 import org.ta4j.core.num.DecimalNum;
 
-class AssetDataLoader {
+class AssetDataLoader implements ParallelIterator {
 	private Wallet wallet;
 	private List<CompletableFuture<Map.Entry<Interval, BarSeries>>> assetDataLoaders;
 	private String mainAsset;
@@ -32,6 +32,7 @@ class AssetDataLoader {
 		this.collateralAsset = collateralAsset;
 	}
 
+	@Override
 	public AssetDataLoader loadInParallel(Interval interval, int quantiy) {
 		assetDataLoaders.add(
 			CompletableFuture.supplyAsync(() -> {
@@ -41,6 +42,7 @@ class AssetDataLoader {
 		return this;
 	}
 
+	@Override
 	public Map<Interval, BarSeries> retrieve() {
 		Map<Interval, BarSeries> data = new LinkedHashMap<>();
 		for(CompletableFuture<Map.Entry<Interval, BarSeries>> assetDataLoader : assetDataLoaders) {
