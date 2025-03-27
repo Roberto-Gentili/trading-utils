@@ -15,6 +15,7 @@ import java.util.Date;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Properties;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -31,7 +32,6 @@ import javax.mail.internet.MimeMessage;
 import javax.mail.internet.MimeMultipart;
 
 import org.burningwave.core.concurrent.QueuedTaskExecutor.ProducerTask;
-import org.burningwave.core.io.FileSystemItem;
 import org.rg.finance.BinanceWallet;
 import org.rg.finance.CryptoComWallet;
 import org.rg.finance.Interval;
@@ -44,6 +44,7 @@ import org.rg.service.detector.RSIDetector;
 import org.rg.service.detector.ResistanceAndSupportDetector;
 import org.rg.service.detector.SpikeDetector;
 import org.rg.service.detector.StochasticRSIDetector;
+import org.rg.util.ResourceUtils;
 import org.rg.util.RestTemplateSupplier;
 import org.rg.util.ShellExecutor;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -205,14 +206,11 @@ public class Application implements CommandLineRunner {
 
 	@Override
 	public void run(String... args) throws Exception {
-		FileSystemItem targetFolder =
-			org.burningwave.core.assembler.ComponentContainer.getInstance().getPathHelper().findResources(path ->
-				path.contains("target") && path.contains(Application.class.getSimpleName())
-			).stream().findFirst().map(fIS -> {
-				while (!(fIS = fIS.getParent()).getName().equals("target")) {}
-				return fIS;
-			}).get();
-		FileSystemItem projectFolder = targetFolder.getParent();
+		File targetFolder = Optional.of(ResourceUtils.INSTANCE.getResourceFolder()).map(path -> {
+			while (!(path = path.getParentFile()).getName().equals("target")) {}
+			return path;
+		}).get();
+		File projectFolder = targetFolder.getParentFile();
 		Map<Wallet, ProducerTask<Collection<String>>> walletsForAvailableCoins = new LinkedHashMap<>();
 		for(String beanName : appContext.getBeanNamesForType(Wallet.class)) {
 			Wallet wallet = appContext.getBean(beanName, Wallet.class);
@@ -462,7 +460,7 @@ public class Application implements CommandLineRunner {
 							);
 						}
 						org.burningwave.core.assembler.StaticComponentContainer.Streams.store(
-							FileSystemItem.ofPath(projectFolder.getAbsolutePath() + "/src/main/resources/assets.html").getAbsolutePath(),
+							projectFolder.getAbsolutePath() + "/src/main/resources/assets.html",
 							("<html>" +
 								"<script>" +
 									"window.setTimeout( function() {" +
