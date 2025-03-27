@@ -378,7 +378,7 @@ public class Application implements CommandLineRunner {
 					StringBuffer presentation = new StringBuffer(
 						"<p style=\"" + Asset.DEFAULT_FONT_SIZE + "\">" +
 						"Ciao!<br/>In data <b>" + new SimpleDateFormat("yyyy\\MM\\dd-HH:mm:ss").format(new Date())+ "</b> " +
-						"sono stati rilevati i seguenti " + (dataCollection.size() -1) + " asset (BTC escluso) con variazioni rilevanti {0}</p>"
+						"sono stati rilevati i seguenti " + (dataCollection.size() -1) + " asset (BTC escluso) con variazioni rilevanti {0}:</p><br/>"
 					);
 					List<String> notifiedAssetInThisEmail = null;
 					boolean sameAssetsSentInPreviousEmail = false;
