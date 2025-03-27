@@ -67,6 +67,18 @@ public class Asset {
 		"height: 85%;" +
 		"width: 95%;";
 
+	private static final String BLOCKED_HEADER_STYLE =
+		"position: sticky;" +
+		"top: 0;" +
+		"z-index: 1;";
+
+	private static final String HEADER_CELL_STYLE =
+		"background: #7393B3;" +
+		"color: white;";
+
+	private static final String HEADER_ROW_STYLE =
+		"";
+
 	private static final String NOT_AVAILABLE =
 		"<i style=\"color: #C0C0C0;\">na</i>";
 
@@ -76,21 +88,10 @@ public class Asset {
 	private static final String ODD_ROW_STYLE =
 		"background-color: #F8F8F8;";
 
-	private static final String HEADER_ROW_STYLE =
-		"";
 
 	private static final String CELL_STYLE =
 		"padding: 15px;" +
 		"vertical-align: top;";
-
-	private static final String BLOCKED_HEADER_STYLE =
-		"position: sticky;" +
-		"top: 0;" +
-		"z-index: 1;";
-
-	private static final String HEADER_CELL_STYLE =
-		"background: #7393B3;" +
-		"color: white;";
 
 	private static final String ON_TOP_FIXED_HEADER_CELL_STYLE =
 		CELL_STYLE +
