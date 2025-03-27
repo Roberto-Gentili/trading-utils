@@ -21,9 +21,9 @@ burningwave.core.static-component-container:
    banner.hide: false
    managed-logger.repository: 'org.burningwave.core.SLF4JManagedLoggerRepository'
    modules.export-all-to-all: false
-   thread-supplier.max-detached-thread-count: 8
-   thread-supplier.max-detached-thread-count.increasing-step: 4
-   thread-supplier.max-poolable-thread-count: 0
+   thread-supplier.max-detached-thread-count: 4
+   thread-supplier.max-detached-thread-count.increasing-step: 2
+   thread-supplier.max-poolable-thread-count: 16
 
 service:
    indicator:
