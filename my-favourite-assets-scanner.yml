@@ -51,7 +51,6 @@ service:
          - ALL-ASSETS: USDC
    mail:
       indicator.notifier:
-         always-notify: false
          text.table.on-top-fixed-header: false
          resend-already-notified: true
          #possible values: 'highlight them', 'only them'
