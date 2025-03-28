@@ -2,10 +2,10 @@ package org.rg.service;
 
 public enum Color {
 	DEFAULT("#606060"),
+	CHART_REUSE("Chartreuse"),
 	DARK_GREEN("darkgreen"),
 	DARK_RED("darkred"),
 	GREEN("green"),
-	GREEN_YELLOW("greenyellow"),
 	ORANGE("orangered"),
 	RED("red"),
 	YELLOW("yellow");
