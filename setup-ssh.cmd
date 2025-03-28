@@ -13,3 +13,7 @@ Icacls "%UserProfile%\.ssh\id_rsa" /c /t /Remove:g "Authenticated Users" BUILTIN
 Icacls "%UserProfile%\.ssh\id_rsa"
 
 sc start ssh-agent
+echo.
+echo to prevent ssh agent asking for passphrase type the command 'ssh-add %HOMEDRIVE%%HOMEPATH%\.ssh\id_rsa'
+echo.
+echo.
