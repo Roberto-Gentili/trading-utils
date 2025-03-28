@@ -307,9 +307,6 @@ public class Application implements CommandLineRunner {
 			);
 		boolean resendAlreadyNotifiedOption =
 			Boolean.valueOf((String)((Map<String, Object>)appContext.getBean("indicatorMailServiceNotifierConfig")).get("resend-already-notified"));
-		boolean alwaysNotify =
-			Boolean.valueOf((String)((Map<String, Object>)appContext.getBean("indicatorMailServiceNotifierConfig")).getOrDefault("always-notify", "false"));
-
 		String showConsistentDataOption =
 			removeEmptySpaces
 			((String)((Map<String, Object>)appContext.getBean("indicatorMailServiceNotifierConfig")).getOrDefault("show-consistent-data", "ignore"))
@@ -443,7 +440,7 @@ public class Application implements CommandLineRunner {
 							notifiedAssetInThisEmail.containsAll(notifiedAssetInPreviousEmail) &&
 							notifiedAssetInPreviousEmail.containsAll(notifiedAssetInThisEmail);
 					}
-					if ((alwaysNotify || !sameAssetsSentInPreviousEmail) && dataCollection.size() > 0) {
+					if (!sameAssetsSentInPreviousEmail && dataCollection.size() > 0) {
 						if (!recipients.isEmpty()) {
 							sendMail(
 								recipients,
