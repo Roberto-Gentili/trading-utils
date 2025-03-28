@@ -60,4 +60,6 @@ service:
 #            - fercoletti@gmail.comm
          view:
             destination-file: 'selected-assets.html'
+            #possible values: 'github.com', 'neocities.org'
+            save-on: 'github.com'
             autorefresh-every: 90000

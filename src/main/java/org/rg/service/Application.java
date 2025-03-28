@@ -71,6 +71,11 @@ import org.ta4j.core.BarSeries;
 @SpringBootApplication
 @SuppressWarnings({ "null" })
 public class Application implements CommandLineRunner {
+	private static enum SaveOn {
+		GitHub_com,
+		neocities_org
+	}
+
 	private ServerSocket alreadyRunningChecker = null;
 	private ProducerTask<String> projectFolderAbsolutePathSupplier;
 
@@ -311,6 +316,8 @@ public class Application implements CommandLineRunner {
 				((String)((Map<String, Object>)appContext.getBean("indicatorMailServiceNotifierConfig")).getOrDefault("view.autorefresh-every", "300000"))
 			);
 		String destinationFileName = (String)((Map<String, Object>)appContext.getBean("indicatorMailServiceNotifierConfig")).get("view.destination-file");
+		String saveOn = (String)((Map<String, Object>)appContext.getBean("indicatorMailServiceNotifierConfig")).get("view.save-on");
+
 		String recipients = ((Map<String, Object>)appContext.getBean("indicatorMailServiceNotifierConfig"))
 			.entrySet().stream()
 			.filter(keyAndVal -> keyAndVal.getKey().startsWith("recipient"))
@@ -478,15 +485,23 @@ public class Application implements CommandLineRunner {
 								Thread.sleep((waitingTime));
 							}
 						}
-						ShellExecutor.execute(
-							projectFolderAbsolutePathSupplier.join() + "/upload-assets.cmd "+
-							destinationFileName + " " +
-							environment.getProperty("NEOCITIES_ACCOUNT_NAME")+":"+
-							environment.getProperty("NEOCITIES_ACCOUNT_PASSWORD"),
-							true
-						);
-						endIterationTime = System.currentTimeMillis();
-//						StaticComponentContainer.FileSystemHelper.delete(tempFile.getAbsolutePath());
+						if (SaveOn.neocities_org.name().replace("_", ".").equalsIgnoreCase(saveOn)) {
+							ShellExecutor.execute(
+								projectFolderAbsolutePathSupplier.join() + "/upload-assets.cmd "+
+								destinationFileName + " " +
+								environment.getProperty("NEOCITIES_ACCOUNT_NAME")+":"+
+								environment.getProperty("NEOCITIES_ACCOUNT_PASSWORD"),
+								true
+							);
+//							StaticComponentContainer.FileSystemHelper.delete(tempFile.getAbsolutePath());
+						} else if (SaveOn.GitHub_com.name().replace("_", ".").equalsIgnoreCase(saveOn)) {
+							ShellExecutor.execute(
+								projectFolderAbsolutePathSupplier.join() + "/update-project.cmd ",
+								true
+							);
+						}
+						endIterationTime =
+							System.currentTimeMillis();
 						if (notifiedAssetInThisEmail != null) {
 							notifiedAssetInPreviousEmail.clear();
 							notifiedAssetInPreviousEmail.addAll(notifiedAssetInThisEmail);

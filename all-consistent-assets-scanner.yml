@@ -50,4 +50,6 @@ service:
 #            - fercoletti@gmail.comm
          view:
             destination-file: 'all-consistent-assets.html'
+            #possible values: 'github.com', 'neocities.org'
+            save-on: 'github.com'
             autorefresh-every: 180000
