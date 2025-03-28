@@ -433,7 +433,7 @@ public class Application implements CommandLineRunner {
 					);
 					List<String> notifiedAssetInThisEmail = null;
 					boolean sameAssetsSentInPreviousEmail = false;
-					if (resendAlreadyNotifiedOption) {
+					if (!resendAlreadyNotifiedOption) {
 						notifiedAssetInThisEmail = dataCollection.getAssetList().stream()
 							.map(Asset::getName).collect(Collectors.toList());
 						sameAssetsSentInPreviousEmail =
