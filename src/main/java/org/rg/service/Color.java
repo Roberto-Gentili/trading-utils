@@ -5,7 +5,7 @@ public enum Color {
 	DARK_GREEN("darkgreen"),
 	DARK_RED("darkred"),
 	GREEN("green"),
-	DARK_OLIVE_GREEN("DarkOliveGreen"),
+	GREEN_YELLOW("greenyellow"),
 	ORANGE("orangered"),
 	RED("red"),
 	YELLOW("yellow");
