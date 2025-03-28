@@ -98,10 +98,10 @@ public class Asset {
 		BLOCKED_HEADER_STYLE +
 		HEADER_CELL_STYLE;
 
-	public static final String ASSET_LABEL_STYLE =
+	public static final String ANCHOR_STYLE =
 		"display: block;"+
 		"position: relative;" +
-		"top: -35px;";
+		"top: -55px;";
 
 
 
@@ -330,7 +330,9 @@ public class Asset {
     								if (!assetColoredName.getColor().equals(Color.DEFAULT.getCode())) {
     									cellStyle += "background-color: " + assetColoredName.getColor() +";";
     								}
-        							htmlCellValue = "<a style=\"" + ASSET_LABEL_STYLE +"\" name=\"" + value + data.values.get(ValueName.COLLATERAL.toString()) + "\" href=\"" + "https://www.binance.com/it/trade/" + value + "_" + data.values.get(ValueName.COLLATERAL.toString()) + "?type=isolated\" target=\"_blank\">" + value + "/" + data.values.get(ValueName.COLLATERAL.toString()) + "</a>";
+        							htmlCellValue =
+    									"<a name=\"" + value + data.values.get(ValueName.COLLATERAL.toString()) + "\" style=\"" + ANCHOR_STYLE +"\"/>" +
+    									"<a href=\"" + "https://www.binance.com/it/trade/" + value + "_" + data.values.get(ValueName.COLLATERAL.toString()) + "?type=isolated\" target=\"_blank\">" + value + "/" + data.values.get(ValueName.COLLATERAL.toString()) + "</a>";
         						} else if (value instanceof Number) {
         							htmlCellValue = Asset.format((Number)value);
         						} else if (value instanceof Bar) {
