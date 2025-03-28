@@ -316,7 +316,7 @@ public class Application implements CommandLineRunner {
 				((String)((Map<String, Object>)appContext.getBean("indicatorMailServiceNotifierConfig")).getOrDefault("view.autorefresh-every", "300000"))
 			);
 		String destinationFileName = (String)((Map<String, Object>)appContext.getBean("indicatorMailServiceNotifierConfig")).get("view.destination-file");
-		String saveOn = (String)((Map<String, Object>)appContext.getBean("indicatorMailServiceNotifierConfig")).get("view.save-on");
+		String saveOn = (String)((Map<String, Object>)appContext.getBean("indicatorMailServiceNotifierConfig")).getOrDefault("view.save-on", "");
 
 		String recipients = ((Map<String, Object>)appContext.getBean("indicatorMailServiceNotifierConfig"))
 			.entrySet().stream()
@@ -448,8 +448,12 @@ public class Application implements CommandLineRunner {
 								presentation.toString().replace(
 									"{0}",
 									"(la lista è visualizzabile anche da <a href=\"" +
-									//"https://html-preview.github.io/?url=https://github.com/Roberto-Gentili/trading-utils/blob/main/src/main/resources/assets.html" +
-									"https://rg-shared.neocities.org/assets" +
+									(SaveOn.GitHub_com.name().replace("_", ".").equalsIgnoreCase(saveOn) ?
+									"https://html-preview.github.io/?url=https://github.com/Roberto-Gentili/trading-utils/blob/main/temp/" + destinationFileName:
+										(SaveOn.neocities_org.name().replace("_", ".").equalsIgnoreCase(saveOn) ?
+											"https://rg-shared.neocities.org/assets" :
+											"")
+									) +
 									"\">qui</a>)"
 								) +
 								dataCollection.toHTML(),
