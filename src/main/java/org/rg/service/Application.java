@@ -372,12 +372,13 @@ public class Application implements CommandLineRunner {
 						assetsToBeProcessed
 					);
 					elapsedTimeForRetrieveRemoteData = System.currentTimeMillis() - elapsedTimeForRetrieveRemoteData;
-					double elapsedTimeInSeconds = elapsedTimeForRetrieveRemoteData / 1000d;
+					double elapsedTimeForRetrieveRemoteDataInSeconds = elapsedTimeForRetrieveRemoteData / 1000d;
 					org.burningwave.core.assembler.StaticComponentContainer.ManagedLoggerRepository.logInfo(
 						getClass()::getName,
 						"Elapsed time for data retrieve: {} seconds",
-						elapsedTimeInSeconds
+						elapsedTimeForRetrieveRemoteDataInSeconds
 					);
+					Long elapsedTimeForComputation = System.currentTimeMillis();
 					if (minNumberOfIndicatorsDetectedOption > -1) {
 						dataCollection.filter(asset -> {
 							Collection<Runnable> alreadyNotifiedUpdaters = new ArrayList<>();
@@ -440,6 +441,13 @@ public class Application implements CommandLineRunner {
 							notifiedAssetInThisEmail.containsAll(notifiedAssetInPreviousEmail) &&
 							notifiedAssetInPreviousEmail.containsAll(notifiedAssetInThisEmail);
 					}
+					elapsedTimeForComputation = System.currentTimeMillis() - elapsedTimeForComputation;
+					double elapsedTimeForComputationInSeconds = elapsedTimeForComputation / 1000d;
+					org.burningwave.core.assembler.StaticComponentContainer.ManagedLoggerRepository.logInfo(
+						getClass()::getName,
+						"Elapsed time for computation: {} seconds",
+						elapsedTimeForComputationInSeconds
+					);
 					if (!sameAssetsSentInPreviousEmail && dataCollection.size() > 0) {
 						if (!recipients.isEmpty()) {
 							sendMail(
@@ -463,13 +471,19 @@ public class Application implements CommandLineRunner {
 						if (!projectFolderAbsolutePathSupplier.wasExecuted()) {
 							projectFolderAbsolutePathSupplier.changePriority(Thread.MAX_PRIORITY);
 						}
+						long autorefreshTime = computeAutoRefresh(
+							viewAutorefreshOption,
+							elapsedTimeForRetrieveRemoteData,
+							elapsedTimeForComputation
+						);
+
 						FileSystemItem tempFile = org.burningwave.core.assembler.StaticComponentContainer.Streams.store(
 							projectFolderAbsolutePathSupplier.join() + "/temp/" + destinationFileName,
 							("<html>" +
 								"<script>" +
 									"window.setTimeout( function() {" +
 										"window.location.reload();" +
-									"}, " + viewAutorefreshOption + ");" +
+									"}, " + autorefreshTime + ");" +
 								"</script>" +
 								"<body>" +
 									presentation.toString().replace("{0}", "") + dataCollection.setOnTopFixedHeader(true).toHTML() +
@@ -480,8 +494,8 @@ public class Application implements CommandLineRunner {
 
 						if (endIterationTime != null) {
 							long currentTime = System.currentTimeMillis();
-							if ((currentTime - endIterationTime) < viewAutorefreshOption) {
-								long waitingTime = (viewAutorefreshOption - (currentTime - endIterationTime));
+							if ((currentTime - endIterationTime) < autorefreshTime) {
+								long waitingTime = (autorefreshTime - (currentTime - endIterationTime));
 								org.burningwave.core.assembler.StaticComponentContainer.ManagedLoggerRepository.logInfo(
 									getClass()::getName,
 									"Waiting for " + (waitingTime/1000d) + " seconds"
@@ -526,6 +540,11 @@ public class Application implements CommandLineRunner {
 			}
 		}
 		System.exit(0);
+	}
+
+	protected long computeAutoRefresh(long viewAutorefreshOption, Long elapsedTimeForRetrieveRemoteData,
+			Long elapsedTimeForComputation) {
+		return viewAutorefreshOption < 0 ? elapsedTimeForComputation + elapsedTimeForRetrieveRemoteData : viewAutorefreshOption;
 	}
 
 	protected void processWithBurningwave(
