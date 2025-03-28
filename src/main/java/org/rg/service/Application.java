@@ -473,7 +473,7 @@ public class Application implements CommandLineRunner {
 							environment.getProperty("NEOCITIES_ACCOUNT_PASSWORD"),
 							true
 						);
-						StaticComponentContainer.FileSystemHelper.delete(tempFile.getAbsolutePath());
+//						StaticComponentContainer.FileSystemHelper.delete(tempFile.getAbsolutePath());
 						if (notifiedAssetInThisEmail != null) {
 							notifiedAssetInPreviousEmail.clear();
 							notifiedAssetInPreviousEmail.addAll(notifiedAssetInThisEmail);
