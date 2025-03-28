@@ -46,12 +46,12 @@ service:
          - 4h: 300
          - 1d: 300
          - 1w: 300
-      min-theshold: 4
+      min-theshold: -1
       mantain-all-asset-data-for:
          - ALL-ASSETS: USDC
    mail:
       indicator.notifier:
-         always-notify: true
+         always-notify: false
          text.table.on-top-fixed-header: false
          resend-already-notified: true
          #possible values: 'highlight them', 'only them'
