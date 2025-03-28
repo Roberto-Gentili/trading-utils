@@ -1,3 +1,4 @@
+id: 65535
 binance.coin:
    collateral:
       - DEFAULT: USDC
