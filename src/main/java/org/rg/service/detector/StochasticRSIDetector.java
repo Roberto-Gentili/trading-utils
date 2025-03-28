@@ -44,8 +44,6 @@ public class StochasticRSIDetector extends CriticalIndicatorValueDetectorAbst {
 		SMAIndicator k = new SMAIndicator(sRSI, this.barCount);
 		//Indicator d = new SMAIndicator(k, this.barCount);
 
-
-
         Double latestRSIValue = k.getValue(barSeries.getEndIndex()).doubleValue() * 100d;
         Asset data = null;
 		Map<String, Object> values = new LinkedHashMap<>();
