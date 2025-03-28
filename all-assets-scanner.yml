@@ -36,7 +36,7 @@ service:
          - 4h: 300
          - 1d: 300
          - 1w: 300
-      min-theshold: 6
+      min-theshold: 8
       mantain-all-asset-data-for:
          - BTC: USDC
    mail:
