@@ -73,13 +73,13 @@ import org.ta4j.core.BarSeries;
 @SpringBootApplication
 @SuppressWarnings({ "null" })
 public class Application implements CommandLineRunner {
-	private static ServerSocket alreadyRunningChecker = null;
-	private static ProducerTask<String> projectFolderAbsolutePathSupplier;
+	private ServerSocket alreadyRunningChecker = null;
+	private ProducerTask<String> projectFolderAbsolutePathSupplier;
 
 
-	protected static void init() {
+	protected void init() {
 		try {
-			alreadyRunningChecker = new ServerSocket(Byte.MAX_VALUE);
+			alreadyRunningChecker = new ServerSocket(Integer.valueOf(environment.getProperty("id", "65535")));
 			projectFolderAbsolutePathSupplier =
 				org.burningwave.core.assembler.StaticComponentContainer.BackgroundExecutor.createProducerTask(()-> {
 					FileSystemItem projectFolder = org.burningwave.core.assembler.ComponentContainer.getInstance().getPathHelper().findResources(path ->
