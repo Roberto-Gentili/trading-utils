@@ -16,7 +16,6 @@ import java.util.Date;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Properties;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -242,8 +241,8 @@ public class Application implements CommandLineRunner {
 
 	@Bean("indicatorDetectorAssetFilter")
 	@ConfigurationProperties("service.detector.analyze")
-	public Map<String, String> indicatorDetectorAssetFilter(){
-		return createMap();
+	public List<Map<String, String>> indicatorDetectorAssetFilter(){
+		return new ArrayList<>();
 	}
 
 
@@ -316,7 +315,7 @@ public class Application implements CommandLineRunner {
 		AtomicInteger cycles = new AtomicInteger(1);
 		Supplier<Integer> cyclesSupplier = () ->
 			environment.getProperty("EXTERNAL_MANAGED_LOOP") != null ? cycles.getAndDecrement(): cycles.get();
-		Map<String, String> assetFilter = (Map<String, String>)appContext.getBean("indicatorDetectorAssetFilter");
+		List<Map<String, String>> assetFilter = (List<Map<String, String>>)appContext.getBean("indicatorDetectorAssetFilter");
 		while (cyclesSupplier.get() > 0) {
 			Asset.Collection dataCollection = new Asset.Collection().setOnTopFixedHeader(
 				Boolean.valueOf((String)((Map<String, Object>)appContext.getBean("indicatorMailServiceNotifierConfig")).get("text.table.on-top-fixed-header"))
@@ -330,11 +329,13 @@ public class Application implements CommandLineRunner {
 							if (assetFilter.isEmpty()) {
 								return asset.get("quote").equals(defaultCollateral);
 							} else {
-								return Optional.ofNullable(assetFilter.get(asset.get("base"))).map(collateral -> collateral.equals(asset.get("quote"))).orElseGet(() -> false);
+								return assetFilter.stream().filter(entry -> {
+									String collateral = entry.get((String)asset.get("base"));
+									return collateral != null && collateral.equals((String)asset.get("quote"));
+								}).findAny().isPresent();
 							}
 						}).collect(Collectors.toList());
 //					marginUSDCCoins = new ArrayList<>(marginUSDCCoins).subList(0, 25);
-
 					Long elapsedTimeForRetrieveRemoteData = System.currentTimeMillis();
 					processWithBurningwave(
 						candlestickQuantityForInterval.keySet(),
