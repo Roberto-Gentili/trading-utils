@@ -781,10 +781,10 @@ public class Application implements CommandLineRunner {
 							getAlreadyNotified(alreadyNotified.get(indicatorType), interval)
 						);
 						if (updater != null) {
-							if (Color.GREEN.getCode().equals(((ColoredNumber)indicator.getValue()).getColor())) {
+							if (Color.isGreen(((ColoredNumber)indicator.getValue()).getColor())) {
 								alreadyNotifiedGreenUpdaters.add(updater);
 								greenCounter++;
-							} else if (Color.RED.getCode().equals(((ColoredNumber)indicator.getValue()).getColor())) {
+							} else if (Color.isRed(((ColoredNumber)indicator.getValue()).getColor())) {
 								alreadyNotifiedRedUpdaters.add(updater);
 								redCounter++;
 							}
