@@ -62,10 +62,13 @@ public class Asset {
 		"color: " + DEFAULT_TEXT_COLOR +";"+
 		DEFAULT_FONT_SIZE;
 
+	private static final String TABLE_DIV_WIDTH =
+		"width: 95%;";
+
 	private static final String TABLE_DIV_STYLE =
 		"overflow: auto;" +
 		"height: 85%;" +
-		"width: 95%;";
+		TABLE_DIV_WIDTH;
 
 	private static final String BLOCKED_HEADER_STYLE =
 		"position: sticky;" +
@@ -272,6 +275,33 @@ public class Asset {
 			return this.datas;
 		}
 
+//		public String toHTML() {
+//			datas.sort((assetOne, assetTwo) -> {
+//				return (assetOne.getColoredName().value() + assetOne.get(ValueName.COLLATERAL))
+//					.compareTo(assetTwo.getColoredName().value() + assetTwo.get(ValueName.COLLATERAL));
+//			});
+//			AtomicInteger rowCounter = new AtomicInteger(0);
+//			List<String> header = Stream.of(ValueName.values()).map(ValueName::toString).collect(Collectors.toList());
+//			return
+//				String.join(", ", datas.stream().map(dt -> {
+//					return "<a href=\"#" + dt.getName() + dt.getCollateral() + "\">" + dt.getName() + "/" + dt.getCollateral() + "</a>";
+//				}).collect(Collectors.toList())) + "<br/><br/>" +
+//				"<center>"+"" +
+//					"<div style=\"" + TABLE_DIV_STYLE + "\">" +
+//						"<table style=\"" + TABLE_STYLE + "\">" +
+//							(onTopFixedHeader ?
+//								"<thead style=\"" + BLOCKED_HEADER_STYLE + "\">" +
+//									"<tr style=\"" + HEADER_ROW_STYLE + "\">" +
+//										String.join("", header.stream().filter(showColumnFilter()).map(label -> "<th style=\"" + ON_TOP_FIXED_HEADER_CELL_STYLE + "\"><b>" + label + "</b></th>").collect(Collectors.toList())) +
+//									"</tr>" +
+//								"</thead>"
+//							: "") +
+//							String.join("", datas.stream().map(dt -> toHTML(header, dt, rowCounter.incrementAndGet(), onTopFixedHeader)).collect(Collectors.toList())) +
+//						"</table>" +
+//					"</div>"+
+//				"</center>";
+//		}
+
 		public String toHTML() {
 			datas.sort((assetOne, assetTwo) -> {
 				return (assetOne.getColoredName().value() + assetOne.get(ValueName.COLLATERAL))
@@ -284,15 +314,17 @@ public class Asset {
 					return "<a href=\"#" + dt.getName() + dt.getCollateral() + "\">" + dt.getName() + "/" + dt.getCollateral() + "</a>";
 				}).collect(Collectors.toList())) + "<br/><br/>" +
 				"<center>"+"" +
+					(onTopFixedHeader ?
+						"<table style=\"" + TABLE_STYLE +  TABLE_DIV_WIDTH + "\">" +
+							"<thead style=\"" + BLOCKED_HEADER_STYLE + "\">" +
+								"<tr style=\"" + HEADER_ROW_STYLE + "\">" +
+									String.join("", header.stream().filter(showColumnFilter()).map(label -> "<th style=\"" + ON_TOP_FIXED_HEADER_CELL_STYLE + "\"><b>" + label + "</b></th>").collect(Collectors.toList())) +
+								"</tr>" +
+							"</thead>" +
+						"</table>"
+					: "") +
 					"<div style=\"" + TABLE_DIV_STYLE + "\">" +
 						"<table style=\"" + TABLE_STYLE + "\">" +
-							(onTopFixedHeader ?
-								"<thead style=\"" + BLOCKED_HEADER_STYLE + "\">" +
-									"<tr style=\"" + HEADER_ROW_STYLE + "\">" +
-										String.join("", header.stream().filter(showColumnFilter()).map(label -> "<th style=\"" + ON_TOP_FIXED_HEADER_CELL_STYLE + "\"><b>" + label + "</b></th>").collect(Collectors.toList())) +
-									"</tr>" +
-								"</thead>"
-							: "") +
 							String.join("", datas.stream().map(dt -> toHTML(header, dt, rowCounter.incrementAndGet(), onTopFixedHeader)).collect(Collectors.toList())) +
 						"</table>" +
 					"</div>"+
