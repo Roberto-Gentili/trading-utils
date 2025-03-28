@@ -1,4 +1,4 @@
-id: 65533
+id: 65534
 binance.coin:
    collateral:
       - DEFAULT: USDC
@@ -29,35 +29,25 @@ burningwave.core.static-component-container:
 service:
    detector:
       analyze:
-         - BTC: USDC
-         - BNB: USDC
-         - ETH: USDC
-         - NEAR: USDC
-         - SUI: USDC
-         - XRP: USDC
-         - BNB: BTC
-         - ETH: BTC
-         - NEAR: BTC
-         - SUI: BTC
-         - XRP: BTC
+         - ALL-ASSETS: USDC
       interval:
          - 15m: 600
          - 1h: 300
          - 4h: 300
          - 1d: 300
          - 1w: 300
-      min-theshold: 4
+      min-theshold: 6
       mantain-all-asset-data-for:
-         - ALL-ASSETS: USDC
+         - BTC: USDC
    mail:
       indicator.notifier:
          text.table.on-top-fixed-header: false
          resend-already-notified: true
          #possible values: 'highlight them', 'only them'
-         show-consistent-data: 'highlight them'
+         show-consistent-data: 'only them'
 #         recipient:
 #            - roberto.gentili.1980@gmail.com
 #            - fercoletti@gmail.comm
          view:
-            destination-file: 'selected-assets.html'
-            autorefresh-every: 120000
+            destination-file: 'all-assets.html'
+            autorefresh-every: 180000
