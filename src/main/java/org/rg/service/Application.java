@@ -458,6 +458,11 @@ public class Application implements CommandLineRunner {
 							notifiedAssetInPreviousEmail.clear();
 							notifiedAssetInPreviousEmail.addAll(notifiedAssetInThisEmail);
 						}
+					} else {
+						org.burningwave.core.assembler.StaticComponentContainer.ManagedLoggerRepository.logInfo(
+							getClass()::getName,
+							" --- Nothing detected --- "
+						);
 					}
 					dataCollection.clear();
 					candlesticksForCoin.clear();
