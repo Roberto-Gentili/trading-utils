@@ -333,7 +333,7 @@ public class Application implements CommandLineRunner {
 			return mantainAssetDataFilterConfig.stream().map(entry -> {
 				String collateral = entry.get(asset.getName());
 				return collateral != null && collateral.equals(asset.getCollateral());
-			}).findAny().isPresent();
+			}).findAny().get();
 		};
 		while (cyclesSupplier.get() > 0) {
 			Asset.Collection dataCollection = new Asset.Collection().setOnTopFixedHeader(
