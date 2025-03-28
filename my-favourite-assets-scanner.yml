@@ -60,4 +60,4 @@ service:
 #            - fercoletti@gmail.comm
          view:
             destination-file: 'selected-assets.html'
-            autorefresh-every: 120000
+            autorefresh-every: 90000
