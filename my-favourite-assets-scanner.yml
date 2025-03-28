@@ -46,7 +46,7 @@ service:
          - 4h: 300
          - 1d: 300
          - 1w: 300
-      min-theshold: 0
+      min-theshold: -1
       mantain-all-asset-data-for:
          - ALL-ASSETS: USDC
    mail:
