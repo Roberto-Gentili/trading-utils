@@ -101,8 +101,7 @@ public class Asset {
 	public static final String ASSET_LABEL_STYLE =
 		"display: block;"+
 		"position: relative;" +
-		"top: -250px;" +
-		"visibility: hidden;";
+		"top: -35px;";
 
 
 
