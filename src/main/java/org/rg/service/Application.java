@@ -485,7 +485,6 @@ public class Application implements CommandLineRunner {
 									"window.setTimeout( function() {" +
 										"window.location.reload();" +
 									"}, " + autorefreshTime + ");" +
-
 								"</script>" +
 								"<body style=\"font-family: verdana;" + Asset.DEFAULT_FONT_SIZE +"\">" +
 									presentation.toString().replace("{0}", "") + dataCollection.setOnTopFixedHeader(true).toHTML() +
