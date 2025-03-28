@@ -485,7 +485,7 @@ public class Application implements CommandLineRunner {
 										"window.location.reload();" +
 									"}, " + autorefreshTime + ");" +
 								"</script>" +
-								"<body>" +
+								"<body style=\"font-family: verdana;" + Asset.DEFAULT_FONT_SIZE +"\">" +
 									presentation.toString().replace("{0}", "") + dataCollection.setOnTopFixedHeader(true).toHTML() +
 								"</body>" +
 							"</html>")

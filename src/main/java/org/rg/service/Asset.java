@@ -52,7 +52,7 @@ public class Asset {
 		}
 	}
 
-	public static final String DEFAULT_FONT_SIZE = "font-size: 15px;";
+	public static final String DEFAULT_FONT_SIZE = "font-size: 10x;";
 
 	static String DEFAULT_TEXT_COLOR = Color.DEFAULT.getCode();
 
