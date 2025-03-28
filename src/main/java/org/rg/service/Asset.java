@@ -62,13 +62,10 @@ public class Asset {
 		"color: " + DEFAULT_TEXT_COLOR +";"+
 		DEFAULT_FONT_SIZE;
 
-	private static final String TABLE_DIV_WIDTH =
-		"width: 95%;";
-
 	private static final String TABLE_DIV_STYLE =
 		"overflow: auto;" +
 		"height: 85%;" +
-		TABLE_DIV_WIDTH;
+		"width: 95%;";
 
 	private static final String BLOCKED_HEADER_STYLE =
 		"position: sticky;" +
@@ -100,6 +97,12 @@ public class Asset {
 		CELL_STYLE +
 		BLOCKED_HEADER_STYLE +
 		HEADER_CELL_STYLE;
+
+	public static final String ASSET_LABEL_STYLE =
+		"display: block;"+
+		"position: relative;" +
+		"top: -250px;" +
+		"visibility: hidden;";
 
 
 
@@ -275,33 +278,6 @@ public class Asset {
 			return this.datas;
 		}
 
-//		public String toHTML() {
-//			datas.sort((assetOne, assetTwo) -> {
-//				return (assetOne.getColoredName().value() + assetOne.get(ValueName.COLLATERAL))
-//					.compareTo(assetTwo.getColoredName().value() + assetTwo.get(ValueName.COLLATERAL));
-//			});
-//			AtomicInteger rowCounter = new AtomicInteger(0);
-//			List<String> header = Stream.of(ValueName.values()).map(ValueName::toString).collect(Collectors.toList());
-//			return
-//				String.join(", ", datas.stream().map(dt -> {
-//					return "<a href=\"#" + dt.getName() + dt.getCollateral() + "\">" + dt.getName() + "/" + dt.getCollateral() + "</a>";
-//				}).collect(Collectors.toList())) + "<br/><br/>" +
-//				"<center>"+"" +
-//					"<div style=\"" + TABLE_DIV_STYLE + "\">" +
-//						"<table style=\"" + TABLE_STYLE + "\">" +
-//							(onTopFixedHeader ?
-//								"<thead style=\"" + BLOCKED_HEADER_STYLE + "\">" +
-//									"<tr style=\"" + HEADER_ROW_STYLE + "\">" +
-//										String.join("", header.stream().filter(showColumnFilter()).map(label -> "<th style=\"" + ON_TOP_FIXED_HEADER_CELL_STYLE + "\"><b>" + label + "</b></th>").collect(Collectors.toList())) +
-//									"</tr>" +
-//								"</thead>"
-//							: "") +
-//							String.join("", datas.stream().map(dt -> toHTML(header, dt, rowCounter.incrementAndGet(), onTopFixedHeader)).collect(Collectors.toList())) +
-//						"</table>" +
-//					"</div>"+
-//				"</center>";
-//		}
-
 		public String toHTML() {
 			datas.sort((assetOne, assetTwo) -> {
 				return (assetOne.getColoredName().value() + assetOne.get(ValueName.COLLATERAL))
@@ -314,17 +290,15 @@ public class Asset {
 					return "<a href=\"#" + dt.getName() + dt.getCollateral() + "\">" + dt.getName() + "/" + dt.getCollateral() + "</a>";
 				}).collect(Collectors.toList())) + "<br/><br/>" +
 				"<center>"+"" +
-					(onTopFixedHeader ?
-						"<table style=\"" + TABLE_STYLE +  TABLE_DIV_WIDTH + "\">" +
-							"<thead style=\"" + BLOCKED_HEADER_STYLE + "\">" +
-								"<tr style=\"" + HEADER_ROW_STYLE + "\">" +
-									String.join("", header.stream().filter(showColumnFilter()).map(label -> "<th style=\"" + ON_TOP_FIXED_HEADER_CELL_STYLE + "\"><b>" + label + "</b></th>").collect(Collectors.toList())) +
-								"</tr>" +
-							"</thead>" +
-						"</table>"
-					: "") +
 					"<div style=\"" + TABLE_DIV_STYLE + "\">" +
 						"<table style=\"" + TABLE_STYLE + "\">" +
+							(onTopFixedHeader ?
+								"<thead style=\"" + BLOCKED_HEADER_STYLE + "\">" +
+									"<tr style=\"" + HEADER_ROW_STYLE + "\">" +
+										String.join("", header.stream().filter(showColumnFilter()).map(label -> "<th style=\"" + ON_TOP_FIXED_HEADER_CELL_STYLE + "\"><b>" + label + "</b></th>").collect(Collectors.toList())) +
+									"</tr>" +
+								"</thead>"
+							: "") +
 							String.join("", datas.stream().map(dt -> toHTML(header, dt, rowCounter.incrementAndGet(), onTopFixedHeader)).collect(Collectors.toList())) +
 						"</table>" +
 					"</div>"+
@@ -357,7 +331,7 @@ public class Asset {
     								if (!assetColoredName.getColor().equals(Color.DEFAULT.getCode())) {
     									cellStyle += "background-color: " + assetColoredName.getColor() +";";
     								}
-        							htmlCellValue = "<a name=\"" + value + data.values.get(ValueName.COLLATERAL.toString()) + "\" href=\"" + "https://www.binance.com/it/trade/" + value + "_" + data.values.get(ValueName.COLLATERAL.toString()) + "?type=isolated\" target=\"_blank\">" + value + "/" + data.values.get(ValueName.COLLATERAL.toString()) + "</a>";
+        							htmlCellValue = "<a style=\"" + ASSET_LABEL_STYLE +"\" name=\"" + value + data.values.get(ValueName.COLLATERAL.toString()) + "\" href=\"" + "https://www.binance.com/it/trade/" + value + "_" + data.values.get(ValueName.COLLATERAL.toString()) + "?type=isolated\" target=\"_blank\">" + value + "/" + data.values.get(ValueName.COLLATERAL.toString()) + "</a>";
         						} else if (value instanceof Number) {
         							htmlCellValue = Asset.format((Number)value);
         						} else if (value instanceof Bar) {
