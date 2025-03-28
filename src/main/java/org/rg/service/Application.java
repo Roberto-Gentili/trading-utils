@@ -433,8 +433,8 @@ public class Application implements CommandLineRunner {
 						if (!projectFolderAbsolutePathSupplier.wasExecuted()) {
 							projectFolderAbsolutePathSupplier.changePriority(Thread.MAX_PRIORITY);
 						}
-						org.burningwave.core.assembler.StaticComponentContainer.Streams.store(
-							projectFolderAbsolutePathSupplier.join() + "/src/main/resources/" + destinationFileName,
+						FileSystemItem tempFile = org.burningwave.core.assembler.StaticComponentContainer.Streams.store(
+							projectFolderAbsolutePathSupplier.join() + "/temp/" + destinationFileName,
 							("<html>" +
 								"<script>" +
 									"window.setTimeout( function() {" +
@@ -454,6 +454,7 @@ public class Application implements CommandLineRunner {
 							environment.getProperty("NEOCITIES_ACCOUNT_PASSWORD"),
 							true
 						);
+						StaticComponentContainer.FileSystemHelper.delete(tempFile.getAbsolutePath());
 						if (notifiedAssetInThisEmail != null) {
 							notifiedAssetInPreviousEmail.clear();
 							notifiedAssetInPreviousEmail.addAll(notifiedAssetInThisEmail);
