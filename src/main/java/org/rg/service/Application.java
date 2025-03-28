@@ -482,6 +482,7 @@ public class Application implements CommandLineRunner {
 							("<html>" +
 								"<script>" +
 									"window.setTimeout( function() {" +
+										"window.location = window.location;" +
 										"window.location.reload();" +
 									"}, " + autorefreshTime + ");" +
 								"</script>" +
