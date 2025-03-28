@@ -473,7 +473,7 @@ public class Application implements CommandLineRunner {
 								long waitingTime = (viewAutorefreshOption - (currentTime - endIterationTime));
 								org.burningwave.core.assembler.StaticComponentContainer.ManagedLoggerRepository.logInfo(
 									getClass()::getName,
-									"Waiting " + (waitingTime/1000d) + " seconds"
+									"Waiting for " + (waitingTime/1000d) + " seconds"
 								);
 								Thread.sleep((waitingTime));
 							}
