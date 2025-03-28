@@ -52,7 +52,7 @@ public class Asset {
 		}
 	}
 
-	public static final String DEFAULT_FONT_SIZE = "font-size: 15x;";
+	public static final String DEFAULT_FONT_SIZE = "font-size: 10px;";
 
 	static String DEFAULT_TEXT_COLOR = Color.DEFAULT.getCode();
 
@@ -101,7 +101,7 @@ public class Asset {
 	public static final String ANCHOR_STYLE =
 		"display: block;"+
 		"position: relative;" +
-		"top: -75px;";
+		"top: -85px;";
 
 	private Map<String, Object> values;
 
