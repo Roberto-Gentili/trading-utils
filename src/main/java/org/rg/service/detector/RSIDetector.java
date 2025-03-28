@@ -57,7 +57,7 @@ public class RSIDetector extends CriticalIndicatorValueDetectorAbst {
 				if (latestRSIValue > 60) {
 					coloredNumber.color(Color.ORANGE.getCode());
 				} else if (latestRSIValue < 40) {
-					coloredNumber.color(Color.GREEN_YELLOW.getCode());
+					coloredNumber.color(Color.CHART_REUSE.getCode());
 				}
 				values.put(interval.toString(), coloredNumber);
 			}
