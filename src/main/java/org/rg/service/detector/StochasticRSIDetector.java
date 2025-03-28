@@ -58,9 +58,9 @@ public class StochasticRSIDetector extends CriticalIndicatorValueDetectorAbst {
 			} else if (latestRSIValue > 80) {
 				values.put(interval.toString(), coloredNumber.color(Color.RED.getCode()));
 			} else if (latestRSIValue < 10) {
-				values.put(interval.toString(), coloredNumber.color(Color.GREEN.getCode()));
-			} else if (latestRSIValue < 20)  {
 				values.put(interval.toString(), coloredNumber.color(Color.DARK_GREEN.getCode()));
+			} else if (latestRSIValue < 20)  {
+				values.put(interval.toString(), coloredNumber.color(Color.GREEN.getCode()));
 			} else if (shouldMantainData(data)) {
 				if (latestRSIValue > 70) {
 					coloredNumber.color(Color.ORANGE.getCode());
