@@ -45,23 +45,25 @@ public class StochasticRSIDetector extends CriticalIndicatorValueDetectorAbst {
 		//Indicator d = new SMAIndicator(k, this.barCount);
 
         Double latestRSIValue = k.getValue(barSeries.getEndIndex()).doubleValue() * 100d;
-        Asset data = null;
+        Asset data = new Asset(
+			mainAsset,
+			collateralAsset,
+			candlesticks
+		);
 		Map<String, Object> values = new LinkedHashMap<>();
 		if (latestRSIValue != 0) {
 			if (latestRSIValue > 85) {
 				values.put(interval.toString(), ColoredNumber.valueOf(latestRSIValue).color(Color.RED.getCode()));
 			} else if (latestRSIValue < 15) {
 				values.put(interval.toString(), ColoredNumber.valueOf(latestRSIValue).color(Color.GREEN.getCode()));
-			} else if (checkIfIsBitcoin(mainAsset)) {
+			} else if (shouldMantainData(data)) {
 				values.put(interval.toString(), ColoredNumber.valueOf(latestRSIValue));
 			}
 		}
 		if (!values.isEmpty()) {
-			data = new Asset(
-				mainAsset,
-				collateralAsset,
-				candlesticks
-			).addDynamicValues(ValueName.STOCHASTIC_RSI, values);
+			data.addDynamicValues(ValueName.STOCHASTIC_RSI, values);
+		} else {
+			return null;
 		}
 		return data;
 	}

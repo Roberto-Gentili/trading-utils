@@ -57,9 +57,13 @@ public class BollingerBandDetector extends CriticalIndicatorValueDetectorAbst {
 			toBigDecimal(upBBand.getValue(lastCandleIndex).doubleValue());
 		BigDecimal high = toBigDecimal(latestBar.getHighPrice().doubleValue());
 		BigDecimal low = toBigDecimal(latestBar.getLowPrice().doubleValue());
-		Asset data = null;
+		Asset data = new Asset(
+			mainAsset,
+			collateralAsset,
+			candlesticks
+		);
+		Map<String, Object> values = new LinkedHashMap<>();
 		if (low.compareTo(bBLower) <= 0 || high.compareTo(bBUpper) >= 0) {
-			Map<String, Object> values = new LinkedHashMap<>();
 			if (low.compareTo(bBLower) <= 0) {
 				values.put(
 					interval.toString() + "-l",
@@ -70,17 +74,21 @@ public class BollingerBandDetector extends CriticalIndicatorValueDetectorAbst {
 					interval.toString() + "-u",
 					ColoredNumber.valueOf(bBLower.doubleValue()).color(Color.RED.getCode())
 				);
-			} else if (checkIfIsBitcoin(mainAsset)) {
-				values.put(
-					interval.toString() + "-u",
-					ColoredNumber.valueOf(bBLower.doubleValue())
-				);
 			}
-			data = new Asset(
-				this.mainAsset,
-				this.collateralAsset,
-				candlesticks
-			).addDynamicValues(ValueName.BOLLINGER_BANDS, values);
+		} else if (shouldMantainData(data)) {
+			values.put(
+				interval.toString() + "-u",
+				ColoredNumber.valueOf(bBLower.doubleValue())
+			);
+			values.put(
+				interval.toString() + "-l",
+				ColoredNumber.valueOf(bBLower.doubleValue())
+			);
+		}
+		if (!values.isEmpty()) {
+			data.addDynamicValues(ValueName.BOLLINGER_BANDS, values);
+		} else {
+			return null;
 		}
 		return data;
 	}

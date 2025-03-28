@@ -42,7 +42,6 @@ import org.rg.finance.Interval;
 import org.rg.finance.Wallet;
 import org.rg.service.detector.BigCandleDetector;
 import org.rg.service.detector.BollingerBandDetector;
-import org.rg.service.detector.CriticalIndicatorValueDetectorAbst;
 import org.rg.service.detector.EMADetector;
 import org.rg.service.detector.RSIDetector;
 import org.rg.service.detector.ResistanceAndSupportDetector;
@@ -245,6 +244,12 @@ public class Application implements CommandLineRunner {
 		return new ArrayList<>();
 	}
 
+	@Bean("mantainAllAssetDataFilter")
+	@ConfigurationProperties("service.detector.mantain-all-asset-data-for")
+	public List<Map<String, String>> mantainAllAssetDataFilter(){
+		return new ArrayList<>();
+	}
+
 
 	private Map<String, String> createMap() {
 		return new LinkedHashMap<String, String>() {
@@ -317,6 +322,19 @@ public class Application implements CommandLineRunner {
 			environment.getProperty("EXTERNAL_MANAGED_LOOP") != null ? cycles.getAndDecrement(): cycles.get();
 		List<Map<String, String>> assetFilter = (List<Map<String, String>>)appContext.getBean("indicatorDetectorAssetFilter");
 		Collection<String> dafaultAssets = assetFilter.stream().filter(entry -> entry.get("ALL-ASSETS") != null).map(entry -> entry.get("ALL-ASSETS")).collect(Collectors.toList());
+		List<Map<String, String>> mantainAssetDataFilterConfig =
+			(List<Map<String, String>>)appContext.getBean("mantainAllAssetDataFilter");
+		Collection<String> defaultAssetDataToBeMantained =
+				mantainAssetDataFilterConfig.stream().filter(entry -> entry.get("ALL-ASSETS") != null).map(entry -> entry.get("ALL-ASSETS")).collect(Collectors.toList());
+		Function<Asset, Boolean> mantainAssetDataFilter = asset -> {
+			if (defaultAssetDataToBeMantained.contains(asset.getCollateral())) {
+				return true;
+			}
+			return mantainAssetDataFilterConfig.stream().map(entry -> {
+				String collateral = entry.get(asset.getName());
+				return collateral != null && collateral.equals(asset.getCollateral());
+			}).findAny().isPresent();
+		};
 		while (cyclesSupplier.get() > 0) {
 			Asset.Collection dataCollection = new Asset.Collection().setOnTopFixedHeader(
 				Boolean.valueOf((String)((Map<String, Object>)appContext.getBean("indicatorMailServiceNotifierConfig")).get("text.table.on-top-fixed-header"))
@@ -343,6 +361,7 @@ public class Application implements CommandLineRunner {
 						candlesticksForCoin,
 						dataCollection,
 						walletForAvailableCoins,
+						mantainAssetDataFilter,
 						assetsToBeProcessed
 					);
 					elapsedTimeForRetrieveRemoteData = System.currentTimeMillis() - elapsedTimeForRetrieveRemoteData;
@@ -386,7 +405,7 @@ public class Application implements CommandLineRunner {
 									alreadyNotifiedUpdaters.stream().forEach(Runnable::run);
 								}
 								return
-									CriticalIndicatorValueDetectorAbst.checkIfIsBitcoin(asset.getName()) ||
+									mantainAssetDataFilter.apply(asset) ||
 									counters[0] >= minNumberOfIndicatorsDetectedOption;
 							} else {
 								boolean	show = (counters[1] == 0 && counters[2] >= minNumberOfIndicatorsDetectedOption) ||
@@ -396,7 +415,7 @@ public class Application implements CommandLineRunner {
 								}
 								return
 									show ||
-									CriticalIndicatorValueDetectorAbst.checkIfIsBitcoin(asset.getName());
+									mantainAssetDataFilter.apply(asset);
 							}
 						});
 					}
@@ -498,6 +517,7 @@ public class Application implements CommandLineRunner {
 		Map<Interval, BarSeries>> candlesticksForCoin,
 		Asset.Collection dataCollection,
 		Map.Entry<Wallet, ProducerTask<Collection<String>>> walletForAvailableCoins,
+		Function<Asset, Boolean> mantainAssetDataFilter,
 		Collection<Map<String, Object>> assets
 	) {
 		StaticComponentContainer.IterableObjectHelper.iterate(IterationConfig.of(assets)
@@ -516,6 +536,7 @@ public class Application implements CommandLineRunner {
 					},
 					dataCollection,
 					walletForAvailableCoins,
+					mantainAssetDataFilter,
 					(String)asset.get("base"),
 					(String)asset.get("quote")
 				);
@@ -531,6 +552,7 @@ public class Application implements CommandLineRunner {
 		Map<Interval, BarSeries>> candlesticksForCoin,
 		Asset.Collection dataCollection,
 		Map.Entry<Wallet, ProducerTask<Collection<String>>> walletForAvailableCoins,
+		Function<Asset, Boolean> mantainAssetDataFilter,
 		Collection<Map<String, Object>> assets
 	) {
 		assets.parallelStream().forEach(asset -> {
@@ -547,6 +569,7 @@ public class Application implements CommandLineRunner {
 				},
 				dataCollection,
 				walletForAvailableCoins,
+				mantainAssetDataFilter,
 				(String)asset.get("base"),
 				(String)asset.get("quote")
 			);
@@ -559,6 +582,7 @@ public class Application implements CommandLineRunner {
 		Function<Wallet, Function<String, ParallelIterator>> parallalIteratorSupplier,
 		Asset.Collection dataCollection,
 		Map.Entry<Wallet, ProducerTask<Collection<String>>> walletForAvailableCoins,
+		Function<Asset, Boolean> mantainAssetDataFilter,
 		String assetName,
 		String collateralName
 	) {
@@ -585,7 +609,8 @@ public class Application implements CommandLineRunner {
 			for (Interval interval : intervals) {
 				detected =
 					process(
-						new EMADetector(assetName,collateralName,candlesticks, false, 25,50,100,200),
+						new EMADetector(assetName,collateralName,candlesticks, false, 25,50,100,200)
+							.setMantainAssetDataFilter(mantainAssetDataFilter),
 						interval,
 						dataCollection,
 						detected
@@ -594,7 +619,8 @@ public class Application implements CommandLineRunner {
 			for (Interval interval : intervals) {
 				detected =
 					process(
-						new RSIDetector(assetName,collateralName,candlesticks,14),
+						new RSIDetector(assetName,collateralName,candlesticks,14)
+							.setMantainAssetDataFilter(mantainAssetDataFilter),
 						interval,
 						dataCollection,
 						detected
@@ -605,7 +631,7 @@ public class Application implements CommandLineRunner {
 					process(
 						new StochasticRSIDetector(
 							assetName,collateralName,candlesticks,14, 3
-						),
+						).setMantainAssetDataFilter(mantainAssetDataFilter),
 						interval,
 						dataCollection,
 						detected
@@ -614,7 +640,8 @@ public class Application implements CommandLineRunner {
 			for (Interval interval : intervals) {
 				detected =
 					process(
-						new BollingerBandDetector(assetName,collateralName,candlesticks, 20, 2d),
+						new BollingerBandDetector(assetName,collateralName,candlesticks, 20, 2d)
+							.setMantainAssetDataFilter(mantainAssetDataFilter),
 						interval,
 						dataCollection,
 						detected
@@ -623,7 +650,8 @@ public class Application implements CommandLineRunner {
 			for (Interval interval : intervals) {
 				detected =
 					process(
-						new BollingerBandDetector(assetName,collateralName,candlesticks, 20, 2d),
+						new SpikeDetector(assetName,collateralName,candlesticks, 40, 3)
+							.setMantainAssetDataFilter(mantainAssetDataFilter),
 						interval,
 						dataCollection,
 						detected
@@ -632,16 +660,8 @@ public class Application implements CommandLineRunner {
 			for (Interval interval : intervals) {
 				detected =
 					process(
-						new SpikeDetector(assetName,collateralName,candlesticks, 40, 3),
-						interval,
-						dataCollection,
-						detected
-					);
-			}
-			for (Interval interval : intervals) {
-				detected =
-					process(
-						new BigCandleDetector(assetName,collateralName,candlesticks, 10d),
+						new BigCandleDetector(assetName,collateralName,candlesticks, 10d)
+							.setMantainAssetDataFilter(mantainAssetDataFilter),
 						interval,
 						dataCollection,
 						detected
@@ -651,7 +671,7 @@ public class Application implements CommandLineRunner {
 				CriticalIndicatorValueDetector resistanceAndSupportDetector =
 					new ResistanceAndSupportDetector(assetName, collateralName, candlesticks, false);
 				for (Map.Entry<Interval, Integer> cFI : candlestickQuantityForInterval.entrySet()) {
-					if (CriticalIndicatorValueDetectorAbst.checkIfIsBitcoin(assetName) || candlesticks.get(cFI.getKey()).getBarCount() >= cFI.getValue()) {
+					if (mantainAssetDataFilter.apply(detected) || candlesticks.get(cFI.getKey()).getBarCount() >= cFI.getValue()) {
 						detected = process(
 							resistanceAndSupportDetector,
 							cFI.getKey(),

@@ -37,6 +37,8 @@ service:
          - 1d: 300
          - 1w: 300
       min-theshold: 6
+      mantain-all-asset-data-for:
+         - BTC: USDC
    mail:
       indicator.notifier:
          text.table.on-top-fixed-header: false

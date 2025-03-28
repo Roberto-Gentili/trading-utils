@@ -37,23 +37,25 @@ public class RSIDetector extends CriticalIndicatorValueDetectorAbst {
 		RSIIndicator rSIIndicator = new RSIIndicator(closePrice, period);
 		List<Num> rsiOutput = rSIIndicator.stream().collect(Collectors.toList());
 		Double latestRSIValue = rsiOutput.get(barSeries.getEndIndex()).doubleValue();
-		Asset data = null;
+		Asset data = new Asset(
+			mainAsset,
+			collateralAsset,
+			candlesticks
+		);
 		Map<String, Object> values = new LinkedHashMap<>();
 		if (latestRSIValue != 0) {
 			if (latestRSIValue > 70) {
 				values.put(interval.toString(), ColoredNumber.valueOf(latestRSIValue).color(Color.RED.getCode()));
 			} else if (latestRSIValue < 30) {
 				values.put(interval.toString(), ColoredNumber.valueOf(latestRSIValue).color(Color.GREEN.getCode()));
-			} else if (checkIfIsBitcoin(mainAsset)) {
+			} else if (shouldMantainData(data)) {
 				values.put(interval.toString(), ColoredNumber.valueOf(latestRSIValue));
 			}
 		}
 		if (!values.isEmpty()) {
-			data = new Asset(
-				mainAsset,
-				collateralAsset,
-				candlesticks
-			).addDynamicValues(ValueName.RSI, values);
+			data.addDynamicValues(ValueName.RSI, values);
+		} else {
+			return null;
 		}
 		return data;
 	}
