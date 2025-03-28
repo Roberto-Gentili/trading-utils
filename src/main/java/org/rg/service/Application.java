@@ -339,9 +339,9 @@ public class Application implements CommandLineRunner {
 			Asset.Collection dataCollection = new Asset.Collection().setOnTopFixedHeader(
 				Boolean.valueOf((String)((Map<String, Object>)appContext.getBean("indicatorMailServiceNotifierConfig")).get("text.table.on-top-fixed-header"))
 			);
+			Long endIterationTime = null;
 			for (Map.Entry<Wallet, ProducerTask<Collection<String>>> walletForAvailableCoins : walletsForAvailableCoins.entrySet()) {
 				if (walletForAvailableCoins.getKey() instanceof BinanceWallet) {
-					Long totalIterationElapsedTime = System.currentTimeMillis();
 					Collection<Map<String, Object>> assetsToBeProcessed = ((BinanceWallet)walletForAvailableCoins.getKey()).getAllMarginAssetPairs()
 						.stream().filter(asset -> {
 							if (dafaultAssets.contains((String)asset.get("quote"))) {
@@ -466,6 +466,18 @@ public class Application implements CommandLineRunner {
 							"</html>")
 							.getBytes(StandardCharsets.UTF_8)
 						);
+
+						if (endIterationTime != null) {
+							long currentTime = System.currentTimeMillis();
+							if ((currentTime - endIterationTime) < viewAutorefreshOption) {
+								long waitingTime = (viewAutorefreshOption - (currentTime - endIterationTime));
+								org.burningwave.core.assembler.StaticComponentContainer.ManagedLoggerRepository.logInfo(
+									getClass()::getName,
+									"Waiting " + (waitingTime/1000d) + " seconds"
+								);
+								Thread.sleep((waitingTime));
+							}
+						}
 						ShellExecutor.execute(
 							projectFolderAbsolutePathSupplier.join() + "/upload-assets.cmd "+
 							destinationFileName + " " +
@@ -473,6 +485,7 @@ public class Application implements CommandLineRunner {
 							environment.getProperty("NEOCITIES_ACCOUNT_PASSWORD"),
 							true
 						);
+						endIterationTime = System.currentTimeMillis();
 //						StaticComponentContainer.FileSystemHelper.delete(tempFile.getAbsolutePath());
 						if (notifiedAssetInThisEmail != null) {
 							notifiedAssetInPreviousEmail.clear();
@@ -488,19 +501,6 @@ public class Application implements CommandLineRunner {
 					candlesticksForCoin.clear();
 					if (resendAlreadyNotifiedOption) {
 						buildAlreadyNotifiedHolder(candlestickQuantityForInterval.keySet(), alreadyNotifiedMap);
-					}
-					totalIterationElapsedTime = System.currentTimeMillis() - totalIterationElapsedTime;
-					org.burningwave.core.assembler.StaticComponentContainer.ManagedLoggerRepository.logInfo(
-						getClass()::getName,
-						"Total iteration elapsed time: " + (totalIterationElapsedTime/1000d) + " seconds"
-					);
-					if (totalIterationElapsedTime < viewAutorefreshOption) {
-						long waitingTime = (viewAutorefreshOption - totalIterationElapsedTime);
-						org.burningwave.core.assembler.StaticComponentContainer.ManagedLoggerRepository.logInfo(
-							getClass()::getName,
-							"Waiting " + (waitingTime/1000d) + " seconds"
-						);
-						Thread.sleep((waitingTime));
 					}
 
 				}
