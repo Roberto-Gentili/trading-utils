@@ -52,12 +52,22 @@ public class StochasticRSIDetector extends CriticalIndicatorValueDetectorAbst {
 		);
 		Map<String, Object> values = new LinkedHashMap<>();
 		if (latestRSIValue != 0) {
-			if (latestRSIValue > 85) {
-				values.put(interval.toString(), ColoredNumber.valueOf(latestRSIValue).color(Color.RED.getCode()));
-			} else if (latestRSIValue < 15) {
-				values.put(interval.toString(), ColoredNumber.valueOf(latestRSIValue).color(Color.GREEN.getCode()));
+			ColoredNumber coloredNumber = ColoredNumber.valueOf(latestRSIValue);
+			if (latestRSIValue > 90) {
+				values.put(interval.toString(), coloredNumber.color(Color.DARK_RED.getCode()));
+			} else if (latestRSIValue > 80) {
+				values.put(interval.toString(), coloredNumber.color(Color.RED.getCode()));
+			} else if (latestRSIValue < 10) {
+				values.put(interval.toString(), coloredNumber.color(Color.GREEN.getCode()));
+			} else if (latestRSIValue < 20)  {
+				values.put(interval.toString(), coloredNumber.color(Color.DARK_GREEN.getCode()));
 			} else if (shouldMantainData(data)) {
-				values.put(interval.toString(), ColoredNumber.valueOf(latestRSIValue));
+				if (latestRSIValue > 70) {
+					coloredNumber.color(Color.ORANGE.getCode());
+				} else if (latestRSIValue < 30) {
+					coloredNumber.color(Color.CHART_REUSE.getCode());
+				}
+				values.put(interval.toString(), coloredNumber);
 			}
 		}
 		if (!values.isEmpty()) {
