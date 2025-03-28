@@ -229,19 +229,19 @@ public class Application implements CommandLineRunner {
 	}
 
 	@Bean("indicatorDetectorConfig")
-	@ConfigurationProperties("service.indicator.detector")
+	@ConfigurationProperties("service.detector")
 	public Map<String, String> serviceDetectorConfig(){
 	    return new LinkedHashMap<>();
 	}
 
 	@Bean("indicatorDetectorIntervals")
-	@ConfigurationProperties("service.indicator.detector.interval")
+	@ConfigurationProperties("service.detector.interval")
 	public Map<String, String> indicatorDetectorIntervals(){
 		return createMap();
 	}
 
 	@Bean("indicatorDetectorAssetFilter")
-	@ConfigurationProperties("service.indicator.detector.analyze")
+	@ConfigurationProperties("service.detector.analyze")
 	public Map<String, String> indicatorDetectorAssetFilter(){
 		return createMap();
 	}
@@ -294,7 +294,7 @@ public class Application implements CommandLineRunner {
 		List<String> notifiedAssetInPreviousEmail = new CopyOnWriteArrayList<>();
 		Map<String, Object> indicattorDetectorConfig = (Map<String, Object>)appContext.getBean("indicatorDetectorConfig");
 		int minNumberOfIndicatorsDetectedOption =
-			Integer.valueOf((String)(indicattorDetectorConfig).get("min-number-of-indicators-detected")
+			Integer.valueOf((String)(indicattorDetectorConfig).get("min-theshold")
 			);
 		boolean  resendAlreadyNotifiedOption =
 			Boolean.valueOf((String)((Map<String, Object>)appContext.getBean("indicatorMailServiceNotifierConfig")).get("resend-already-notified"));
