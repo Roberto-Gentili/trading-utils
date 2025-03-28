@@ -181,6 +181,11 @@ public class Asset {
 		}
 	}
 
+	@Override
+	public String toString() {
+		return getName() + "/" + getCollateral();
+	}
+
 	static class Collection {
 
 		private List<Asset> datas;
