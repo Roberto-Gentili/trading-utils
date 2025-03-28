@@ -316,6 +316,7 @@ public class Application implements CommandLineRunner {
 		Supplier<Integer> cyclesSupplier = () ->
 			environment.getProperty("EXTERNAL_MANAGED_LOOP") != null ? cycles.getAndDecrement(): cycles.get();
 		List<Map<String, String>> assetFilter = (List<Map<String, String>>)appContext.getBean("indicatorDetectorAssetFilter");
+		Collection<String> dafaultAssets = assetFilter.stream().filter(entry -> entry.get("ALL-ASSETS") != null).map(entry -> entry.get("ALL-ASSETS")).collect(Collectors.toList());
 		while (cyclesSupplier.get() > 0) {
 			Asset.Collection dataCollection = new Asset.Collection().setOnTopFixedHeader(
 				Boolean.valueOf((String)((Map<String, Object>)appContext.getBean("indicatorMailServiceNotifierConfig")).get("text.table.on-top-fixed-header"))
@@ -323,11 +324,10 @@ public class Application implements CommandLineRunner {
 			for (Map.Entry<Wallet, ProducerTask<Collection<String>>> walletForAvailableCoins : walletsForAvailableCoins.entrySet()) {
 				if (walletForAvailableCoins.getKey() instanceof BinanceWallet) {
 					Long totalIterationElapsedTime = System.currentTimeMillis();
-					String defaultCollateral = walletForAvailableCoins.getKey().getCollateralForCoin("DEFAULT");
 					Collection<Map<String, Object>> assetsToBeProcessed = ((BinanceWallet)walletForAvailableCoins.getKey()).getAllMarginAssetPairs()
 						.stream().filter(asset -> {
-							if (assetFilter.isEmpty()) {
-								return asset.get("quote").equals(defaultCollateral);
+							if (dafaultAssets.contains((String)asset.get("quote"))) {
+								return true;
 							} else {
 								return assetFilter.stream().filter(entry -> {
 									String collateral = entry.get((String)asset.get("base"));

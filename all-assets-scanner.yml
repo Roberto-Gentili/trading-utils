@@ -28,6 +28,8 @@ burningwave.core.static-component-container:
 
 service:
    detector:
+      analyze:
+         - ALL-ASSETS: USDC
       interval:
          - 15m: 600
          - 1h: 300
