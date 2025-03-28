@@ -14,6 +14,6 @@ Icacls "%UserProfile%\.ssh\id_rsa"
 
 sc start ssh-agent
 echo.
-echo Una volta che il servizio ssh-agent di Windows è avviato, per memorizzare nella cache la passphrase, digitare il comando'ssh-add %HOMEDRIVE%%HOMEPATH%\.ssh\id_rsa'
+echo Una volta che il servizio ssh-agent di Windows e' avviato, per memorizzare nella cache la passphrase, digitare il comando'ssh-add %HOMEDRIVE%%HOMEPATH%\.ssh\id_rsa'
 echo.
 echo.
