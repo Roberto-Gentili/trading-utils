@@ -469,8 +469,8 @@ public class Application implements CommandLineRunner {
 						getClass()::getName,
 						"Total iteration elapsed time: " + (totalIterationElapsedTime/1000d) + " seconds"
 					);
-					if (totalIterationElapsedTime < 90000) {
-						long waitingTime = (90000 - totalIterationElapsedTime);
+					if (totalIterationElapsedTime < viewAutorefreshOption) {
+						long waitingTime = (viewAutorefreshOption - totalIterationElapsedTime);
 						org.burningwave.core.assembler.StaticComponentContainer.ManagedLoggerRepository.logInfo(
 							getClass()::getName,
 							"Waiting " + (waitingTime/1000d) + " seconds"
