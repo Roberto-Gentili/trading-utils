@@ -481,9 +481,11 @@ public class Application implements CommandLineRunner {
 							projectFolderAbsolutePathSupplier.join() + "/temp/" + destinationFileName,
 							("<html>" +
 								"<script>" +
+									"window.onload=function(){anch=window.location.hash;window.location.hash=anch;};"+
 									"window.setTimeout( function() {" +
 										"window.location.reload();" +
 									"}, " + autorefreshTime + ");" +
+
 								"</script>" +
 								"<body style=\"font-family: verdana;" + Asset.DEFAULT_FONT_SIZE +"\">" +
 									presentation.toString().replace("{0}", "") + dataCollection.setOnTopFixedHeader(true).toHTML() +
