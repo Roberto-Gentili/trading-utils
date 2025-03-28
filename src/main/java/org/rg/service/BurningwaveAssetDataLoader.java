@@ -41,7 +41,6 @@ class BurningwaveAssetDataLoader implements ParallelIterator {
 			return entry;
 		});
 		task.submit();
-		task.join();
 		assetDataLoaders.add(
 			task
 		);
