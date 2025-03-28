@@ -44,12 +44,22 @@ public class RSIDetector extends CriticalIndicatorValueDetectorAbst {
 		);
 		Map<String, Object> values = new LinkedHashMap<>();
 		if (latestRSIValue != 0) {
-			if (latestRSIValue > 70) {
-				values.put(interval.toString(), ColoredNumber.valueOf(latestRSIValue).color(Color.RED.getCode()));
-			} else if (latestRSIValue < 30) {
-				values.put(interval.toString(), ColoredNumber.valueOf(latestRSIValue).color(Color.GREEN.getCode()));
+			ColoredNumber coloredNumber = ColoredNumber.valueOf(latestRSIValue);
+			if (latestRSIValue > 80) {
+				values.put(interval.toString(), coloredNumber.color(Color.DARK_RED.getCode()));
+			} else if (latestRSIValue > 70) {
+				values.put(interval.toString(), coloredNumber.color(Color.RED.getCode()));
+			} else if (latestRSIValue < 20) {
+				values.put(interval.toString(), coloredNumber.color(Color.GREEN.getCode()));
+			} else if (latestRSIValue < 30)  {
+				values.put(interval.toString(), coloredNumber.color(Color.DARK_GREEN.getCode()));
 			} else if (shouldMantainData(data)) {
-				values.put(interval.toString(), ColoredNumber.valueOf(latestRSIValue));
+				if (latestRSIValue > 60) {
+					coloredNumber.color(Color.ORANGE.getCode());
+				} else if (latestRSIValue < 40) {
+					coloredNumber.color(Color.LIGHT_GREEN.getCode());
+				}
+				values.put(interval.toString(), coloredNumber);
 			}
 		}
 		if (!values.isEmpty()) {
