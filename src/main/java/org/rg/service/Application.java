@@ -647,7 +647,7 @@ public class Application implements CommandLineRunner {
 			for (Interval interval : intervals) {
 				detected =
 					process(
-						new EMADetector(assetName,collateralName,candlesticks, false, 25,50,100,200)
+						new EMADetector(assetName,collateralName,candlesticks, false, 21,50,100,200)
 							.setMantainAssetDataFilter(mantainAssetDataFilter),
 						interval,
 						dataCollection,
