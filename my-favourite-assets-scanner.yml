@@ -61,6 +61,6 @@ service:
          view:
             destination-file: 'selected-assets.html'
             #possible values: 'github.com', 'neocities.org'
-            save-on: 'github.com'
+            save-on: 'neocities.org'
             #negative value means autodetect
-            autorefresh-every: -1
+            autorefresh-every: 90000
