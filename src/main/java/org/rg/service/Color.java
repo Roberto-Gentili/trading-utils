@@ -24,4 +24,30 @@ public enum Color {
 	public String toString() {
 		return this.code;
 	}
+
+	public boolean isGreen() {
+		return this == DARK_GREEN || this == CHART_REUSE || this == GREEN;
+	}
+
+	public boolean isRed() {
+		return this == ORANGE || this == RED || this == DARK_RED;
+	}
+
+	public static boolean isGreen(String code) {
+		for (Color value : Color.values()) {
+			if (value.isGreen() && value.getCode().equals(code)) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	public static boolean isRed(String code) {
+		for (Color value : Color.values()) {
+			if (value.isRed() && value.getCode().equals(code)) {
+				return true;
+			}
+		}
+		return false;
+	}
 }
