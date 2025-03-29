@@ -36,9 +36,14 @@ import org.burningwave.core.assembler.StaticComponentContainer;
 import org.burningwave.core.concurrent.QueuedTaskExecutor.ProducerTask;
 import org.burningwave.core.io.FileSystemItem;
 import org.burningwave.core.iterable.IterableObjectHelper.IterationConfig;
+import org.rg.finance.DefaultDataLoader;
+import org.rg.finance.BinanceDataSupplier;
 import org.rg.finance.BinanceWallet;
+import org.rg.finance.BurningwaveAssetDataLoader;
 import org.rg.finance.CryptoComWallet;
+import org.rg.finance.DataSupplier;
 import org.rg.finance.Interval;
+import org.rg.finance.AssetDataLoader;
 import org.rg.finance.Wallet;
 import org.rg.service.detector.BigCandleDetector;
 import org.rg.service.detector.BollingerBandDetector;
@@ -255,6 +260,11 @@ public class Application implements CommandLineRunner {
 		return new ArrayList<>();
 	}
 
+	@Bean("serviceDetectorConfigNew")
+	@ConfigurationProperties("service.detector")
+	public Map<String, Object> serviceDetectorConfigNew() {
+		return new LinkedHashMap<>();
+	}
 
 	private Map<String, String> createMap() {
 		return new LinkedHashMap<String, String>() {
@@ -277,21 +287,7 @@ public class Application implements CommandLineRunner {
 	@Override
 	public void run(String... args) throws Exception {
 		init();
-		Map<Wallet, ProducerTask<Collection<String>>> walletsForAvailableCoins = new LinkedHashMap<>();
-		for(String beanName : appContext.getBeanNamesForType(Wallet.class)) {
-			Wallet wallet = appContext.getBean(beanName, Wallet.class);
-			walletsForAvailableCoins.put(
-				wallet,
-				org.burningwave.core.assembler.StaticComponentContainer.BackgroundExecutor.createProducerTask(()-> {
-					try {
-						return wallet.getAvailableCoins();
-					} catch (Throwable exc) {
-						org.burningwave.core.assembler.StaticComponentContainer.ManagedLoggerRepository.logError(getClass()::getName, exc);
-						return new ArrayList<String>();
-					}
-				}).submit()
-			);
-		}
+		Object o = appContext.getBean("serviceDetectorConfigNew");
 		Map<Interval, Integer> candlestickQuantityForInterval = new LinkedHashMap<>();
 		for (Map.Entry<String, String> entry : ((Map<String, String>)appContext.getBean("indicatorDetectorIntervals")).entrySet()) {
 			candlestickQuantityForInterval.put(Interval.fromValue(entry.getKey()), Integer.valueOf(entry.getValue()));
@@ -342,204 +338,205 @@ public class Application implements CommandLineRunner {
 				return collateral != null && collateral.equals(asset.getCollateral());
 			}).findAny().get();
 		};
+		Collection<DataSupplier> walletsForAvailableCoins = getDataSuppliers();
 		while (cyclesSupplier.get() > 0) {
 			Asset.Collection dataCollection = new Asset.Collection().setOnTopFixedHeader(
 				Boolean.valueOf((String)((Map<String, Object>)appContext.getBean("indicatorMailServiceNotifierConfig")).get("text.table.on-top-fixed-header"))
 			);
 			Long endIterationTime = null;
-			for (Map.Entry<Wallet, ProducerTask<Collection<String>>> walletForAvailableCoins : walletsForAvailableCoins.entrySet()) {
-				if (walletForAvailableCoins.getKey() instanceof BinanceWallet) {
-					Collection<Map<String, Object>> assetsToBeProcessed = ((BinanceWallet)walletForAvailableCoins.getKey()).getAllMarginAssetPairs()
-						.stream().filter(asset -> {
-							if (dafaultAssets.contains((String)asset.get("quote"))) {
-								return true;
-							} else {
-								return assetFilter.stream().filter(entry -> {
-									String collateral = entry.get((String)asset.get("base"));
-									return collateral != null && collateral.equals((String)asset.get("quote"));
-								}).findAny().isPresent();
+			for (DataSupplier dataSupplierForAvailableCoins : walletsForAvailableCoins) {
+				DataSupplier dataSupplier = dataSupplierForAvailableCoins;
+				Collection<Map<String, Object>> assetsToBeProcessed = dataSupplier.availableFiltered(dafaultAssets, assetFilter);
+				Long elapsedTimeForRetrieveRemoteData = System.currentTimeMillis();
+				processWithBurningwave(
+					candlestickQuantityForInterval.keySet(),
+					candlestickQuantityForInterval,
+					candlesticksForCoin,
+					dataCollection,
+					dataSupplierForAvailableCoins,
+					mantainAssetDataFilter,
+					assetsToBeProcessed
+				);
+				elapsedTimeForRetrieveRemoteData = System.currentTimeMillis() - elapsedTimeForRetrieveRemoteData;
+				double elapsedTimeForRetrieveRemoteDataInSeconds = elapsedTimeForRetrieveRemoteData / 1000d;
+				org.burningwave.core.assembler.StaticComponentContainer.ManagedLoggerRepository.logInfo(
+					getClass()::getName,
+					"Elapsed time for data retrieve: {} seconds",
+					elapsedTimeForRetrieveRemoteDataInSeconds
+				);
+				Long elapsedTimeForComputation = System.currentTimeMillis();
+				if (minNumberOfIndicatorsDetectedOption > -1) {
+					dataCollection.filter(asset -> {
+						Collection<Runnable> alreadyNotifiedUpdaters = new ArrayList<>();
+						int[] counters = {0,0,0};
+						List<int[]> counterList = Arrays.asList(
+							computeIfMustBeNotified(candlestickQuantityForInterval.keySet(), showConsistentDataOption, alreadyNotifiedMap, candlesticksForCoin, asset,
+									RSIDetector.class, asset.getRSI(), alreadyNotifiedUpdaters),
+							computeIfMustBeNotified(candlestickQuantityForInterval.keySet(), showConsistentDataOption, alreadyNotifiedMap, candlesticksForCoin, asset,
+									StochasticRSIDetector.class, asset.getStochasticRSI(), alreadyNotifiedUpdaters),
+							computeIfMustBeNotified(candlestickQuantityForInterval.keySet(), showConsistentDataOption, alreadyNotifiedMap, candlesticksForCoin, asset,
+									BollingerBandDetector.class, asset.getBollingerBands(), alreadyNotifiedUpdaters),
+							computeIfMustBeNotified(candlestickQuantityForInterval.keySet(), showConsistentDataOption, alreadyNotifiedMap, candlesticksForCoin, asset,
+									SpikeDetector.class, asset.getSpikeSizePercentage(), alreadyNotifiedUpdaters),
+							computeIfMustBeNotified(candlestickQuantityForInterval.keySet(), showConsistentDataOption, alreadyNotifiedMap, candlesticksForCoin, asset,
+									BigCandleDetector.class, asset.getVariationPercentages(), alreadyNotifiedUpdaters)
+						);
+						for (int i = 0; i < counterList.size(); i++) {
+							int[] countersFromCounterList = counterList.get(i);
+							for (int j = 0; j < counters.length; j++) {
+								counters[j] += countersFromCounterList[j];
 							}
-						}).collect(Collectors.toList());
-//					marginUSDCCoins = new ArrayList<>(marginUSDCCoins).subList(0, 25);
-					Long elapsedTimeForRetrieveRemoteData = System.currentTimeMillis();
-					processWithBurningwave(
-						candlestickQuantityForInterval.keySet(),
-						candlestickQuantityForInterval,
-						candlesticksForCoin,
-						dataCollection,
-						walletForAvailableCoins,
-						mantainAssetDataFilter,
-						assetsToBeProcessed
-					);
-					elapsedTimeForRetrieveRemoteData = System.currentTimeMillis() - elapsedTimeForRetrieveRemoteData;
-					double elapsedTimeForRetrieveRemoteDataInSeconds = elapsedTimeForRetrieveRemoteData / 1000d;
-					org.burningwave.core.assembler.StaticComponentContainer.ManagedLoggerRepository.logInfo(
-						getClass()::getName,
-						"Elapsed time for data retrieve: {} seconds",
-						elapsedTimeForRetrieveRemoteDataInSeconds
-					);
-					Long elapsedTimeForComputation = System.currentTimeMillis();
-					if (minNumberOfIndicatorsDetectedOption > -1) {
-						dataCollection.filter(asset -> {
-							Collection<Runnable> alreadyNotifiedUpdaters = new ArrayList<>();
-							int[] counters = {0,0,0};
-							List<int[]> counterList = Arrays.asList(
-								computeIfMustBeNotified(candlestickQuantityForInterval.keySet(), showConsistentDataOption, alreadyNotifiedMap, candlesticksForCoin, asset,
-										RSIDetector.class, asset.getRSI(), alreadyNotifiedUpdaters),
-								computeIfMustBeNotified(candlestickQuantityForInterval.keySet(), showConsistentDataOption, alreadyNotifiedMap, candlesticksForCoin, asset,
-										StochasticRSIDetector.class, asset.getStochasticRSI(), alreadyNotifiedUpdaters),
-								computeIfMustBeNotified(candlestickQuantityForInterval.keySet(), showConsistentDataOption, alreadyNotifiedMap, candlesticksForCoin, asset,
-										BollingerBandDetector.class, asset.getBollingerBands(), alreadyNotifiedUpdaters),
-								computeIfMustBeNotified(candlestickQuantityForInterval.keySet(), showConsistentDataOption, alreadyNotifiedMap, candlesticksForCoin, asset,
-										SpikeDetector.class, asset.getSpikeSizePercentage(), alreadyNotifiedUpdaters),
-								computeIfMustBeNotified(candlestickQuantityForInterval.keySet(), showConsistentDataOption, alreadyNotifiedMap, candlesticksForCoin, asset,
-										BigCandleDetector.class, asset.getVariationPercentages(), alreadyNotifiedUpdaters)
-							);
-							for (int i = 0; i < counterList.size(); i++) {
-								int[] countersFromCounterList = counterList.get(i);
-								for (int j = 0; j < counters.length; j++) {
-									counters[j] += countersFromCounterList[j];
-								}
+						}
+						if (ShowConsistentDataOption.HIGHLIGHT_THEM.valueEquals(showConsistentDataOption)) {
+							if ((counters[1] == 0 && counters[2] > 0)) {
+								asset.highligtName(Color.GREEN.getCode());
+							} else if ((counters[2] == 0 && counters[1] > 0)) {
+								asset.highligtName(Color.RED.getCode());
 							}
-							if (ShowConsistentDataOption.HIGHLIGHT_THEM.valueEquals(showConsistentDataOption)) {
-								if ((counters[1] == 0 && counters[2] > 0)) {
-									asset.highligtName(Color.GREEN.getCode());
-								} else if ((counters[2] == 0 && counters[1] > 0)) {
-									asset.highligtName(Color.RED.getCode());
-								}
+						}
+						if (!ShowConsistentDataOption.ONLY_THEM.valueEquals(showConsistentDataOption)) {
+							if (counters[0] >= minNumberOfIndicatorsDetectedOption) {
+								alreadyNotifiedUpdaters.stream().forEach(Runnable::run);
 							}
-							if (!ShowConsistentDataOption.ONLY_THEM.valueEquals(showConsistentDataOption)) {
-								if (counters[0] >= minNumberOfIndicatorsDetectedOption) {
-									alreadyNotifiedUpdaters.stream().forEach(Runnable::run);
-								}
-								return
-									mantainAssetDataFilter.apply(asset) ||
-									counters[0] >= minNumberOfIndicatorsDetectedOption;
-							} else {
-								boolean	show = (counters[1] == 0 && counters[2] >= minNumberOfIndicatorsDetectedOption) ||
-									counters[2] == 0 && counters[1] >= minNumberOfIndicatorsDetectedOption;
-								if (show) {
-									alreadyNotifiedUpdaters.stream().forEach(Runnable::run);
-								}
-								return
-									show ||
-									mantainAssetDataFilter.apply(asset);
+							return
+								mantainAssetDataFilter.apply(asset) ||
+								counters[0] >= minNumberOfIndicatorsDetectedOption;
+						} else {
+							boolean	show = (counters[1] == 0 && counters[2] >= minNumberOfIndicatorsDetectedOption) ||
+								counters[2] == 0 && counters[1] >= minNumberOfIndicatorsDetectedOption;
+							if (show) {
+								alreadyNotifiedUpdaters.stream().forEach(Runnable::run);
 							}
-						});
-					}
-					StringBuffer presentation = new StringBuffer(
-						"<p style=\"" + Asset.DEFAULT_FONT_SIZE + "\">" +
-						"Ciao!<br/>In data <b>" + new SimpleDateFormat("yyyy\\MM\\dd-HH:mm:ss").format(new Date())+ "</b> " +
-						"sono stati rilevati i seguenti " + (dataCollection.size() -1) + " asset con variazioni rilevanti {0}</p><br/>"
-					);
-					List<String> notifiedAssetInThisEmail = null;
-					boolean sameAssetsSentInPreviousEmail = false;
-					if (!resendAlreadyNotifiedOption) {
-						notifiedAssetInThisEmail = dataCollection.getAssetList().stream()
-							.map(Asset::getName).collect(Collectors.toList());
-						sameAssetsSentInPreviousEmail =
-							notifiedAssetInThisEmail.containsAll(notifiedAssetInPreviousEmail) &&
-							notifiedAssetInPreviousEmail.containsAll(notifiedAssetInThisEmail);
-					}
-					elapsedTimeForComputation = System.currentTimeMillis() - elapsedTimeForComputation;
-					double elapsedTimeForComputationInSeconds = elapsedTimeForComputation / 1000d;
-					org.burningwave.core.assembler.StaticComponentContainer.ManagedLoggerRepository.logInfo(
-						getClass()::getName,
-						"Elapsed time for computation: {} seconds",
-						elapsedTimeForComputationInSeconds
-					);
-					if (!sameAssetsSentInPreviousEmail && dataCollection.size() > 0) {
-						if (!recipients.isEmpty()) {
-							sendMail(
-								recipients,
-								"Segnalazione asset",
-								presentation.toString().replace(
-									"{0}",
-									"(la lista è visualizzabile anche da <a href=\"" +
-									(SaveOn.GitHub_com.name().replace("_", ".").equalsIgnoreCase(saveOn) ?
-									"https://html-preview.github.io/?url=https://github.com/Roberto-Gentili/trading-utils/blob/main/temp/" + destinationFileName:
-										(SaveOn.neocities_org.name().replace("_", ".").equalsIgnoreCase(saveOn) ?
-											"https://rg-shared.neocities.org/assets" :
-											"")
-									) +
-									"\">qui</a>)"
+							return
+								show ||
+								mantainAssetDataFilter.apply(asset);
+						}
+					});
+				}
+				StringBuffer presentation = new StringBuffer(
+					"<p style=\"" + Asset.DEFAULT_FONT_SIZE + "\">" +
+					"Ciao!<br/>In data <b>" + new SimpleDateFormat("yyyy\\MM\\dd-HH:mm:ss").format(new Date())+ "</b> " +
+					"sono stati rilevati i seguenti " + (dataCollection.size() -1) + " asset con variazioni rilevanti {0}</p><br/>"
+				);
+				List<String> notifiedAssetInThisEmail = null;
+				boolean sameAssetsSentInPreviousEmail = false;
+				if (!resendAlreadyNotifiedOption) {
+					notifiedAssetInThisEmail = dataCollection.getAssetList().stream()
+						.map(Asset::getName).collect(Collectors.toList());
+					sameAssetsSentInPreviousEmail =
+						notifiedAssetInThisEmail.containsAll(notifiedAssetInPreviousEmail) &&
+						notifiedAssetInPreviousEmail.containsAll(notifiedAssetInThisEmail);
+				}
+				elapsedTimeForComputation = System.currentTimeMillis() - elapsedTimeForComputation;
+				double elapsedTimeForComputationInSeconds = elapsedTimeForComputation / 1000d;
+				org.burningwave.core.assembler.StaticComponentContainer.ManagedLoggerRepository.logInfo(
+					getClass()::getName,
+					"Elapsed time for computation: {} seconds",
+					elapsedTimeForComputationInSeconds
+				);
+				if (!sameAssetsSentInPreviousEmail && dataCollection.size() > 0) {
+					if (!recipients.isEmpty()) {
+						sendMail(
+							recipients,
+							"Segnalazione asset",
+							presentation.toString().replace(
+								"{0}",
+								"(la lista è visualizzabile anche da <a href=\"" +
+								(SaveOn.GitHub_com.name().replace("_", ".").equalsIgnoreCase(saveOn) ?
+								"https://html-preview.github.io/?url=https://github.com/Roberto-Gentili/trading-utils/blob/main/temp/" + destinationFileName:
+									(SaveOn.neocities_org.name().replace("_", ".").equalsIgnoreCase(saveOn) ?
+										"https://rg-shared.neocities.org/assets" :
+										"")
 								) +
-								dataCollection.toHTML(),
-								(String[])null
-							);
-						}
-						if (!projectFolderAbsolutePathSupplier.wasExecuted()) {
-							projectFolderAbsolutePathSupplier.changePriority(Thread.MAX_PRIORITY);
-						}
-						long autorefreshTime = computeAutoRefresh(
-							viewAutorefreshOption,
-							elapsedTimeForRetrieveRemoteData,
-							elapsedTimeForComputation
+								"\">qui</a>)"
+							) +
+							dataCollection.toHTML(),
+							(String[])null
 						);
+					}
+					if (!projectFolderAbsolutePathSupplier.wasExecuted()) {
+						projectFolderAbsolutePathSupplier.changePriority(Thread.MAX_PRIORITY);
+					}
+					long autorefreshTime = computeAutoRefresh(
+						viewAutorefreshOption,
+						elapsedTimeForRetrieveRemoteData,
+						elapsedTimeForComputation
+					);
 
-						FileSystemItem tempFile = org.burningwave.core.assembler.StaticComponentContainer.Streams.store(
-							projectFolderAbsolutePathSupplier.join() + "/temp/" + destinationFileName,
-							("<html>" +
-								"<script>" +
-									"window.setTimeout( function() {" +
-										"self.location.reload();" +
-									"}, " + autorefreshTime + ");" +
-								"</script>" +
-								"<body style=\"font-family: verdana;" + Asset.DEFAULT_FONT_SIZE +"\">" +
-									presentation.toString().replace("{0}", "") + dataCollection.setOnTopFixedHeader(true).toHTML() +
-								"</body>" +
-							"</html>")
-							.getBytes(StandardCharsets.UTF_8)
-						);
+					FileSystemItem tempFile = org.burningwave.core.assembler.StaticComponentContainer.Streams.store(
+						projectFolderAbsolutePathSupplier.join() + "/temp/" + destinationFileName,
+						("<html>" +
+							"<script>" +
+								"window.setTimeout( function() {" +
+									"self.location.reload();" +
+								"}, " + autorefreshTime + ");" +
+							"</script>" +
+							"<body style=\"font-family: verdana;" + Asset.DEFAULT_FONT_SIZE +"\">" +
+								presentation.toString().replace("{0}", "") + dataCollection.setOnTopFixedHeader(true).toHTML() +
+							"</body>" +
+						"</html>")
+						.getBytes(StandardCharsets.UTF_8)
+					);
 
-						if (endIterationTime != null) {
-							long currentTime = System.currentTimeMillis();
-							if ((currentTime - endIterationTime) < autorefreshTime) {
-								long waitingTime = (autorefreshTime - (currentTime - endIterationTime));
-								org.burningwave.core.assembler.StaticComponentContainer.ManagedLoggerRepository.logInfo(
-									getClass()::getName,
-									"Waiting for " + (waitingTime/1000d) + " seconds"
-								);
-								Thread.sleep((waitingTime));
-							}
-						}
-						if (SaveOn.neocities_org.name().replace("_", ".").equalsIgnoreCase(saveOn)) {
-							ShellExecutor.execute(
-								projectFolderAbsolutePathSupplier.join() + "/upload-assets.cmd "+
-								destinationFileName + " " +
-								environment.getProperty("NEOCITIES_ACCOUNT_NAME")+":"+
-								environment.getProperty("NEOCITIES_ACCOUNT_PASSWORD"),
-								true
+					if (endIterationTime != null) {
+						long currentTime = System.currentTimeMillis();
+						if ((currentTime - endIterationTime) < autorefreshTime) {
+							long waitingTime = (autorefreshTime - (currentTime - endIterationTime));
+							org.burningwave.core.assembler.StaticComponentContainer.ManagedLoggerRepository.logInfo(
+								getClass()::getName,
+								"Waiting for " + (waitingTime/1000d) + " seconds"
 							);
+							Thread.sleep((waitingTime));
+						}
+					}
+					if (SaveOn.neocities_org.name().replace("_", ".").equalsIgnoreCase(saveOn)) {
+						ShellExecutor.execute(
+							projectFolderAbsolutePathSupplier.join() + "/upload-assets.cmd "+
+							destinationFileName + " " +
+							environment.getProperty("NEOCITIES_ACCOUNT_NAME")+":"+
+							environment.getProperty("NEOCITIES_ACCOUNT_PASSWORD"),
+							true
+						);
 //							StaticComponentContainer.FileSystemHelper.delete(tempFile.getAbsolutePath());
-						} else if (SaveOn.GitHub_com.name().replace("_", ".").equalsIgnoreCase(saveOn)) {
-							ShellExecutor.execute(
-								projectFolderAbsolutePathSupplier.join() + "/update-project.cmd ",
-								true
-							);
-						}
-						endIterationTime =
-							System.currentTimeMillis();
-						if (notifiedAssetInThisEmail != null) {
-							notifiedAssetInPreviousEmail.clear();
-							notifiedAssetInPreviousEmail.addAll(notifiedAssetInThisEmail);
-						}
-					} else {
-						org.burningwave.core.assembler.StaticComponentContainer.ManagedLoggerRepository.logInfo(
-							getClass()::getName,
-							" --- Nothing detected --- "
+					} else if (SaveOn.GitHub_com.name().replace("_", ".").equalsIgnoreCase(saveOn)) {
+						ShellExecutor.execute(
+							projectFolderAbsolutePathSupplier.join() + "/update-project.cmd ",
+							true
 						);
 					}
-					dataCollection.clear();
-					candlesticksForCoin.clear();
-					if (resendAlreadyNotifiedOption) {
-						buildAlreadyNotifiedHolder(candlestickQuantityForInterval.keySet(), alreadyNotifiedMap);
+					endIterationTime =
+						System.currentTimeMillis();
+					if (notifiedAssetInThisEmail != null) {
+						notifiedAssetInPreviousEmail.clear();
+						notifiedAssetInPreviousEmail.addAll(notifiedAssetInThisEmail);
 					}
-
+				} else {
+					org.burningwave.core.assembler.StaticComponentContainer.ManagedLoggerRepository.logInfo(
+						getClass()::getName,
+						" --- Nothing detected --- "
+					);
+				}
+				dataCollection.clear();
+				candlesticksForCoin.clear();
+				if (resendAlreadyNotifiedOption) {
+					buildAlreadyNotifiedHolder(candlestickQuantityForInterval.keySet(), alreadyNotifiedMap);
 				}
 			}
 		}
 		System.exit(0);
+	}
+
+	protected Collection<DataSupplier> getDataSuppliers() {
+		Collection<DataSupplier> dataSuppliers = new ArrayList<>();
+		for(String beanName : appContext.getBeanNamesForType(Wallet.class)) {
+			Wallet wallet = appContext.getBean(beanName, Wallet.class);
+			if (wallet instanceof BinanceWallet) {
+				dataSuppliers.add(
+					new BinanceDataSupplier((BinanceWallet)wallet)
+				);
+			}
+		}
+		return dataSuppliers;
 	}
 
 	protected long computeAutoRefresh(long viewAutorefreshOption, Long elapsedTimeForRetrieveRemoteData,
@@ -554,7 +551,7 @@ public class Application implements CommandLineRunner {
 		Map<String,
 		Map<Interval, BarSeries>> candlesticksForCoin,
 		Asset.Collection dataCollection,
-		Map.Entry<Wallet, ProducerTask<Collection<String>>> walletForAvailableCoins,
+		DataSupplier dataSupplierForAvailableCoins,
 		Function<Asset, Boolean> mantainAssetDataFilter,
 		Collection<Map<String, Object>> assets
 	) {
@@ -573,7 +570,7 @@ public class Application implements CommandLineRunner {
 						);
 					},
 					dataCollection,
-					walletForAvailableCoins,
+					dataSupplierForAvailableCoins,
 					mantainAssetDataFilter,
 					(String)asset.get("base"),
 					(String)asset.get("quote")
@@ -589,7 +586,7 @@ public class Application implements CommandLineRunner {
 		Map<String,
 		Map<Interval, BarSeries>> candlesticksForCoin,
 		Asset.Collection dataCollection,
-		Map.Entry<Wallet, ProducerTask<Collection<String>>> walletForAvailableCoins,
+		DataSupplier dataSupplierForAvailableCoins,
 		Function<Asset, Boolean> mantainAssetDataFilter,
 		Collection<Map<String, Object>> assets
 	) {
@@ -598,15 +595,15 @@ public class Application implements CommandLineRunner {
 				intervals,
 				candlestickQuantityForInterval,
 				candlesticksForCoin,
-				wallet -> assetNm ->{
-					return new AssetDataLoader(
-						wallet,
+				dataSupplier -> assetNm ->{
+					return new DefaultDataLoader(
+						dataSupplier,
 						assetNm,
 						(String)asset.get("quote")
 					);
 				},
 				dataCollection,
-				walletForAvailableCoins,
+				dataSupplierForAvailableCoins,
 				mantainAssetDataFilter,
 				(String)asset.get("base"),
 				(String)asset.get("quote")
@@ -617,9 +614,9 @@ public class Application implements CommandLineRunner {
 	protected void processAsset(
 		Collection<Interval> intervals, Map<Interval, Integer> candlestickQuantityForInterval,
 		Map<String, Map<Interval, BarSeries>> candlesticksForCoin,
-		Function<Wallet, Function<String, ParallelIterator>> parallalIteratorSupplier,
+		Function<DataSupplier, Function<String, AssetDataLoader>> parallalIteratorSupplier,
 		Asset.Collection dataCollection,
-		Map.Entry<Wallet, ProducerTask<Collection<String>>> walletForAvailableCoins,
+		DataSupplier dataSupplierForAvailableCoins,
 		Function<Asset, Boolean> mantainAssetDataFilter,
 		String assetName,
 		String collateralName
@@ -630,8 +627,8 @@ public class Application implements CommandLineRunner {
 				"Loading data from remote for asset {}...",
 				assetName
 			);
-			ParallelIterator assetDataLoader = parallalIteratorSupplier.apply(
-				walletForAvailableCoins.getKey()
+			AssetDataLoader assetDataLoader = parallalIteratorSupplier.apply(
+				dataSupplierForAvailableCoins
 			).apply(assetName);
 			for (Map.Entry<Interval, Integer> cFI : candlestickQuantityForInterval.entrySet()) {
 				assetDataLoader = assetDataLoader.loadInParallel(cFI.getKey(), cFI.getValue());
