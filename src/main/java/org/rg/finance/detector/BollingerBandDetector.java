@@ -1,4 +1,4 @@
-package org.rg.service.detector;
+package org.rg.finance.detector;
 
 import java.math.BigDecimal;
 import java.util.LinkedHashMap;
