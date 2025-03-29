@@ -72,13 +72,13 @@ public class BollingerBandDetector extends CriticalIndicatorValueDetectorAbst {
 			} else if (high.compareTo(bBUpper) >= 0) {
 				values.put(
 					interval.toString() + "-u",
-					ColoredNumber.valueOf(bBLower.doubleValue()).color(Color.RED.getCode())
+					ColoredNumber.valueOf(bBUpper.doubleValue()).color(Color.RED.getCode())
 				);
 			}
 		} else if (shouldMantainData(data)) {
 			values.put(
 				interval.toString() + "-u",
-				ColoredNumber.valueOf(bBLower.doubleValue())
+				ColoredNumber.valueOf(bBUpper.doubleValue())
 			);
 			values.put(
 				interval.toString() + "-l",
